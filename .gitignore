@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+node_modules/
+dist/
+.npm-cache/
+.playwright-mcp/
+*.tsbuildinfo
+samples/private/
+.env.*
+!.env.example
