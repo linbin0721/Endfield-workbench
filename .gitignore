@@ -1,13 +1,42 @@
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 .venv/
-.env
+venv/
+
+# Node / Vite
 node_modules/
 dist/
-.npm-cache/
-.playwright-mcp/
+.vite/
 *.tsbuildinfo
-samples/private/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local configuration and caches
+.env
 .env.*
 !.env.example
+.npm-cache/
+.playwright-mcp/
+.vercel/
+
+# Private recognition samples
+samples/private/
+
+# Editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
