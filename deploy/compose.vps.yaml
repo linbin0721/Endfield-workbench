@@ -1,0 +1,28 @@
+# Overlay for a host where an existing Nginx already owns public TCP 80/443.
+#
+# Use it together with the base file, never on its own:
+#   docker compose -f compose.yaml -f compose.vps.yaml up --build -d
+#
+# Differences from the standalone base deployment:
+#   - the API is published on loopback only, 127.0.0.1:18000 -> 8000, so Nginx
+#     can proxy it without exposing the container directly;
+#   - caddy is moved into the "caddy" profile, so it is not started and cannot
+#     claim ports 80/443 unless that profile is explicitly enabled;
+#   - the top-level project name is pinned to endfield-workbench, so this stack
+#     never falls back to the directory-derived "deploy" project and cannot
+#     collide with another Compose project on the same VPS.
+#
+# Compose interpolates the base file before merging, so API_DOMAIN and
+# CORS_ORIGINS must still be set even while caddy stays disabled. API_DOMAIN is
+# unused in this mode; CORS_ORIGINS must list the exact Vercel origin.
+
+name: endfield-workbench
+
+services:
+  api:
+    ports:
+      - "127.0.0.1:18000:8000"
+
+  caddy:
+    profiles:
+      - caddy

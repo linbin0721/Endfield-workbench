@@ -1,6 +1,8 @@
 # Linux API deployment and capacity check
 
-This directory deploys the API behind Caddy. The Vercel site remains a separate static build; its public `VITE_API_BASE_URL` must be `https://` plus the API domain. The API container has no published host port. Caddy is the only public entry point on ports 80 and 443.
+This directory deploys the API behind Caddy. The Vercel site remains a separate static build; its public `VITE_API_BASE_URL` must be `https://` plus the API domain. In this standalone mode the API container has no published host port and Caddy is the only public entry point on ports 80 and 443.
+
+On a host where an existing Nginx already owns public TCP 80/443, use `compose.vps.yaml` as an overlay instead: the API is then published on loopback only and Caddy stays disabled. See [API-only host behind an existing Nginx](#api-only-host-behind-an-existing-nginx).
 
 ## Configure and launch
 
@@ -23,6 +25,65 @@ The API runs one Uvicorn process with two compute processes, eight queued tasks,
 
 Caddy streams requests upstream without `request_buffers`. Its 13 MB whole-request ceiling also limits JSON solve submissions; the API separately enforces a 12 MiB image limit and a 12 MiB plus 64 KiB multipart body limit. Uploaded originals are not persisted. Compose gives API shutdown up to 180 seconds. During shutdown, the task manager cancels queued jobs and waits for already running work, including an OCR child within its timeout boundary. The grace period is not a guarantee against abnormal process stalls.
 
+## API-only host behind an existing Nginx
+
+`compose.vps.yaml` is an overlay for a host where an existing Nginx already owns public TCP 80/443 and terminates TLS. It is always combined with the base file and changes only three things:
+
+- the API is published on loopback: `127.0.0.1:18000` on the host to container port `8000`;
+- `caddy` is placed in the `caddy` profile, so it is not created and cannot claim 80/443 unless that profile is explicitly enabled;
+- the top-level Compose project name is pinned to `endfield-workbench`.
+
+A shared VPS usually runs several Compose projects, so the project name must not stay implicit: without it Compose would derive the name `deploy` from this directory, which is generic enough to collide with another stack and would make `docker compose ps`, `down`, logs and container names ambiguous across projects. The overlay pins `name: endfield-workbench`, so containers are named `endfield-workbench-api-1` (and `endfield-workbench-caddy-1` if the `caddy` profile is ever enabled). Use those names with `docker logs` and `docker inspect`; every `docker compose -f compose.yaml -f compose.vps.yaml ...` command run with this file already targets the `endfield-workbench` project. An explicit `-p <other>` or `COMPOSE_PROJECT_NAME` still takes precedence over the file, so do not set them for this deployment.
+
+Standalone mode is unchanged: `docker compose up --build -d` without the overlay still starts `api` and `caddy`, keeps the directory-derived `deploy` project name, and the API still publishes no host port. `docker compose -f compose.yaml -f compose.vps.yaml config --services` prints only `api`.
+
+Compose interpolates the base file before merging, so `API_DOMAIN` and `CORS_ORIGINS` must both be set even though `API_DOMAIN` is unused while Caddy stays disabled. Keep any placeholder `API_DOMAIN` in `deploy/.env` and set `CORS_ORIGINS` to the exact HTTPS origin of the Vercel frontend. There is no final Vercel address yet, so fill that value in as soon as the project has one; the API rejects origins outside the list.
+
+```sh
+cd deploy
+cp .env.example .env
+# Edit .env: CORS_ORIGINS=https://<your-vercel-project>.vercel.app
+# API_DOMAIN is only read by the base file's validation in this mode.
+docker compose -f compose.yaml -f compose.vps.yaml config --quiet
+docker compose -f compose.yaml -f compose.vps.yaml config --services   # prints only "api"
+docker compose -f compose.yaml -f compose.vps.yaml up --build -d
+docker compose -f compose.yaml -f compose.vps.yaml ps
+curl -fsS http://127.0.0.1:18000/api/v1/health
+```
+
+The same validation runs without real values or secrets:
+
+```sh
+API_DOMAIN=api.example.invalid CORS_ORIGINS=https://web.example.invalid \
+  docker compose -f compose.yaml -f compose.vps.yaml config --quiet
+```
+
+### Keep exactly one Uvicorn worker
+
+`api/Dockerfile` already runs `python -m uvicorn ... --workers 1`, and the overlay must not change that. Do not add a `command:` to `api`, do not raise `--workers` above 1, and do not scale the service with `--scale api=N` or `deploy.replicas`. The task queue, running jobs and results live inside the single process; extra Uvicorn workers would answer from separate queues and make valid task IDs return 404 depending on which process handles the request.
+
+### Nginx example and the `/endfield` prefix
+
+The API has no path-prefix configuration and does not need one: Nginx strips the prefix before forwarding. The trailing slash on `proxy_pass` is what removes `/endfield`, so the API still receives `/api/v1/...`:
+
+```nginx
+location = /endfield { return 301 /endfield/; }
+location /endfield/ {
+    proxy_pass http://127.0.0.1:18000/;  # trailing slash strips /endfield
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 13m;
+    proxy_request_buffering off;
+}
+```
+
+To serve the API at the host root instead, drop the prefix and use `location / { proxy_pass http://127.0.0.1:18000; }`; only the Vercel `VITE_API_BASE_URL` value changes.
+
+`client_max_body_size 13m` mirrors Caddy's 13 MB whole-request ceiling from standalone mode: it still admits the 12 MiB image plus multipart overhead and rejects larger bodies before they reach the API. `proxy_request_buffering off` keeps uploads streaming to the API instead of buffering the whole body on the proxy, as required by the deployment design. Nginx terminates TLS on this host, so Caddy stays disabled and the `caddy` profile must not be enabled here: it would try to bind 80/443 as well.
+
+On Vercel, set `VITE_API_BASE_URL=https://<your-host>/endfield` (no trailing slash). The frontend appends `/api/v1/...` to that value, so including the prefix is supported. The Vercel origin must also appear in `CORS_ORIGINS`, because the static site calls the API cross-origin.
+
 ## Load test
 
 Install the API development dependencies on the load-driver machine (`pip install -r api/requirements-dev.txt`). The driver is `api/bench/load_test.py`; it does not run inside the API container. Run solve and recognition separately, with a real unaltered screenshot for recognition:
@@ -33,6 +94,8 @@ python api/bench/load_test.py --mode solve --api-url "https://<your-real-api-dom
 python api/bench/load_test.py --mode recognize --api-url "https://<your-real-api-domain>" --image /private/path/balloon-empty.jpg --requests 100 --concurrency 100 --output recognition-load.json
 ```
 
+When the API is reached through the Nginx overlay, pass `--api-url "https://<your-host>/endfield"` instead; the driver appends `/api/v1/...` to that base URL.
+
 The script reports HTTP 202, HTTP 429, other statuses, transport errors, terminal task status and result outcome separately. It records submission and end-to-end p50/p95 latency and samples `/api/v1/health` during the run. HTTP 202 only means queued or started; HTTP 429 is an intentional refusal under limits. Recognition mode fails before sending requests if the real image is missing. For a local API process, pass `--pid <API_PID>` to sample the API process tree. The script sums resident memory (RSS) across processes, which can count shared pages more than once, and estimates CPU as a percentage of one logical core from positive deltas for processes seen in consecutive samples. Short memory peaks, CPU used before a new child first appears in a sample, and CPU used by children that exit between samples can be missed. The load driver itself is outside that process tree.
 
-Keep the reports with the host CPU count, RAM, API limits, image size, and network path used. A loopback run cannot establish performance on a future server or real user network. Docker Engine is unavailable on the current Windows development host, so the image and Linux runtime still require deployment-host verification.
+Keep the reports with the host CPU count, RAM, API limits, image size, and network path used. A loopback run cannot establish performance on a future server or real user network. The Linux image and runtime were first verified on a VPS on 2026-09-25; repeat these checks on future hosts.
