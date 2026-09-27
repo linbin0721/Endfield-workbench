@@ -57,6 +57,23 @@ def _axis_positions(values: list[float], tolerance: float) -> list[float]:
     return [float(np.mean(group)) for group in groups]
 
 
+def _axis_runs(values: list[float], step: float) -> list[list[float]]:
+    """Split axis positions into maximal runs whose gaps repeat the column step.
+
+    A same-size contour elsewhere on the page (for example a panel overlay below
+    the board) can share a board column and join the related rectangles. Treating
+    that lone position as another row rejects an otherwise regular grid, so each
+    candidate keeps only consecutive positions that are spaced like its columns.
+    """
+    runs: list[list[float]] = []
+    for value in values:
+        if runs and .85 * step <= value - runs[-1][-1] <= 1.15 * step:
+            runs[-1].append(value)
+        else:
+            runs.append([value])
+    return [run for run in runs if len(run) >= 2]
+
+
 def _board(image: np.ndarray) -> tuple[int, int, list[str | None], tuple[float, float, float, float], float] | None:
     # Dark, filled tiles establish the full grid even when the usable white outlines
     # occupy only one row. A dark contour alone is not proof that a cell is blocked.
@@ -80,18 +97,16 @@ def _board(image: np.ndarray) -> tuple[int, int, list[str | None], tuple[float, 
             step = float(np.median(np.diff(xs)))
             related = [r for r in rects if abs(r[2] - size) < .16 * size and
                        any(abs(r[0] - x) < .2 * size for x in xs)]
-            ys = _axis_positions([r[1] for r in related], .2 * size)
-            if not 2 <= len(ys) <= 6:
-                continue
-            y_steps = np.diff(ys)
-            if any(not .85 * step <= d <= 1.15 * step for d in y_steps):
-                continue
-            aligned = sum(any(abs(r[0] - x) < .2 * size and abs(r[1] - y) < .2 * size for r in related)
-                          for y in ys for x in xs)
-            score = (aligned, len(run) * len(ys))
-            if score > best_score:
-                best_score = score
-                best = (xs, ys, related, size)
+            row_positions = _axis_positions([r[1] for r in related], .2 * size)
+            for ys in _axis_runs(row_positions, step):
+                if len(ys) > 6:
+                    continue
+                aligned = sum(any(abs(r[0] - x) < .2 * size and abs(r[1] - y) < .2 * size for r in related)
+                              for y in ys for x in xs)
+                score = (aligned, len(run) * len(ys))
+                if score > best_score:
+                    best_score = score
+                    best = (xs, ys, related, size)
     if best is None or best_score[0] < 6:
         return None
     xs, ys, related, size = best

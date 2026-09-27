@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 
 from fastapi.testclient import TestClient
+import numpy as np
 from PIL import Image
 import psutil
 import pytest
@@ -53,6 +54,50 @@ def test_public_guide_image_reports_its_question_code() -> None:
     assert result["target_total_lift"] == 11
     # The catalog is filled by the API process, never by the OCR worker.
     assert result["catalog"] is None
+
+
+def _synthetic_board_image(outliers: tuple[tuple[int, int], ...] = (),
+                           usable: tuple[tuple[int, int], ...] = ((0, 4), (2, 0))) -> np.ndarray:
+    """Build a screenshot-like grid without any private material.
+
+    Every cell is a mid-dark tile on a near-black page, so the threshold-45 pass
+    sees the whole geometry; ``usable`` cells additionally carry the bright
+    outline that only the bright pass sees. ``outliers`` are extra same-size
+    tiles at absolute centers outside the board, the way a page overlay can
+    repeat a tile size far from the grid.
+    """
+    import cv2
+
+    tile, step, left, top = 60, 70, 100, 250
+    image = np.full((1000, 1000, 3), 5, dtype=np.uint8)
+    for row in range(5):
+        for column in range(5):
+            x, y = left + column * step, top + row * step
+            cv2.rectangle(image, (x, y), (x + tile, y + tile), (55, 55, 55), -1)
+            if (row, column) in usable:
+                cv2.rectangle(image, (x + 1, y + 1), (x + tile - 1, y + tile - 1), (240, 240, 240), 4)
+    for cx, cy in outliers:
+        cv2.rectangle(image, (cx - tile // 2, cy - tile // 2), (cx + tile // 2, cy + tile // 2), (55, 55, 55), -1)
+    return image
+
+
+@pytest.mark.parametrize("outliers", [
+    pytest.param((), id="no_outlier"),
+    pytest.param(((130, 800),), id="one_distant_below"),
+    pytest.param(((130, 800), (270, 800)), id="two_distant_below"),
+    pytest.param(((130, 40),), id="one_distant_above"),
+])
+def test_regular_rows_ignore_distant_same_size_outliers(outliers: tuple[tuple[int, int], ...]) -> None:
+    """A far contour that shares a column must not become a sixth row."""
+    from app.puzzles.balloon.recognize_worker import _board
+
+    board = _board(_synthetic_board_image(outliers))
+    assert board is not None
+    rows, columns, cells, box, _ = board
+    assert (rows, columns) == (5, 5)
+    # Usable cells still come only from the bright outlines; plain tiles stay unknown.
+    assert [index for index, cell in enumerate(cells) if cell == "usable"] == [4, 10]
+    assert box == pytest.approx((100, 250, 440, 590), abs=3)
 
 
 def _variant(original: bytes, kind: str) -> bytes:
