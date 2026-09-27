@@ -6,6 +6,9 @@ export type Task = components["schemas"]["TaskView"];
 export type BalloonTask = components["schemas"]["BalloonSolveTaskView"];
 export type RecognitionTask = components["schemas"]["BalloonRecognitionTaskView"];
 export type RecognitionResult = components["schemas"]["BalloonRecognitionResult"];
+export type CatalogEntry = components["schemas"]["CatalogEntry"];
+export type CatalogCandidate = components["schemas"]["CatalogCandidate"];
+export type CatalogMatch = components["schemas"]["CatalogMatch"];
 
 const configured = import.meta.env.VITE_API_BASE_URL?.trim();
 export const API_BASE = configured || (import.meta.env.DEV ? "http://localhost:8000" : "");
@@ -43,3 +46,6 @@ export const submitRecognition = (image: Blob, filename: string) => {
 };
 export const getTask = (id: string, signal?: AbortSignal) => request<Task>(`/api/v1/tasks/${encodeURIComponent(id)}`, { signal });
 export const cancelTask = (id: string, signal?: AbortSignal) => request<Task>(`/api/v1/tasks/${encodeURIComponent(id)}`, { method: "DELETE", signal });
+export const getCatalogEntry = (code: string, signal?: AbortSignal) => request<CatalogEntry>(
+  `/api/v1/puzzles/balloon/catalog/${encodeURIComponent(code.trim())}`, { signal },
+);

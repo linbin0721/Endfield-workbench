@@ -6,3 +6,4 @@ opencv-python>=4.10,<5
 numpy>=1.26,<3
 Pillow>=10,<12
 rapidocr-onnxruntime==1.4.4
+psycopg[binary,pool]>=3.2,<4

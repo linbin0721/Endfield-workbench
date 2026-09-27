@@ -27,6 +27,7 @@ class _Task:
     work: Callable[..., Any] | None = field(repr=False)
     args: tuple[Any, ...] = field(repr=False)
     created_at: datetime
+    finalize: Callable[[Any], Any] | None = field(default=None, repr=False)
     status: str = "queued"
     completed_at: datetime | None = None
     completed_monotonic: float | None = None
@@ -63,15 +64,21 @@ class TaskManager:
         self._cleanup = Thread(target=self._cleanup_loop, name="task-result-cleanup", daemon=True)
         self._cleanup.start()
 
-    def submit(self, work: Callable[..., Any], *args: Any) -> TaskView:
-        """Internal engine hook; never exposed as an HTTP test endpoint."""
+    def submit(self, work: Callable[..., Any], *args: Any,
+               finalize: Callable[[Any], Any] | None = None) -> TaskView:
+        """Internal engine hook; never exposed as an HTTP test endpoint.
+
+        ``finalize`` runs in this process after the worker returns and before the
+        result is stored, so slow or stateful side effects stay out of workers.
+        """
         with self._lock:
             if self._closed:
                 raise RuntimeError("task manager is closed")
             self._prune_locked()
             if self._running >= self.settings.max_workers and len(self._pending) >= self.settings.max_queued:
                 raise QueueFull()
-            task = _Task(id=uuid4().hex, work=work, args=args, created_at=datetime.now(timezone.utc))
+            task = _Task(id=uuid4().hex, work=work, args=args, finalize=finalize,
+                         created_at=datetime.now(timezone.utc))
             self._tasks[task.id] = task
             self._pending.append(task.id)
             self._dispatch_locked()
@@ -127,20 +134,30 @@ class TaskManager:
             future.add_done_callback(lambda completed, task_id=task.id: self._on_done(task_id, completed))
 
     def _on_done(self, task_id: str, future: Future[Any]) -> None:
+        task = self._tasks.get(task_id)
+        failure: Exception | None = None
+        try:
+            result = future.result()
+        except Exception as exc:
+            result, failure = None, exc
+        # Side effects run outside the task lock and only for results that will
+        # actually be kept, so a slow database cannot stall status queries.
+        if failure is None and task is not None and task.finalize is not None and not task.cancellation_requested:
+            try:
+                result = task.finalize(result)
+            except Exception:
+                pass  # catalog enrichment must never lose a recognition result
         with self._lock:
             task = self._tasks[task_id]
             self._running -= 1
-            try:
-                result = future.result()
-            except Exception:
+            if failure is not None:
                 self._finish_locked(task, "cancelled" if task.cancellation_requested else "failed",
                     None if task.cancellation_requested else ErrorDetail(code="TASK_FAILED", message="计算失败"))
+            elif task.cancellation_requested:
+                self._finish_locked(task, "cancelled")
             else:
-                if task.cancellation_requested:
-                    self._finish_locked(task, "cancelled")
-                else:
-                    task.result = result
-                    self._finish_locked(task, "succeeded")
+                task.result = result
+                self._finish_locked(task, "succeeded")
             self._prune_locked()
             self._dispatch_locked()
 

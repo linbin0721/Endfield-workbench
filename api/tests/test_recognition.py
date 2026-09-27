@@ -16,6 +16,8 @@ from app.upload_limit import LimitedRecognitionUpload, MAX_IMAGE_BYTES, MAX_MULT
 
 
 SAMPLES = Path(os.environ.get("BALLOON_TEST_SAMPLES_DIR", Path(__file__).resolve().parents[2] / "samples" / "private"))
+GUIDE = Path(os.environ.get("BALLOON_GUIDE_IMAGE",
+                            Path(__file__).resolve().parents[2] / "web" / "public" / "balloon-screenshot-guide.png"))
 
 
 def _sample(name: str) -> bytes:
@@ -23,6 +25,34 @@ def _sample(name: str) -> bytes:
     if not path.is_file():
         pytest.skip(f"private recognition sample unavailable: {path}")
     return path.read_bytes()
+
+
+def _boxes(*items: tuple[str, float]) -> list:
+    return [([[0, 0], [10, 0], [10, 5], [0, 5]], text, confidence) for text, confidence in items]
+
+
+def test_extract_question_code_accepts_only_confident_normalized_codes() -> None:
+    from app.puzzles.balloon.recognize_worker import extract_question_code
+
+    assert extract_question_code(_boxes(("WL-A2014", .994))) == ("WL-A2014", .994, True)
+    assert extract_question_code(_boxes(("wl - a 2014", .99)))[0] == "WL-A2014"
+    assert extract_question_code(_boxes(("WL-A2014", .94))) == (None, None, True)
+    assert extract_question_code(_boxes(("WL-A2014", .9), ("WL-A2015", .99))) == ("WL-A2015", .99, True)
+    assert extract_question_code(_boxes(("回收需使用全部气球", .99), ("WL-A201", .99))) == (None, None, False)
+    assert extract_question_code([]) == (None, None, False)
+
+
+def test_public_guide_image_reports_its_question_code() -> None:
+    if not GUIDE.is_file():
+        pytest.skip(f"public guide image unavailable: {GUIDE}")
+    result = recognize_balloon_job(GUIDE.read_bytes(), 25)
+    assert result["outcome"] == "draft"
+    assert result["question_code"] == "WL-A1001"
+    assert result["question_code_confidence"] >= .95
+    assert (result["rows"], result["columns"]) == (5, 5)
+    assert result["target_total_lift"] == 11
+    # The catalog is filled by the API process, never by the OCR worker.
+    assert result["catalog"] is None
 
 
 def _variant(original: bytes, kind: str) -> bytes:

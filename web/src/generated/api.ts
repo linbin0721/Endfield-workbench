@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/puzzles/balloon/catalog/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Balloon Catalog */
+        get: operations["balloon_catalog_api_v1_puzzles_balloon_catalog__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/puzzles/{puzzle_id}/recognize": {
         parameters: {
             query?: never;
@@ -161,6 +178,11 @@ export interface components {
             inventory?: components["schemas"]["InventoryDraft"][];
             /** Target Total Lift */
             target_total_lift?: number | null;
+            /** Question Code */
+            question_code?: string | null;
+            /** Question Code Confidence */
+            question_code_confidence?: number | null;
+            catalog?: components["schemas"]["CatalogMatch"] | null;
             /** Issues */
             issues?: string[];
         };
@@ -251,6 +273,84 @@ export interface components {
             computation_stopped: boolean;
             result?: components["schemas"]["BalloonSolveResult"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
+        };
+        /** CatalogCandidate */
+        CatalogCandidate: {
+            /** Fingerprint */
+            fingerprint: string;
+            puzzle: components["schemas"]["BalloonPuzzle"];
+            /** Target Total Lift */
+            target_total_lift?: number | null;
+            /**
+             * Observations
+             * @default 1
+             */
+            observations: number;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+        };
+        /** CatalogEntry */
+        CatalogEntry: {
+            /** Code */
+            code: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "provisional" | "verified" | "disputed";
+            /** Candidates */
+            candidates?: components["schemas"]["CatalogCandidate"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CatalogMatch
+         * @description How the current recognition relates to the stored catalog.
+         */
+        CatalogMatch: {
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            /** Code */
+            code: string;
+            /** Code Confidence */
+            code_confidence?: number | null;
+            /**
+             * Complete
+             * @default false
+             */
+            complete: boolean;
+            /**
+             * Recorded
+             * @default false
+             */
+            recorded: boolean;
+            /**
+             * Duplicate
+             * @default false
+             */
+            duplicate: boolean;
+            /** Matched Fingerprint */
+            matched_fingerprint?: string | null;
+            /** Status */
+            status?: ("provisional" | "verified" | "disputed") | null;
+            /** Candidates */
+            candidates?: components["schemas"]["CatalogCandidate"][];
+            /** Issues */
+            issues?: string[];
         };
         /** Cell */
         Cell: {
@@ -455,6 +555,55 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    balloon_catalog_api_v1_puzzles_balloon_catalog__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogEntry"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

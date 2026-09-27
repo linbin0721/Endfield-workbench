@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import hashlib
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +9,10 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.datastructures import UploadFile
 
+from app.catalog.models import CatalogEntry
+from app.catalog.rules import normalize_code
+from app.catalog.service import CatalogService
+from app.catalog.store import CatalogUnavailable, catalog_store_from_settings
 from app.config import Settings, load_settings
 from app.models import ErrorResponse, PuzzleCapability, TaskView
 from app.puzzles import PUZZLES
@@ -33,16 +39,22 @@ def error_response(status: int, code: str, message: str, headers: dict[str, str]
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}}, headers=headers)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, catalog: CatalogService | None = None) -> FastAPI:
     settings = settings or load_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.tasks = TaskManager(settings)
+        app.state.catalog = catalog if catalog is not None else CatalogService(
+            catalog_store_from_settings(settings),
+            solve_time_limit_seconds=settings.solve_time_limit_seconds,
+            solve_max_nodes=settings.solve_max_nodes,
+        )
         try:
             yield
         finally:
             app.state.tasks.close()
+            app.state.catalog.close()
 
     app = FastAPI(title="终末地解谜 API", version="0.1.0", lifespan=lifespan)
     app.add_middleware(LimitedRecognitionUpload, max_uploads=settings.max_uploads)
@@ -104,7 +116,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return error_response(422, "INVALID_REQUEST", "图片文件为空")
         if len(data) > MAX_IMAGE_BYTES:
             return error_response(413, "UPLOAD_TOO_LARGE", "图片不能超过 12 MB")
-        return request.app.state.tasks.submit(recognize_balloon_job, data, settings.recognize_time_limit_seconds)
+        catalog_service = request.app.state.catalog
+        image_sha256 = hashlib.sha256(data).hexdigest()
+
+        def enrich(result: dict) -> dict:
+            return catalog_service.enrich_recognition(result, image_sha256)
+
+        return request.app.state.tasks.submit(recognize_balloon_job, data,
+                                              settings.recognize_time_limit_seconds, finalize=enrich)
+
+    @app.get(
+        "/api/v1/puzzles/balloon/catalog/{code}",
+        response_model=CatalogEntry,
+        responses={**common_errors, 503: {"model": ErrorResponse}},
+    )
+    def balloon_catalog(code: str, request: Request) -> CatalogEntry | JSONResponse:
+        # Synchronous handler: FastAPI runs it in a thread pool, so the blocking
+        # database round trip never stalls the single Uvicorn event loop.
+        normalized = normalize_code(code)
+        if normalized is None:
+            return error_response(422, "INVALID_CODE", "题号格式无效：应为 WL-A 加四位数字，例如 WL-A1001。")
+        try:
+            entry = request.app.state.catalog.lookup(normalized)
+        except CatalogUnavailable:
+            return error_response(503, "CATALOG_UNAVAILABLE", "题号目录暂时不可用，请稍后重试或改用截图识别。")
+        if entry is None:
+            return error_response(404, "CATALOG_NOT_FOUND", "目录中还没有这个题号的完整题面记录。")
+        return entry
 
     @app.post(
         "/api/v1/puzzles/{puzzle_id}/recognize",

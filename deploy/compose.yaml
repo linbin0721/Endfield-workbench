@@ -19,6 +19,17 @@ services:
       SOLVE_TIME_LIMIT_SECONDS: "3"
       SOLVE_MAX_NODES: "300000"
       RECOGNIZE_TIME_LIMIT_SECONDS: "25"
+      CATALOG_DB_HOST: db
+      CATALOG_DB_PORT: "5432"
+      CATALOG_DB_NAME: ${CATALOG_DB_NAME:?Set catalog database name}
+      CATALOG_DB_USER: ${CATALOG_DB_USER:?Set catalog database user}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Set catalog database password}
+      CATALOG_DB_TIMEOUT_SECONDS: "3"
+    # Start ordering only: the API must keep serving recognition and solving
+    # even when the catalog database is down, so it does not wait for health.
+    depends_on:
+      db:
+        condition: service_started
     expose:
       - "8000"
     cpus: 2.0
@@ -34,6 +45,39 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    # Catalog storage stays on the Compose network: the service publishes no
+    # host port, so PostgreSQL is never reachable from outside this stack.
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CATALOG_DB_NAME:?Set catalog database name}
+      POSTGRES_USER: ${CATALOG_DB_USER:?Set catalog database user}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD:?Set catalog database password}
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    cpus: 1.0
+    mem_limit: 512m
+    pids_limit: 128
+    shm_size: 128m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 30s
     logging:
       driver: json-file
@@ -73,5 +117,6 @@ services:
         max-file: "3"
 
 volumes:
+  catalog_data:
   caddy_data:
   caddy_config:

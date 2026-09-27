@@ -132,6 +132,65 @@
         }
       }
     },
+    "/api/v1/puzzles/balloon/catalog/{code}": {
+      "get": {
+        "summary": "Balloon Catalog",
+        "operationId": "balloon_catalog_api_v1_puzzles_balloon_catalog__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/puzzles/{puzzle_id}/recognize": {
       "post": {
         "summary": "Recognize",
@@ -573,6 +632,38 @@
             ],
             "title": "Target Total Lift"
           },
+          "question_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Code"
+          },
+          "question_code_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Code Confidence"
+          },
+          "catalog": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogMatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "issues": {
             "items": {
               "type": "string"
@@ -817,6 +908,173 @@
           "created_at"
         ],
         "title": "BalloonSolveTaskView"
+      },
+      "CatalogCandidate": {
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          },
+          "puzzle": {
+            "$ref": "#/components/schemas/BalloonPuzzle"
+          },
+          "target_total_lift": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Total Lift"
+          },
+          "observations": {
+            "type": "integer",
+            "title": "Observations",
+            "default": 1
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "First Seen"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fingerprint",
+          "puzzle",
+          "first_seen",
+          "last_seen"
+        ],
+        "title": "CatalogCandidate"
+      },
+      "CatalogEntry": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "provisional",
+              "verified",
+              "disputed"
+            ],
+            "title": "Status"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "status",
+          "updated_at"
+        ],
+        "title": "CatalogEntry"
+      },
+      "CatalogMatch": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "code_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Confidence"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete",
+            "default": false
+          },
+          "recorded": {
+            "type": "boolean",
+            "title": "Recorded",
+            "default": false
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "default": false
+          },
+          "matched_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Fingerprint"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "provisional",
+                  "verified",
+                  "disputed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CatalogMatch",
+        "description": "How the current recognition relates to the stored catalog."
       },
       "Cell": {
         "properties": {

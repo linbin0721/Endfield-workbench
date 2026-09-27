@@ -15,6 +15,21 @@ def test_missing_count_is_recovered_by_residual() -> None:
     assert "第 3 行" in derived.message and "推导" in derived.message and "19" in derived.message
 
 
+def test_missing_lift_is_recovered_from_known_count() -> None:
+    # 3x1 + 2x2 + (?x4) = 11, so the only integral lift is 1.
+    derived = derive_missing_entry([(3, 1), (2, 2), (None, 4)], 11, 7, target_confidence=.99)
+    assert derived is not None
+    assert (derived.index, derived.lift, derived.count) == (2, 1, 4)
+    assert "缺少升力" in derived.message and "推导" in derived.message
+
+
+def test_missing_lift_requires_one_valid_unique_value() -> None:
+    assert derive_missing_entry([(3, 1), (None, 4)], 10, 7, target_confidence=.99) is None
+    assert derive_missing_entry([(3, 1), (None, 4)], 7, 4, target_confidence=.99) is None
+    assert derive_missing_entry([(3, 1), (1, 1), (None, 3)], 7, 5, target_confidence=.99) is None
+    assert derive_missing_entry([(3, 1), (None, 3), (None, 1)], 7, 5, target_confidence=.99) is None
+
+
 def test_missing_row_is_recovered_from_the_unique_factor_pair() -> None:
     # 6x1 + 3x1 + 2x3 = 15, target 18, usable 8. Lift 3 is already used and the
     # remaining capacity is 3, so 1x3 is the only valid factor pair.

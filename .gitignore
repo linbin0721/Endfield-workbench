@@ -32,6 +32,7 @@ pnpm-debug.log*
 # Private recognition samples
 samples/private/
 /test set/
+/deploy/backups/
 
 # Editor and operating system files
 .idea/

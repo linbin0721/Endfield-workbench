@@ -71,9 +71,30 @@ def _derive_missing_count(entries: Sequence[tuple[int | None, int | None]],
     return index, lift, count
 
 
+def _derive_missing_lift(entries: Sequence[tuple[int | None, int | None]],
+                         target: int, capacity: int, existing_lifts: set[int]) -> tuple[int, int, int] | None:
+    """Pattern 2: every count is known and exactly one lift is missing."""
+    missing = [index for index, (lift, count) in enumerate(entries) if lift is None and count is not None]
+    if len(missing) != 1 or any(count is None for _, count in entries):
+        return None
+    if any(lift is None for index, (lift, _) in enumerate(entries) if index != missing[0]):
+        return None
+    if _known_total_count(entries) > capacity:
+        return None
+    index = missing[0]
+    count = entries[index][1]
+    residual = target - _known_total_lift(entries)
+    if residual <= 0 or count is None or residual % count != 0:
+        return None
+    lift = residual // count
+    if not 1 <= lift <= MAX_LIFT or lift in existing_lifts:
+        return None
+    return index, lift, count
+
+
 def _derive_missing_row(entries: Sequence[tuple[int | None, int | None]],
                         target: int, capacity: int, existing_lifts: set[int]) -> tuple[int, int, int] | None:
-    """Pattern 2: exactly one row lost both values, every other row is complete."""
+    """Pattern 3: exactly one row lost both values, every other row is complete."""
     missing = [index for index, (lift, count) in enumerate(entries) if lift is None and count is None]
     if len(missing) != 1:
         return None
@@ -92,10 +113,12 @@ def _derive_missing_row(entries: Sequence[tuple[int | None, int | None]],
     return index, lift, count
 
 
-def _message(index: int, lift: int, count: int, target: int, missing_count_only: bool) -> str:
+def _message(index: int, lift: int, count: int, target: int, pattern: str) -> str:
     row = index + 1
-    if missing_count_only:
+    if pattern == "count":
         return (f"第 {row} 行库存缺少数量：已按目标总升力 {target} 唯一推导为升力 {lift} × {count} 个，请核对。")
+    if pattern == "lift":
+        return (f"第 {row} 行库存缺少升力：已按目标总升力 {target} 唯一推导为升力 {lift} × {count} 个，请核对。")
     return (f"第 {row} 行库存的升力和数量均缺失："
             f"已按目标总升力 {target} 唯一推导为升力 {lift} × {count} 个，请核对。")
 
@@ -124,12 +147,16 @@ def derive_missing_entry(entries: Sequence[tuple[int | None, int | None]],
     if len(set(lifts)) != len(lifts):
         return None
     capacity = min(MAX_COUNT, usable_cells)
-    if _known_total_count(entries) >= capacity:
-        return None
-    found = _derive_missing_count(entries, target_total_lift, capacity)
-    missing_count_only = found is not None
+    found = _derive_missing_lift(entries, target_total_lift, capacity, set(lifts))
+    pattern = "lift" if found is not None else ""
+    if found is None:
+        if _known_total_count(entries) >= capacity:
+            return None
+        found = _derive_missing_count(entries, target_total_lift, capacity)
+        pattern = "count" if found is not None else ""
     if found is None:
         found = _derive_missing_row(entries, target_total_lift, capacity, set(lifts))
+        pattern = "row" if found is not None else ""
     if found is None:
         return None
     index, lift, count = found
@@ -139,4 +166,4 @@ def derive_missing_entry(entries: Sequence[tuple[int | None, int | None]],
     if sum(item_lift * item_count for item_lift, item_count in completed) != target_total_lift:
         return None
     return MissingEntry(index=index, lift=lift, count=count,
-                        message=_message(index, lift, count, target_total_lift, missing_count_only))
+                        message=_message(index, lift, count, target_total_lift, pattern))

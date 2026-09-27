@@ -13,6 +13,12 @@ class Settings:
     solve_max_nodes: int = 300000
     recognize_time_limit_seconds: float = 25.0
     max_uploads: int = 2
+    catalog_db_host: str | None = None
+    catalog_db_port: int = 5432
+    catalog_db_name: str | None = None
+    catalog_db_user: str | None = None
+    catalog_db_password: str | None = None
+    catalog_db_timeout_seconds: float = 3.0
 
     def __post_init__(self) -> None:
         if self.max_workers < 1 or self.max_queued < 0:
@@ -25,6 +31,8 @@ class Settings:
             raise ValueError("solver limits must be positive and within service caps")
         if not 0 < self.recognize_time_limit_seconds <= 30 or not 1 <= self.max_uploads <= 8:
             raise ValueError("recognition limits must be positive and within service caps")
+        if not 1 <= self.catalog_db_port <= 65535 or not 0 < self.catalog_db_timeout_seconds <= 10:
+            raise ValueError("catalog database settings must be within service caps")
 
 
 def load_settings() -> Settings:
@@ -39,4 +47,10 @@ def load_settings() -> Settings:
         solve_max_nodes=int(os.getenv("SOLVE_MAX_NODES", "300000")),
         recognize_time_limit_seconds=float(os.getenv("RECOGNIZE_TIME_LIMIT_SECONDS", "25")),
         max_uploads=int(os.getenv("MAX_UPLOADS", "2")),
+        catalog_db_host=os.getenv("CATALOG_DB_HOST") or None,
+        catalog_db_port=int(os.getenv("CATALOG_DB_PORT", "5432")),
+        catalog_db_name=os.getenv("CATALOG_DB_NAME") or None,
+        catalog_db_user=os.getenv("CATALOG_DB_USER") or None,
+        catalog_db_password=os.getenv("CATALOG_DB_PASSWORD") or None,
+        catalog_db_timeout_seconds=float(os.getenv("CATALOG_DB_TIMEOUT_SECONDS", "3")),
     )

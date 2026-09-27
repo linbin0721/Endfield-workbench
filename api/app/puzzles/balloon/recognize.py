@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.catalog.models import CatalogMatch
+
 
 class InventoryDraft(BaseModel):
     lift: int | None = None
@@ -21,6 +23,11 @@ class BalloonRecognitionResult(BaseModel):
     cells: list[Literal["usable", "blocked"] | None] | None = None
     inventory: list[InventoryDraft] = Field(default_factory=list)
     target_total_lift: int | None = None
+    question_code: str | None = None
+    question_code_confidence: float | None = None
+    # Filled in by the API process after the OCR child exits; the child never
+    # reads or writes the catalog database.
+    catalog: CatalogMatch | None = None
     issues: list[str] = Field(default_factory=list)
 
 
