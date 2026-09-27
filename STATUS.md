@@ -1,11 +1,12 @@
 # 项目当前状态
 
-最后核验：2026-09-27 16:55 UTC。
+最后核验：2026-09-27 17:24 UTC。
 
 ## 当前阶段
 
-- “浮空回收”已公开部署，支持截图识别、`center-torque-v1` 自动求解、截图范围指引、题号 OCR 与 PostgreSQL 题面目录查询。
-- “源石电路”仍为未实现的模块和接口占位。
+- “浮空回收”已公开部署，支持截图识别、`center-torque-v1` 自动求解、截图范围指引、题号 OCR 与 PostgreSQL 题面目录查询；首页先选择入口，再展开对应流程。
+- “源石电路”仍为未实现的模块和接口占位，网页中的占位容器已移除。
+- 当前前端提交：`56256c94aa1fcba5b98f9871abe720e2e00767c0`。
 - 当前 API 生产 release：`33cd3502c0a5b074ca83419a645ea396618de19c`。
 
 ## 生产部署
@@ -13,7 +14,7 @@
 | 项目 | 当前值 |
 | --- | --- |
 | 前端 | `https://endfield.linbin.org/` |
-| 前端 release | `/var/www/endfield-workbench/releases/ce0d6ee`；`current` 指向该目录 |
+| 前端 release | `/var/www/endfield-workbench/releases/56256c9`；`current` 指向该目录 |
 | API | `https://api.linbin.org/endfield` |
 | API 容器 | `endfield-workbench-api-1`，健康，单 Uvicorn worker，重启次数 0 |
 | PostgreSQL | `endfield-workbench-db-1`，PostgreSQL 17，健康，重启次数 0，卷 `endfield-workbench_catalog_data` |
@@ -32,7 +33,8 @@
 - 公网上传 191530 后得到 5×5、库存 6×1 + 3×1、目标 9；公网求解返回两个气球的平衡解，行列力矩均为 0。该图片作为第二个不同摘要把 `WL-A2014` 升级为 `verified`，仍只有一个候选、观察数为 2。
 - 公网题号目录 10 路并发查询均返回 200 且结果一致。数据库与 API 分别重启后，本机和公网健康检查、15 条目录持久化及 `WL-A1001` 查询再次通过。
 - HTTP 正确跳转 HTTPS；前端、示例图与 API 均返回 200；生产 Origin 的 CORS 响应正确。
-- 空闲快照：API CPU 0.24%、内存 73.37 MiB、12 PIDs；PostgreSQL CPU 0.01%、内存 22.5 MiB、7 PIDs。
+- 前端入口与示例布局已在 1440×900 和 390×844 两种视口通过公网浏览器检查：初始不展开流程，截图与题号分支顺序正确，切换后不保留旧图片，题号标记不遮挡原图编号；生产构建通过。
+- 空闲快照：API CPU 0.40%、内存 73.38 MiB；PostgreSQL CPU 1.44%、内存 22.57 MiB。
 - 目录备份：`deploy/backups/catalog-20260927T133434Z.dump`，已通过 `pg_restore --list` 检查且被 Git 忽略。
 
 ## 已知限制
