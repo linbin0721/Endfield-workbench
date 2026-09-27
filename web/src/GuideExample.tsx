@@ -1,11 +1,12 @@
 /** Annotated screenshot-scope example built on the committed, desensitized guide image. */
-type Region = { key: string; marker: string; label: string; left: number; top: number; width: number; height: number };
+type Region = { key: string; marker: string; label: string; left: number; top: number; width: number; height: number; outside?: boolean };
 
 // Percentages measured on web/public/balloon-screenshot-guide.png (1672×941).
+// The code marker sits outside its box so no guide marker can cover the printed question number.
 const REGIONS: Region[] = [
   { key: "board", marker: "1", label: "完整棋盘与上方目标总升力", left: 37.68, top: 26.04, width: 24.82, height: 49.63 },
   { key: "inventory", marker: "2", label: "右侧完整库存", left: 76.85, top: 27.84, width: 21.53, height: 39.11 },
-  { key: "code", marker: "3", label: "题号区域（可选）", left: 3.47, top: 27.84, width: 8.79, height: 6.16 },
+  { key: "code", marker: "3", label: "可选：题号", left: 3.47, top: 27.84, width: 8.79, height: 6.16, outside: true },
 ];
 
 // The target counter sits inside the board region, above the grid.
@@ -23,7 +24,7 @@ export default function GuideExample() {
           alt="截图范围示例：标出完整棋盘与目标总升力、完整库存，以及可选题号区域" />
         {REGIONS.map((region) => <span key={region.key} className={`guide-box guide-${region.key}`}
           style={{ left: `${region.left}%`, top: `${region.top}%`, width: `${region.width}%`, height: `${region.height}%` }}>
-          <b className="guide-marker" aria-hidden="true">{region.marker}</b>
+          <b className={`guide-marker${region.outside ? " guide-marker-outside" : ""}`} aria-hidden="true">{region.marker}</b>
           {region.key === "board" && <span className="guide-target" style={{
             left: `${TARGET.left}%`, top: `${TARGET.top}%`, width: `${TARGET.width}%`, height: `${TARGET.height}%` }} />}
         </span>)}
@@ -31,7 +32,7 @@ export default function GuideExample() {
       <figcaption>
         <span><b>1</b> 必需：完整棋盘 + 目标总升力（示例 0/11）</span>
         <span><b>2</b> 必需：全部库存的等级、升力与数量</span>
-        <span><b>3</b> 可选：题号 <code>WL-A</code> 加四位数字</span>
+        <span><b>3</b> 可选：题号</span>
       </figcaption>
     </figure>
   </section>;

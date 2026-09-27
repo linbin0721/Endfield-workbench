@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, cancelTask, getCapabilities, getTask, submitBalloon, submitRecognition,
   type Capability, type CatalogCandidate, type CatalogMatch, type RecognitionResult, type Task } from "./api";
 import CatalogCandidates, { catalogStatusText } from "./CatalogCandidates";
+import CodeGuideExample from "./CodeGuideExample";
 import CodeQuery from "./CodeQuery";
 import GuideExample from "./GuideExample";
 import ImageInput, { type ImageSelection } from "./ImageInput";
@@ -43,7 +44,7 @@ export default function App() {
   const [service, setService] = useState<ServiceState>("loading");
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
   const [serviceError, setServiceError] = useState("");
-  const [mode, setMode] = useState<Mode>("screenshot");
+  const [mode, setMode] = useState<Mode | null>(null);
   const [task, setTask] = useState<Task | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [operation, setOperation] = useState<Operation | null>(null);
@@ -229,7 +230,10 @@ export default function App() {
 
   const switchMode = (next: Mode) => {
     if (next === mode) return;
+    // Opening the other entry always starts clean: no old task, result, message,
+    // catalog state or previously selected image is carried over.
     invalidate();
+    setImageSelection(null);
     setMode(next);
   };
 
@@ -247,20 +251,26 @@ export default function App() {
       <div className="intro"><span className="eyebrow">解谜工具 / BALLOON</span><h1>浮空回收解谜</h1>
         <p>导入包含完整棋盘和右侧所有气球库存的清晰截图，点击一次识别并求解；也可以直接输入截图上的题号，复用目录中已验证的题面。</p>
       </div>
-      <div className="mode-tabs" role="tablist" aria-label="解题入口">
-        <button type="button" role="tab" aria-selected={mode === "screenshot"} className={mode === "screenshot" ? "active" : ""}
-          onClick={() => switchMode("screenshot")}>截图识别</button>
-        <button type="button" role="tab" aria-selected={mode === "code"} className={mode === "code" ? "active" : ""}
-          onClick={() => switchMode("code")}>按题号查询</button>
+      <div className="mode-choices" role="group" aria-label="解题入口">
+        <button type="button" className={`mode-choice ${mode === "screenshot" ? "active" : ""}`}
+          aria-expanded={mode === "screenshot"} aria-controls="screenshot-flow" onClick={() => switchMode("screenshot")}>
+          <span className="mode-choice-title">截图识别</span>
+          <span className="mode-choice-note">上传包含完整棋盘与库存的截图，识别并求解</span>
+        </button>
+        <button type="button" className={`mode-choice ${mode === "code" ? "active" : ""}`}
+          aria-expanded={mode === "code"} aria-controls="code-flow" onClick={() => switchMode("code")}>
+          <span className="mode-choice-title">按题号查询</span>
+          <span className="mode-choice-note">输入截图上的题号，复用目录中已验证的题面</span>
+        </button>
       </div>
-      <div className="notice rule-note"><strong>平衡规则：</strong>以棋盘中心为支点，每个气球的升力分别乘以它到中心的行、列距离；左右和上下的加权升力各自相等。5×5 棋盘中，中心距离为 0，相邻格为 1，外圈为 2。每格至多一个气球，库存全部使用。</div>
       <div className="service-status" role="status" aria-live="polite">
         {service === "loading" ? "正在查询服务能力…" : service === "error" ? <><span>服务不可用：{serviceError}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>重试连接</button></>
           : balloon ? <span>服务状态：{balloon.solving_available ? "求解可用" : "求解暂不可用"} · {balloon.recognition_available ? "图片识别可用" : "图片识别暂不可用"}</span> : "服务未声明气球能力，暂不可提交。"}
       </div>
-      <div className={`content-grid ${result ? "" : "no-result"}`}>
+      {mode && <div className={`content-grid ${result ? "" : "no-result"}`}>
         <div className="left-column">
-          {mode === "screenshot" ? <>
+          {mode === "screenshot" ? <div className="flow" id="screenshot-flow">
+            <GuideExample />
             <ImageInput onChanged={changeImage} />
             <section className="panel" aria-labelledby="recognize-title"><span className="eyebrow">识别与求解</span><h2 id="recognize-title">从图片得到答案</h2>
               <p className="muted">只有点击后才上传当前预览的图片。库存数字不完整时不会凭空猜测；只有当目标总升力能唯一确定缺失的升力或数量时才会推导补齐，并在下方标明推导来源。其余缺失字段仍需换一张完整清晰的截图重试。</p>
@@ -287,8 +297,8 @@ export default function App() {
               </div>}
               {workError && <div className="notice warning" role="alert">{workError}</div>}
             </section>
-            <GuideExample />
-          </> : <>
+          </div> : <div className="flow" id="code-flow">
+            <CodeGuideExample />
             <CodeQuery canQuery={service === "ready"} canSolve={canSolve} busy={busy.current}
               onQueryStart={invalidate} onSolve={solveFromChoice} />
             {(task || workError || busy.current) && <section className="panel" aria-label="查询与求解状态">
@@ -296,15 +306,14 @@ export default function App() {
               {workError && <div className="notice warning" role="alert">{workError}</div>}
               {busy.current && <div className="row-actions"><button type="button" className="button secondary" onClick={cancel}>取消本次任务</button></div>}
             </section>}
-          </>}
-          <div className="future-note">源石电路 <span>后续支持</span></div>
+          </div>}
         </div>
         {result && submittedPuzzle && <div className="right-column"><section className="panel answer-panel" aria-label="求解结果">
           <span className="eyebrow">答案</span>
           {answerSource && <p className="muted small">来源：{answerSource}</p>}
           <Result result={result} puzzle={submittedPuzzle} /></section></div>}
-      </div>
+      </div>}
     </main>
-    <footer>浮空回收支持图片识别、题号目录与求解。源石电路后续支持。</footer>
+    <footer>浮空回收支持图片识别、题号目录与求解。</footer>
   </div>;
 }
