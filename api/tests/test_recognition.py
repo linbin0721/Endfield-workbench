@@ -67,7 +67,10 @@ def test_real_images_and_http_contract() -> None:
             assert sum(cell is None for cell in result["cells"]) == 9
             assert [item["lift"] for item in result["inventory"][:3]] == [6, 3, 2]
             assert [item["count"] for item in result["inventory"][:3]] == [3, 3, 3]
-            assert result["inventory"][-1]["count"] is None
+            # The fourth row kept both values blank, so the strict derivation
+            # completes it as 1x3 (residual 3, lift 3 already used).
+            assert (result["inventory"][-1]["lift"], result["inventory"][-1]["count"]) == (1, 3)
+            assert any("推导" in issue for issue in result["issues"])
             assert result["target_total_lift"] == 36
 
 

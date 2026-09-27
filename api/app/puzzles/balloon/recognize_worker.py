@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from rapidocr_onnxruntime import RapidOCR
 
+from app.puzzles.balloon.derive import derive_missing_entry, lift_from_lift_text
 from app.puzzles.balloon.recognize import BalloonRecognitionResult, InventoryDraft
 
 
@@ -145,12 +146,14 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
     header = _crop(image, left + .2 * board_width, top - .3 * board_height,
                    right - .2 * board_width, top)
     current = target = None
+    target_confidence: float | None = None
     if header.size:
         text, _ = ocr(header)
         for item in text or []:
             match = re.search(r"(\d{1,3})\s*/\s*(\d{1,4})", item[1])
             if match:
                 current, target = int(match.group(1)), int(match.group(2))
+                target_confidence = float(item[2])
                 break
     if current is not None and current != 0:
         return BalloonRecognitionResult(outcome="no_board", issues=["画面显示已有气球摆放，请在游戏中重置题目后重新截图。"])
@@ -168,7 +171,7 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
                                         target_total_lift=target, issues=issues)
     text, _ = ocr(stock)
     labels: list[tuple[float, int]] = []
-    details: list[tuple[float, float]] = []
+    details: list[tuple[float, float, int | None]] = []
     for box, value, confidence in text or []:
         x = float(np.mean([point[0] for point in box]))
         y = float(np.mean([point[1] for point in box]))
@@ -176,7 +179,8 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
         if x > .43 * stock.shape[1] and match and confidence > .8:
             labels.append((y + max(0, stock_top), int(match.group(1))))
         if "升力" in value and re.search(r"\d", value) and confidence >= .8:
-            details.append((y + max(0, stock_top), max(point[0] for point in box) + max(0, stock_left)))
+            details.append((y + max(0, stock_top), max(point[0] for point in box) + max(0, stock_left),
+                            lift_from_lift_text(value)))
     labels.sort()
     labels = [label for index, label in enumerate(labels) if index == 0 or label[0] - labels[index - 1][0] > .6 * size]
     if not labels:
@@ -192,34 +196,54 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
         issues.append("库存图标位置不清晰，识别的升力和数量需要逐项核对。")
     inventory: list[InventoryDraft] = []
     count_confidences: list[float] = []
-    for label_y, _ in labels[:8]:
+    for row, (label_y, _) in enumerate(labels[:8], start=1):
         circle_y = label_y + .14 * size
         lift, _ = _digit(ocr, _crop(image, circle_x - .27 * size, circle_y - .27 * size,
                                    circle_x + .27 * size, circle_y + .27 * size), 100, .8)
         count, confidence = _badge_digit(ocr, _crop(image, circle_x + .30 * size, circle_y + .20 * size,
                                                     circle_x + .90 * size, circle_y + .90 * size))
-        detail = next(((y, right_x) for y, right_x in details if abs(y - (label_y + .50 * size)) < .25 * size), None)
+        detail = next(((y, right_x, text_lift) for y, right_x, text_lift in details
+                       if abs(y - (label_y + .50 * size)) < .25 * size), None)
+        detail_lift = text_lift = None
         if detail is not None:
-            detail_y, detail_right = detail
+            detail_y, detail_right, text_lift = detail
             detail_lift, _ = _digit(ocr, _crop(image, detail_right - .515 * size, detail_y - .24 * size,
                                               detail_right - .223 * size, detail_y + .24 * size), 100, .85)
-            if lift is not None and detail_lift is not None and lift != detail_lift:
+        conflict = False
+        if lift is not None and detail_lift is not None and lift != detail_lift:
+            lift = None
+            conflict = True
+            issues.append(f"第 {row} 行库存图标与升力文字不一致；冲突的升力已留空，请手动核对。")
+        elif lift is None and detail_lift is not None:
+            tight_lift, _ = _digit(ocr, _crop(image, circle_x - .24 * size, circle_y - .19 * size,
+                                             circle_x + .14 * size, circle_y + .19 * size), 100, .8)
+            if tight_lift == detail_lift:
+                lift = detail_lift
+        # The "升力 N" text is independent evidence: it fills a lift that the
+        # icon crops could not read, but it never overrides the icon silently.
+        if text_lift is not None and not conflict:
+            if lift is None and (detail_lift is None or detail_lift == text_lift):
+                lift = text_lift
+            elif lift is not None and lift != text_lift:
                 lift = None
-                issues.append("库存图标与升力文字不一致；冲突的升力已留空，请手动核对。")
-            elif lift is None and detail_lift is not None:
-                tight_lift, _ = _digit(ocr, _crop(image, circle_x - .24 * size, circle_y - .19 * size,
-                                                 circle_x + .14 * size, circle_y + .19 * size), 100, .8)
-                if tight_lift == detail_lift:
-                    lift = detail_lift
+                issues.append(f"第 {row} 行库存升力文字与图标不一致；冲突的升力已留空，请手动核对。")
         inventory.append(InventoryDraft(lift=lift, count=count))
         count_confidences.append(confidence)
+    conflict_index = None
     if target is not None and inventory and all(item.lift is not None and item.count is not None for item in inventory):
         if sum(item.lift * item.count for item in inventory) != target:
             least = min(range(len(inventory)), key=lambda i: count_confidences[i])
             inventory[least].count = None
+            conflict_index = least
             issues.append("库存数量与画面目标总升力不符；置信度最低的数量已留空，请核对所有库存。")
+    derived = derive_missing_entry([(item.lift, item.count) for item in inventory], target,
+                                   sum(cell == "usable" for cell in cells),
+                                   target_confidence=target_confidence, conflict_index=conflict_index)
+    if derived is not None:
+        inventory[derived.index] = InventoryDraft(lift=derived.lift, count=derived.count)
+        issues.append(derived.message)
     if any(item.lift is None or item.count is None for item in inventory):
-        issues.append("部分库存数字或徽标不清晰，空白字段需手动确认；不会从目标总升力反推数量。")
+        issues.append("部分库存数字或徽标不清晰，空白字段需手动确认；目标总升力不足以唯一确定这些字段。")
     if not inventory:
         issues.append("图片中未识别到库存，请手动填写。")
     return BalloonRecognitionResult(outcome="draft", rows=rows, columns=columns, cells=cells,

@@ -42,6 +42,7 @@ export default function App() {
   const [operation, setOperation] = useState<Operation | null>(null);
   const [imageSelection, setImageSelection] = useState<ImageSelection | null>(null);
   const [workError, setWorkError] = useState("");
+  const [recognitionNotes, setRecognitionNotes] = useState<string[]>([]);
   const [result, setResult] = useState<BalloonSolveResult | null>(null);
   const [submittedPuzzle, setSubmittedPuzzle] = useState<BalloonPuzzle | null>(null);
   const generation = useRef(0);
@@ -58,6 +59,7 @@ export default function App() {
     activeTaskId.current = null;
     busy.current = false;
     setTask(null); setResult(null); setSubmittedPuzzle(null); setWorkError(""); setSubmitting(false); setOperation(null);
+    setRecognitionNotes([]);
   }, []);
 
   useEffect(() => {
@@ -134,6 +136,7 @@ export default function App() {
             } else {
               const value = current.result as RecognitionResult | null;
               if (value?.outcome === "draft") {
+                setRecognitionNotes((value.issues ?? []).filter((issue) => issue.includes("推导")));
                 const checked = puzzleFromRecognition(value);
                 if (checked.puzzle && canSolve) {
                   await beginSolve(checked.puzzle, version);
@@ -207,11 +210,14 @@ export default function App() {
       <div className={`content-grid ${result ? "" : "no-result"}`}>
         <div className="left-column"><ImageInput onChanged={changeImage} />
           <section className="panel" aria-labelledby="recognize-title"><span className="eyebrow">识别与求解</span><h2 id="recognize-title">从图片得到答案</h2>
-            <p className="muted">只有点击后才上传当前预览的图片。库存数字不完整时不会猜测或求解，请换一张完整清晰的截图重试。</p>
+            <p className="muted">只有点击后才上传当前预览的图片。库存数字不完整时不会凭空猜测；只有当目标总升力能唯一确定缺失的升力或数量时才会推导补齐，并在下方标明推导来源。其余缺失字段仍需换一张完整清晰的截图重试。</p>
             <div className="row-actions"><button type="button" className="button primary" disabled={!canRecognize || !imageSelection || busy.current} onClick={() => void recognize()}>
               {submitting && operation === "recognition" ? "正在上传…" : operation === "recognition" && busy.current ? "正在识别…" : submitting && operation === "solve" ? "正在提交求解…" : operation === "solve" && busy.current ? "正在求解…" : "识别并求解"}</button>
               {busy.current && <button type="button" className="button secondary" onClick={cancel}>取消本次任务</button>}</div>
             {task && <p className="task-status" role="status" aria-live="polite">{operation === "recognition" ? "识别" : "求解"}任务状态：{{ queued: "排队中", running: "处理中", succeeded: "已完成", failed: "失败", cancelled: "已取消" }[task.status]}</p>}
+            {recognitionNotes.length > 0 && <div className="notice" role="status">
+              <strong>识别提示：</strong>{recognitionNotes.join(" ")}
+            </div>}
             {workError && <div className="notice warning" role="alert">{workError}</div>}
           </section>
           <div className="future-note">源石电路 <span>后续支持</span></div></div>
