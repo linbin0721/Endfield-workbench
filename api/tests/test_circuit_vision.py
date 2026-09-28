@@ -1,10 +1,10 @@
-"""Synthetic coverage for the circuit recognition math primitives (EW-006 B1a/B1b1).
+"""Synthetic coverage for the circuit recognition math primitives (EW-006 B1).
 
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
 ``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell``,
-``reconstruct_piece``, ``extract_bar_stacks`` and ``group_bar_ensembles`` are
-exercised. Every image is built in memory from simple rectangles, no file is
-read and no other recognition stage is imported.
+``reconstruct_piece``, bar extraction, board location and target decoding are
+exercised. Every image is built in memory from simple shapes, no file is read
+and no other recognition stage is imported.
 """
 
 import dataclasses
@@ -18,6 +18,8 @@ from app.puzzles.circuit.vision import (
     AxisLattice,
     BarEnsemble,
     BarStack,
+    BarTargets,
+    BoardGeometry,
     CellClass,
     CellEvidence,
     ChannelClusters,
@@ -27,8 +29,10 @@ from app.puzzles.circuit.vision import (
     classify_cell,
     cluster_hues,
     extract_bar_stacks,
+    extract_bar_targets,
     fit_axis_lattice,
     group_bar_ensembles,
+    locate_bar_board,
     reconstruct_piece,
     saturated_components,
     square_lattices,
@@ -1945,3 +1949,498 @@ def test_bar_structures_are_frozen_and_hold_plain_values() -> None:
     image[:] = 0
     assert extract_bar_stacks(image) == ()
     assert before == stacks
+
+
+# ---------------------------------------------------------------------------
+# board geometry and bar targets
+
+
+def draw_board_cells(
+    image: np.ndarray,
+    rows: int,
+    columns: int,
+    *,
+    step: float,
+    origin: tuple[float, float],
+    evidence: str = "texture",
+) -> None:
+    """Draw scale-relative in-cell evidence without adding bar-like shapes."""
+    thickness = max(1, int(round(0.04 * step)))
+    for row in range(rows):
+        for column in range(columns):
+            left = origin[0] + column * step
+            top = origin[1] + row * step
+            center_x = int(round(left + 0.5 * step))
+            center_y = int(round(top + 0.5 * step))
+            if evidence == "texture":
+                half = int(round(0.32 * step))
+                cv2.line(
+                    image,
+                    (center_x - half, center_y),
+                    (center_x + half, center_y),
+                    (180, 180, 180),
+                    thickness,
+                )
+                cv2.line(
+                    image,
+                    (center_x, center_y - half),
+                    (center_x, center_y + half),
+                    (180, 180, 180),
+                    thickness,
+                )
+            elif evidence == "content":
+                side = max(1, int(round(0.54 * step)))
+                paste(
+                    image,
+                    center_x - side // 2,
+                    center_y - side // 2,
+                    solid(75, width=side, height=side, value=160),
+                )
+            else:  # pragma: no cover - helper misuse, not product behavior
+                raise AssertionError(f"unknown evidence mode {evidence!r}")
+
+
+def draw_bar_board(
+    image: np.ndarray,
+    column_targets: tuple[int, ...],
+    row_targets: tuple[int, ...],
+    *,
+    step: float,
+    origin: tuple[float, float],
+    hue: int = 40,
+    evidence: str = "texture",
+) -> None:
+    draw_board_cells(
+        image,
+        len(row_targets),
+        len(column_targets),
+        step=step,
+        origin=origin,
+        evidence=evidence,
+    )
+    for column, count in enumerate(column_targets):
+        if count:
+            draw_horizontal_bars(
+                image,
+                origin[0] + (column + 0.5) * step,
+                origin[1] - SCENE_MARGIN * step,
+                step,
+                count,
+                hue,
+            )
+    for row, count in enumerate(row_targets):
+        if count:
+            draw_vertical_bars(
+                image,
+                origin[1] + (row + 0.5) * step,
+                origin[0] - SCENE_MARGIN * step,
+                step,
+                count,
+                hue,
+            )
+
+
+def located_scene(
+    column_targets: tuple[int, ...],
+    row_targets: tuple[int, ...],
+    *,
+    step: float = 60.0,
+    origin: tuple[float, float] = (240.0, 210.0),
+    evidence: str = "texture",
+) -> tuple[np.ndarray, tuple[BarEnsemble, ...], BoardGeometry]:
+    width = int(math.ceil(origin[0] + (len(column_targets) + 1.5) * step))
+    height = int(math.ceil(origin[1] + (len(row_targets) + 1.5) * step))
+    image = blank(width, height)
+    draw_bar_board(
+        image,
+        column_targets,
+        row_targets,
+        step=step,
+        origin=origin,
+        evidence=evidence,
+    )
+    ensembles = group_bar_ensembles(extract_bar_stacks(image))
+    geometry = locate_bar_board(image, ensembles)
+    assert geometry is not None
+    return image, ensembles, geometry
+
+
+def fixed_geometry(rows: int = 4, columns: int = 4, step: float = 100.0) -> BoardGeometry:
+    left, top = 400.0, 300.0
+    return BoardGeometry(
+        left=left,
+        top=top,
+        right=left + columns * step,
+        bottom=top + rows * step,
+        step=step,
+        rows=rows,
+        columns=columns,
+        row_centers=tuple(top + (index + 0.5) * step for index in range(rows)),
+        column_centers=tuple(left + (index + 0.5) * step for index in range(columns)),
+        evidence_ratio=1.0,
+        score_margin=1.0,
+    )
+
+
+def manual_ensemble(
+    geometry: BoardGeometry,
+    orientation: str,
+    entries: tuple[tuple[int, float, int, float], ...],
+    *,
+    step: float | None = None,
+    baseline: float | None = None,
+) -> BarEnsemble:
+    """Build stacks as ``(line, hue, count, offset_in_steps)``."""
+    pitch = geometry.step if step is None else step
+    centers = geometry.column_centers if orientation == "horizontal" else geometry.row_centers
+    edge = geometry.top if orientation == "horizontal" else geometry.left
+    side = edge - SCENE_MARGIN * geometry.step if baseline is None else baseline
+    stacks = tuple(
+        BarStack(
+            orientation=orientation,
+            anchor=float(centers[line] + offset * geometry.step),
+            baseline=float(side),
+            hue=float(hue),
+            count=count,
+            step=float(pitch),
+            residual_ratio=0.0,
+        )
+        for line, hue, count, offset in entries
+    )
+    return BarEnsemble(
+        orientation=orientation,
+        baseline=float(side),
+        step=float(pitch),
+        stacks=stacks,
+        residual_ratio=0.0,
+    )
+
+
+@pytest.mark.parametrize(
+    ("step", "origin"),
+    [
+        pytest.param(30.0, (150.0, 135.0), id="half"),
+        pytest.param(60.0, (240.0, 210.0), id="unit"),
+        pytest.param(60.0, (277.0, 239.0), id="translated"),
+        pytest.param(120.0, (480.0, 420.0), id="double"),
+    ],
+)
+def test_locate_bar_board_is_scale_and_translation_invariant(
+    step: float, origin: tuple[float, float]
+) -> None:
+    columns = (1, 1, 0, 0, 0)
+    rows = (1, 1, 0, 0)
+    _, ensembles, geometry = located_scene(columns, rows, step=step, origin=origin)
+
+    assert (geometry.rows, geometry.columns) == (4, 5)
+    assert geometry.step == pytest.approx(step, rel=0.04)
+    assert geometry.left == pytest.approx(origin[0], abs=0.10 * step)
+    assert geometry.top == pytest.approx(origin[1], abs=0.10 * step)
+    assert geometry.right == pytest.approx(origin[0] + 5 * step, abs=0.20 * step)
+    assert geometry.bottom == pytest.approx(origin[1] + 4 * step, abs=0.20 * step)
+    targets = extract_bar_targets(geometry, ensembles)
+    assert targets is not None
+    assert targets.column_targets == (columns,)
+    assert targets.row_targets == (rows,)
+
+
+@pytest.mark.parametrize(
+    ("rows", "columns"),
+    [
+        pytest.param(2, 2, id="minimum"),
+        pytest.param(3, 7, id="wide"),
+        pytest.param(7, 3, id="tall"),
+        pytest.param(10, 10, id="maximum"),
+    ],
+)
+def test_locate_bar_board_supports_two_to_ten_rectangular_lines(
+    rows: int, columns: int
+) -> None:
+    column_targets = tuple(1 if index in (0, columns - 1) else 0 for index in range(columns))
+    row_targets = tuple(1 if index in (0, rows - 1) else 0 for index in range(rows))
+    _, ensembles, geometry = located_scene(column_targets, row_targets, step=42.0)
+
+    assert (geometry.rows, geometry.columns) == (rows, columns)
+    targets = extract_bar_targets(geometry, ensembles)
+    assert targets is not None
+    assert targets.column_targets == (column_targets,)
+    assert targets.row_targets == (row_targets,)
+
+
+@pytest.mark.parametrize("evidence", ["texture", "content"])
+def test_locate_bar_board_accepts_texture_and_saturated_content(evidence: str) -> None:
+    _, _, geometry = located_scene((1, 0, 1), (1, 0, 1), evidence=evidence)
+    assert (geometry.rows, geometry.columns) == (3, 3)
+    assert geometry.evidence_ratio >= 0.50
+
+
+@pytest.mark.parametrize(
+    ("columns", "rows"),
+    [
+        pytest.param((0, 1, 1, 0), (0, 1, 1), id="leading-zero"),
+        pytest.param((1, 0, 1, 0), (1, 0, 1), id="middle-zero"),
+        pytest.param((1, 1, 0, 0), (1, 1, 0), id="trailing-zero"),
+    ],
+)
+def test_bar_targets_keep_legal_leading_middle_and_trailing_zeroes(
+    columns: tuple[int, ...], rows: tuple[int, ...]
+) -> None:
+    _, ensembles, geometry = located_scene(columns, rows)
+    targets = extract_bar_targets(geometry, ensembles)
+
+    assert targets is not None
+    assert targets.column_targets == (columns,)
+    assert targets.row_targets == (rows,)
+
+
+def test_locate_bar_board_extends_through_same_step_cells() -> None:
+    # The last two lines have no physical stacks. Their complete in-cell
+    # evidence makes them part of the maximal board instead of an outside ring.
+    _, _, geometry = located_scene((1, 1, 0, 0), (1, 1, 0, 0, 0))
+    assert (geometry.rows, geometry.columns) == (5, 4)
+
+
+def test_locate_bar_board_rejects_two_equal_geometries() -> None:
+    step = 50.0
+    image = blank(1100, 850)
+    targets = (1, 0, 1)
+    draw_bar_board(image, targets, targets, step=step, origin=(150.0, 140.0))
+    draw_bar_board(image, targets, targets, step=step, origin=(700.0, 560.0))
+    ensembles = group_bar_ensembles(extract_bar_stacks(image))
+
+    assert locate_bar_board(image, ensembles) is None
+
+
+def test_locate_bar_board_requires_both_axis_ensembles() -> None:
+    image, ensembles, _ = located_scene((1, 0, 1), (1, 0, 1))
+    horizontal = tuple(item for item in ensembles if item.orientation == "horizontal")
+    vertical = tuple(item for item in ensembles if item.orientation == "vertical")
+    assert locate_bar_board(image, horizontal) is None
+    assert locate_bar_board(image, vertical) is None
+
+
+def test_locate_bar_board_rejects_thirteen_percent_step_difference() -> None:
+    geometry = fixed_geometry()
+    horizontal = manual_ensemble(
+        geometry,
+        "horizontal",
+        ((0, 40.0, 1, 0.0), (3, 40.0, 1, 0.0)),
+        step=100.0,
+    )
+    vertical = manual_ensemble(
+        geometry,
+        "vertical",
+        ((0, 40.0, 1, 0.0), (3, 40.0, 1, 0.0)),
+        step=87.0,
+    )
+    assert locate_bar_board(blank(1000, 800), (horizontal, vertical)) is None
+
+
+def test_right_and_bottom_ui_ensembles_do_not_replace_the_board() -> None:
+    columns = (1, 0, 1, 0)
+    rows = (1, 0, 1, 0)
+    step = 60.0
+    origin = (240.0, 210.0)
+    image, _, expected = located_scene(columns, rows, step=step, origin=origin)
+    right = origin[0] + len(columns) * step + step
+    bottom = origin[1] + len(rows) * step + step
+    for index, count in ((0, 1), (2, 2)):
+        draw_vertical_bars(image, origin[1] + (index + 0.5) * step, right, step, count, 95)
+        draw_horizontal_bars(image, origin[0] + (index + 0.5) * step, bottom, step, count, 95)
+    ensembles = group_bar_ensembles(extract_bar_stacks(image))
+
+    actual = locate_bar_board(image, ensembles)
+    assert actual is not None
+    assert (actual.rows, actual.columns) == (expected.rows, expected.columns)
+    assert actual.left == pytest.approx(expected.left, abs=0.02 * step)
+    assert actual.top == pytest.approx(expected.top, abs=0.02 * step)
+    assert extract_bar_targets(actual, ensembles) is not None
+
+
+def test_extract_bar_targets_decodes_two_offset_channels() -> None:
+    geometry = fixed_geometry()
+    horizontal = manual_ensemble(
+        geometry,
+        "horizontal",
+        (
+            (0, 40.0, 1, -0.20),
+            (1, 100.0, 2, 0.20),
+            (2, 40.0, 2, -0.19),
+            (2, 100.0, 1, 0.21),
+            (3, 40.0, 1, -0.21),
+            (3, 100.0, 1, 0.19),
+        ),
+    )
+    vertical = manual_ensemble(
+        geometry,
+        "vertical",
+        (
+            (0, 40.0, 1, -0.20),
+            (0, 100.0, 2, 0.20),
+            (1, 40.0, 1, -0.19),
+            (2, 40.0, 1, -0.21),
+            (2, 100.0, 1, 0.21),
+            (3, 40.0, 1, -0.20),
+            (3, 100.0, 1, 0.19),
+        ),
+    )
+
+    targets = extract_bar_targets(geometry, (horizontal, vertical))
+    assert targets is not None
+    assert targets.channel_hues == pytest.approx((40.0, 100.0))
+    assert targets.column_targets == ((1, 0, 2, 1), (0, 2, 1, 1))
+    assert targets.row_targets == ((1, 1, 1, 1), (2, 0, 1, 1))
+    assert targets.residual_ratio < 0.02
+
+
+def test_extract_bar_targets_rejects_cross_channel_line_over_capacity() -> None:
+    geometry = fixed_geometry()
+    horizontal = manual_ensemble(
+        geometry,
+        "horizontal",
+        (
+            (0, 40.0, 1, -0.20),
+            (1, 40.0, 1, -0.20),
+            (2, 40.0, 1, -0.20),
+            (0, 100.0, 1, 0.20),
+            (1, 100.0, 1, 0.20),
+        ),
+    )
+    vertical = manual_ensemble(
+        geometry,
+        "vertical",
+        ((0, 40.0, 3, -0.20), (0, 100.0, 2, 0.20)),
+    )
+    assert extract_bar_targets(geometry, (horizontal, vertical)) is None
+
+
+def single_channel_ensembles(
+    geometry: BoardGeometry,
+    columns: tuple[tuple[int, int, float], ...],
+    rows: tuple[tuple[int, int, float], ...],
+) -> tuple[BarEnsemble, BarEnsemble]:
+    horizontal = manual_ensemble(
+        geometry,
+        "horizontal",
+        tuple((line, 40.0, count, offset) for line, count, offset in columns),
+    )
+    vertical = manual_ensemble(
+        geometry,
+        "vertical",
+        tuple((line, 40.0, count, offset) for line, count, offset in rows),
+    )
+    return horizontal, vertical
+
+
+@pytest.mark.parametrize(
+    ("columns", "rows"),
+    [
+        pytest.param(
+            ((0, 1, 0.0), (0, 1, 0.0), (3, 1, 0.0)),
+            ((0, 1, 0.0), (3, 2, 0.0)),
+            id="duplicate-line",
+        ),
+        pytest.param(
+            ((0, 5, 0.0), (3, 1, 0.0)),
+            ((0, 3, 0.0), (3, 3, 0.0)),
+            id="over-capacity",
+        ),
+        pytest.param(
+            ((0, 1, -0.29), (3, 1, 0.29)),
+            ((0, 1, 0.0), (3, 1, 0.0)),
+            id="unstable-offset",
+        ),
+        pytest.param(
+            ((0, 2, 0.0), (3, 1, 0.0)),
+            ((0, 1, 0.0), (3, 1, 0.0)),
+            id="unequal-totals",
+        ),
+    ],
+)
+def test_extract_bar_targets_rejects_inconsistent_observations(
+    columns: tuple[tuple[int, int, float], ...],
+    rows: tuple[tuple[int, int, float], ...],
+) -> None:
+    geometry = fixed_geometry()
+    assert extract_bar_targets(geometry, single_channel_ensembles(geometry, columns, rows)) is None
+
+
+def test_completed_undercount_is_not_guessed() -> None:
+    image, ensembles, geometry = located_scene((2, 1, 0), (1, 2, 0))
+    complete = extract_bar_targets(geometry, ensembles)
+    assert complete is not None
+    assert complete.column_targets == ((2, 1, 0),)
+
+    # Losing one physical bar on only one side leaves inconsistent totals. The
+    # decoder returns no targets instead of manufacturing the missing count.
+    horizontal, vertical = single_channel_ensembles(
+        fixed_geometry(rows=3, columns=3),
+        ((0, 1, 0.0), (1, 1, 0.0)),
+        ((0, 1, 0.0), (1, 2, 0.0)),
+    )
+    assert extract_bar_targets(fixed_geometry(rows=3, columns=3), (horizontal, vertical)) is None
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((8, 8), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((8, 8, 3), dtype=np.float32), id="float"),
+        pytest.param("not an image", id="string"),
+    ],
+)
+def test_locate_bar_board_rejects_invalid_images(image: object) -> None:
+    with pytest.raises(ValueError):
+        locate_bar_board(image, ())  # type: ignore[arg-type]
+
+
+def test_board_public_functions_validate_objects_and_name_the_caller() -> None:
+    geometry = fixed_geometry()
+    good = manual_ensemble(
+        geometry,
+        "horizontal",
+        ((0, 40.0, 1, 0.0), (3, 40.0, 1, 0.0)),
+    )
+    broken = dataclasses.replace(good, stacks=("not a stack", good.stacks[1]))
+    with pytest.raises(ValueError, match="locate_bar_board"):
+        locate_bar_board(blank(1000, 800), (broken,))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="extract_bar_targets"):
+        extract_bar_targets(geometry, (broken,))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="BoardGeometry"):
+        extract_bar_targets("not geometry", ())  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="equally spaced"):
+        extract_bar_targets(
+            dataclasses.replace(geometry, column_centers=(450.0, 550.0, 675.0, 750.0)),
+            (),
+        )
+    with pytest.raises(ValueError, match="near boundary"):
+        extract_bar_targets(dataclasses.replace(geometry, left=0.0), ())
+    wrong_orientation = dataclasses.replace(
+        good,
+        stacks=(dataclasses.replace(good.stacks[0], orientation="vertical"), good.stacks[1]),
+    )
+    with pytest.raises(ValueError, match="orientations must agree"):
+        locate_bar_board(blank(1000, 800), (wrong_orientation,))
+
+
+def test_board_results_are_frozen_plain_values_and_do_not_alias_pixels() -> None:
+    image, ensembles, geometry = located_scene((1, 0, 1), (1, 0, 1))
+    targets = extract_bar_targets(geometry, ensembles)
+    assert targets is not None
+    before = (geometry, targets)
+    image[:] = 0
+
+    assert before == (geometry, targets)
+    assert BoardGeometry.__dataclass_params__.frozen is True
+    assert BarTargets.__dataclass_params__.frozen is True
+    assert all(type(value) is float for value in (geometry.left, geometry.top, geometry.step))
+    assert type(geometry.rows) is int
+    assert type(geometry.row_centers) is tuple
+    assert type(targets.channel_hues) is tuple
+    assert type(targets.row_targets) is tuple
+    assert all(type(value) is int for channel in targets.row_targets for value in channel)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        geometry.rows = 3
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        targets.residual_ratio = 1.0

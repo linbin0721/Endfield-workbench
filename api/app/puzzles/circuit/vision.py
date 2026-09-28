@@ -5,10 +5,12 @@ outside this module; the helpers here turn a screenshot into saturated
 components, fit the integer line lattice, decide whether the two axis pitches
 match, cluster hues on the circular OpenCV 0..179 scale, summarize a single
 board cell as immutable evidence with a fixed classification, rebuild one
-already segmented inventory piece mask as an immutable square grid shape, and
+already segmented inventory piece mask as an immutable square grid shape,
 reduce a full screenshot to the short bar stacks of both board sides plus the
-candidate ensembles that share a baseline. Every function is pure and keeps no
-reference to the source image or to any crop.
+candidate ensembles that share a baseline, and finally turn those candidates
+into the unique board rectangle with its per channel row and column targets.
+Every function is pure and keeps no reference to the source image or to any
+crop.
 """
 
 from __future__ import annotations
@@ -1332,7 +1334,9 @@ def extract_bar_stacks(image: np.ndarray) -> tuple[BarStack, ...]:
     return tuple(stacks)
 
 
-def _validated_stacks(stacks: Sequence[BarStack]) -> tuple[BarStack, ...]:
+def _validated_stacks(
+    stacks: Sequence[BarStack], function: str = "group_bar_ensembles"
+) -> tuple[BarStack, ...]:
     """Validate a stack sequence and return it as a tuple of ``BarStack``.
 
     Anything but a sequence of well formed :class:`BarStack` values raises
@@ -1342,12 +1346,12 @@ def _validated_stacks(stacks: Sequence[BarStack]) -> tuple[BarStack, ...]:
     all rejected instead of silently producing an unusable ensemble.
     """
     if isinstance(stacks, (str, bytes)) or not isinstance(stacks, (Sequence, np.ndarray)):
-        raise ValueError("group_bar_ensembles expects a sequence of BarStack instances")
+        raise ValueError(f"{function} expects a sequence of BarStack instances")
     result: list[BarStack] = []
     for stack in stacks:
         if not isinstance(stack, BarStack):
             raise ValueError(
-                f"group_bar_ensembles expects BarStack instances, got {type(stack).__name__}"
+                f"{function} expects BarStack instances, got {type(stack).__name__}"
             )
         if stack.orientation not in _ORIENTATION_ORDER:
             raise ValueError(f"unknown bar stack orientation {stack.orientation!r}")
@@ -1478,3 +1482,843 @@ def group_bar_ensembles(stacks: Sequence[BarStack]) -> tuple[BarEnsemble, ...]:
         for index in members:
             assigned[index] = True
     return tuple(ensembles)
+
+
+# ---------------------------------------------------------------------------
+# board geometry and bar line targets (B1b2)
+#
+# The stacks above the board and the stacks left of it fix the two baselines
+# and, together, one square pitch: the cell grid starts a fraction of a pitch
+# below/right of the bar baseline and the first observed stack sits on the
+# first line whose target is non zero. The rectangle is then grown outwards
+# from that corner one line at a time: a line still belongs to the board while
+# every one of its cells carries board texture (corner strokes, grid lines,
+# blocked hatching) or saturated game content (fixed cells, placed pieces), so
+# a line whose target is zero is still part of the board while the decorative
+# frame, the page background and the UI panels around it are not. Every spatial
+# threshold below is a share of the fitted pitch; only the saturation and value
+# gates are absolute colour thresholds, exactly like the B1a helpers.
+BOARD_STEP_TOLERANCE = 0.12
+BOARD_MAX_LINES = 10
+BOARD_MIN_LINES = 2
+BOARD_SCALE_LOW = 0.86
+BOARD_SCALE_HIGH = 1.14
+BOARD_SCALE_RESOLUTION = 0.002
+BOARD_REFINE_RESOLUTION = 0.0005
+BOARD_FIT_TOLERANCE = 0.30
+BOARD_GAP_MAX = 0.65
+BOARD_HALF_RANGES = (0.06, 0.46, 0.54, 0.94)
+BOARD_TEXTURE_LOW = 0.20
+BOARD_TEXTURE_HIGH = 0.80
+BOARD_TEXTURE_MIN = 0.40
+BOARD_TEXTURE_EXTEND_MIN = 0.35
+BOARD_CONTENT_SATURATION = 120
+BOARD_CONTENT_VALUE = 25
+BOARD_CONTENT_RATIO = 0.50
+BOARD_CONTENT_BOX = (0.28, 0.72)
+BOARD_MIN_SCORE = 0.50
+BOARD_MIN_SCORE_MARGIN = 0.15
+BOARD_MIN_SUPPORT_LINES = 2
+BAR_CENTER_TOLERANCE = 0.30
+BAR_OFFSET_TOLERANCE = 0.25
+BAR_ENSEMBLE_GAP_MAX = 0.65
+
+
+@dataclass(frozen=True)
+class BoardGeometry:
+    """The unique board rectangle fitted to one screenshot.
+
+    ``left``/``top``/``right``/``bottom`` are the outer boundary of the cell
+    grid (the decorative frame around it is not part of the rectangle),
+    ``step`` is the square pitch fitted to the two bar axes and ``rows``/
+    ``columns`` are the cell counts in ``2..BOARD_MAX_LINES``.
+    ``row_centers``/``column_centers`` hold one centre per line, in ascending
+    order, so their length equals ``rows``/``columns``.
+
+    ``evidence_ratio`` is the share of the rectangle's cells that carry board
+    evidence: either in-cell texture (the minimum structure energy over the
+    four half cells reaches ``BOARD_TEXTURE_MIN``) or saturated game content
+    (the central box is at least ``BOARD_CONTENT_RATIO`` saturated pixels).
+    A dimmed completed board whose covered cells are flat still counts through
+    the content test, and a zero target line whose cells only show the faint
+    cell texture still counts through the texture test.
+
+    ``score_margin`` is the difference between this rectangle's score
+    (``evidence_ratio`` minus the share of supported cells in the ring just
+    outside the rectangle) and the score of the closest distinct alternative
+    geometry; when no other geometry was found it is the score itself, i.e.
+    its distance from the 0 baseline. A small margin means the screenshot does
+    not single out one rectangle and ``locate_bar_board`` returns ``None``.
+
+    Every field is a plain Python scalar or tuple and no field aliases a pixel,
+    a mask, a contour or a crop.
+    """
+
+    left: float
+    top: float
+    right: float
+    bottom: float
+    step: float
+    rows: int
+    columns: int
+    row_centers: tuple[float, ...]
+    column_centers: tuple[float, ...]
+    evidence_ratio: float
+    score_margin: float
+
+
+@dataclass(frozen=True)
+class BarTargets:
+    """Per channel row and column targets of one confirmed board.
+
+    ``channel_hues`` are the stable circular hue centres on the OpenCV 0..179
+    scale in ascending order, so ``row_targets[channel][row]`` and
+    ``column_targets[channel][column]`` are the bar counts of that colour on
+    that line; a line without any physical stack of the channel is ``0``.
+    ``residual_ratio`` is the mean distance between a stack's display offset
+    and its channel's robust offset on the same axis, in units of the board
+    step: single colour lines keep no offset, multi colour lines keep about
+    +/-0.2 step, and an unstable offset rejects the whole decoding.
+
+    Targets hold plain Python ``int`` and every tuple follows the input channel
+    order; no field aliases a pixel, a stack or an ensemble.
+    """
+
+    channel_hues: tuple[float, ...]
+    row_targets: tuple[tuple[int, ...], ...]
+    column_targets: tuple[tuple[int, ...], ...]
+    residual_ratio: float
+
+
+@dataclass(frozen=True)
+class _AxisFit:
+    """One axis: the fitted pitch and the centre of its first line."""
+
+    pitch: float
+    first_center: float
+
+
+@dataclass(frozen=True)
+class _BoardCandidate:
+    """One board rectangle fitted from one ensemble pair; never returned."""
+
+    first_center_x: float
+    first_center_y: float
+    pitch: float
+    rows: int
+    columns: int
+    evidence_ratio: float
+    ring_ratio: float
+    score: float
+
+
+def _validated_ensembles(
+    ensembles: Sequence[BarEnsemble], function: str
+) -> tuple[BarEnsemble, ...]:
+    """Validate an ensemble sequence and return it as a tuple.
+
+    Anything but a sequence of well formed :class:`BarEnsemble` values raises
+    ``ValueError``: a wrong type, an unknown orientation, a non positive or non
+    finite baseline/step, a negative or non finite ``residual_ratio``, an empty
+    stack tuple and every invalid nested :class:`BarStack` are rejected instead
+    of silently producing an unusable board. ``function`` only names the public
+    caller in the error message.
+    """
+    if isinstance(ensembles, (str, bytes)) or not isinstance(
+        ensembles, (Sequence, np.ndarray)
+    ):
+        raise ValueError(f"{function} expects a sequence of BarEnsemble instances")
+    result: list[BarEnsemble] = []
+    for ensemble in ensembles:
+        if not isinstance(ensemble, BarEnsemble):
+            raise ValueError(
+                f"{function} expects BarEnsemble instances, "
+                f"got {type(ensemble).__name__}"
+            )
+        if ensemble.orientation not in _ORIENTATION_ORDER:
+            raise ValueError(f"unknown bar ensemble orientation {ensemble.orientation!r}")
+        for name in ("baseline", "step"):
+            value = getattr(ensemble, name)
+            if not isinstance(value, numbers.Real) or not math.isfinite(float(value)):
+                raise ValueError(
+                    f"bar ensemble {name} must be a finite number, got {value!r}"
+                )
+        if float(ensemble.step) <= 0.0:
+            raise ValueError(f"bar ensemble step must be positive, got {ensemble.step!r}")
+        if not isinstance(ensemble.residual_ratio, numbers.Real) or not math.isfinite(
+            float(ensemble.residual_ratio)
+        ):
+            raise ValueError(
+                "bar ensemble residual_ratio must be a finite number, "
+                f"got {ensemble.residual_ratio!r}"
+            )
+        if float(ensemble.residual_ratio) < 0.0:
+            raise ValueError(
+                "bar ensemble residual_ratio must not be negative, "
+                f"got {ensemble.residual_ratio!r}"
+            )
+        if not isinstance(ensemble.stacks, (tuple, list)):
+            raise ValueError("bar ensemble stacks must be a sequence of BarStack instances")
+        if not ensemble.stacks:
+            raise ValueError("bar ensemble stacks must not be empty")
+        _validated_stacks(ensemble.stacks, function)
+        if any(stack.orientation != ensemble.orientation for stack in ensemble.stacks):
+            raise ValueError("bar ensemble and nested stack orientations must agree")
+        result.append(ensemble)
+    return tuple(result)
+
+
+def _validated_board_image(image: np.ndarray, function: str) -> None:
+    """Reject everything that is not one non-empty three channel uint8 image."""
+    if not isinstance(image, np.ndarray):
+        raise ValueError(f"{function} expects a numpy array")
+    if image.dtype != np.uint8:
+        raise ValueError(f"{function} expects uint8 pixels, got {image.dtype}")
+    if image.ndim != 3 or image.shape[2] != 3:
+        raise ValueError(
+            f"{function} expects a three channel BGR image, got shape {image.shape}"
+        )
+    if image.size == 0:
+        raise ValueError(f"{function} expects a non-empty image")
+
+
+def _axis_concentration(anchors: Sequence[float], pitch: float) -> tuple[float, float]:
+    """Circular concentration and mean phase of ``(anchor / pitch) mod 1``.
+
+    Every line centre is ``first + index * pitch``, so the fractional parts of
+    all anchors share one phase; two colours of one line shift that anchor by
+    at most ``BAR_CENTER_TOLERANCE`` of a pitch and cancel in the circular
+    mean. A wrong pitch spreads the phases and lowers the concentration, which
+    is what makes the pitch identifiable without any absolute coordinate.
+    """
+    angles = [2.0 * math.pi * ((anchor / pitch) % 1.0) for anchor in anchors]
+    sin_sum = math.fsum(math.sin(angle) for angle in angles)
+    cos_sum = math.fsum(math.cos(angle) for angle in angles)
+    concentration = math.hypot(sin_sum, cos_sum) / len(anchors)
+    phase = (math.atan2(sin_sum, cos_sum) / (2.0 * math.pi)) % 1.0
+    return float(concentration), float(phase)
+
+
+def _axis_fit(
+    anchors: Sequence[float], baseline: float, pitch: float
+) -> _AxisFit | None:
+    """Fit one axis at a fixed ``pitch`` from its anchors and bar baseline.
+
+    The mean phase gives the first line centre up to a whole pitch; the bar
+    baseline picks the period whose cell grid starts within ``BOARD_GAP_MAX``
+    pitches of the baseline (the innermost bar sits about one slot outside the
+    board). The fit is rejected when any anchor is farther than
+    ``BOARD_FIT_TOLERANCE`` pitches from its nearest line centre, which happens
+    when the anchors do not belong to this pitch at all.
+    """
+    concentration, phase = _axis_concentration(anchors, pitch)
+    order = round((baseline + 0.5 * pitch - phase * pitch) / pitch)
+    first = (phase + order) * pitch
+    if not baseline - 1e-6 <= first - 0.5 * pitch <= baseline + BOARD_GAP_MAX * pitch:
+        return None
+    worst = max(
+        abs(anchor - (first + round((anchor - first) / pitch) * pitch))
+        for anchor in anchors
+    )
+    if worst > BOARD_FIT_TOLERANCE * pitch:
+        return None
+    return _AxisFit(pitch=float(pitch), first_center=float(first))
+
+
+def _fit_board(
+    column_anchors: Sequence[float],
+    column_baseline: float,
+    row_anchors: Sequence[float],
+    row_baseline: float,
+    pitch: float,
+) -> tuple[_AxisFit, _AxisFit] | None:
+    """Fit one square pitch and both first centres to the two bar axes.
+
+    The pitch is scanned around the median ensemble step; a candidate pitch
+    must fit both axes (see :func:`_axis_fit`) and is ranked by the summed
+    circular concentration, by the worst residual and, only as a tie break, by
+    its distance to the provisional step. Both axes share one pitch because the
+    game grid is square and the two beams only disagree by a few percent. The
+    scan is deterministic: a fixed resolution, a rounded key and no dependence
+    on input order.
+    """
+    if pitch <= 0.0 or not math.isfinite(pitch):
+        return None
+    best: tuple[tuple[float, ...], _AxisFit, _AxisFit] | None = None
+    steps = int(round((BOARD_SCALE_HIGH - BOARD_SCALE_LOW) / BOARD_SCALE_RESOLUTION))
+    for index in range(steps + 1):
+        scale = BOARD_SCALE_LOW + index * BOARD_SCALE_RESOLUTION
+        candidate = pitch * scale
+        columns = _axis_fit(column_anchors, column_baseline, candidate)
+        rows = _axis_fit(row_anchors, row_baseline, candidate)
+        if columns is None or rows is None:
+            continue
+        concentration, _ = _axis_concentration(column_anchors, candidate)
+        row_concentration, _ = _axis_concentration(row_anchors, candidate)
+        worst = max(
+            _fit_worst(column_anchors, columns), _fit_worst(row_anchors, rows)
+        )
+        score = (
+            concentration
+            + row_concentration
+            - abs(scale - 1.0)
+            - 0.5 * worst / candidate
+        )
+        key = (round(score, 9), -round(abs(scale - 1.0), 9), round(candidate, 9))
+        if best is None or key > best[0]:
+            best = (key, columns, rows)
+    if best is None:
+        return None
+    _, column_fit, row_fit = best
+    # A short local walk removes the discretization of the coarse scan.
+    best_worst = max(
+        _fit_worst(column_anchors, column_fit), _fit_worst(row_anchors, row_fit)
+    )
+    for index in range(-20, 21):
+        candidate = column_fit.pitch + index * BOARD_REFINE_RESOLUTION * pitch
+        walked_columns = _axis_fit(column_anchors, column_baseline, candidate)
+        walked_rows = _axis_fit(row_anchors, row_baseline, candidate)
+        if walked_columns is None or walked_rows is None:
+            continue
+        worst = max(
+            _fit_worst(column_anchors, walked_columns),
+            _fit_worst(row_anchors, walked_rows),
+        )
+        key = (
+            -round(worst, 9),
+            -round(abs(candidate / pitch - 1.0), 9),
+            -round(abs(candidate - column_fit.pitch), 9),
+        )
+        previous = (
+            -round(best_worst, 9),
+            -round(abs(column_fit.pitch / pitch - 1.0), 9),
+            0.0,
+        )
+        if key > previous:
+            best_worst = worst
+            column_fit, row_fit = walked_columns, walked_rows
+    return column_fit, row_fit
+
+
+def _fit_worst(anchors: Sequence[float], fit: _AxisFit) -> float:
+    """Largest distance between an anchor and its nearest line centre."""
+    return max(
+        abs(anchor - (fit.first_center + round((anchor - fit.first_center) / fit.pitch) * fit.pitch))
+        for anchor in anchors
+    )
+
+
+def _board_signals(image: np.ndarray, step: float) -> tuple[np.ndarray, np.ndarray]:
+    """Structure energy and saturated content planes of one screenshot.
+
+    ``structure`` is the absolute difference between the grey image and a
+    Gaussian blur whose sigma scales with the board pitch, capped so that one
+    very bright UI element cannot dominate an average. ``content`` marks pixels
+    that are saturated enough to be game colour even when a completion overlay
+    dims the whole board: the value floor is far below B1a's component floor on
+    purpose, because a dimmed placed piece still has to be recognized as board
+    content.
+    """
+    grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    sigma = max(0.8, 0.025 * step)
+    structure = np.minimum(np.abs(grey - cv2.GaussianBlur(grey, (0, 0), sigma)), 60.0)
+    content = (hsv[:, :, 1] >= BOARD_CONTENT_SATURATION) & (
+        hsv[:, :, 2] >= BOARD_CONTENT_VALUE
+    )
+    return structure, content
+
+
+def _rectangle_mean(plane: np.ndarray, x0: float, x1: float, y0: float, y1: float) -> float:
+    """Mean of one pixel rectangle clipped to the plane; 0.0 when it is empty."""
+    height, width = plane.shape[:2]
+    left = max(0, int(x0))
+    right = min(width, int(x1))
+    top = max(0, int(y0))
+    bottom = min(height, int(y1))
+    if right <= left or bottom <= top:
+        return 0.0
+    return float(plane[top:bottom, left:right].mean())
+
+
+def _board_cell(
+    structure: np.ndarray, content: np.ndarray, x0: float, y0: float, step: float
+) -> tuple[float, float]:
+    """``(texture, content_ratio)`` of one cell without keeping its pixels.
+
+    ``texture`` is the smallest mean structure energy over the four half cells
+    (left/right/top/bottom bands), so a frame line or a piece outline that only
+    hugs one edge of the cell cannot fake board texture; ``content_ratio`` is
+    the share of saturated pixels in the central ``BOARD_CONTENT_BOX`` box,
+    which ignores such an edge band by construction.
+    """
+    near_low, near_high, far_low, far_high = BOARD_HALF_RANGES
+    outer_low = BOARD_TEXTURE_LOW * step
+    outer_high = BOARD_TEXTURE_HIGH * step
+    left = _rectangle_mean(
+        structure, x0 + near_low * step, x0 + near_high * step, y0 + outer_low, y0 + outer_high
+    )
+    right = _rectangle_mean(
+        structure, x0 + far_low * step, x0 + far_high * step, y0 + outer_low, y0 + outer_high
+    )
+    top = _rectangle_mean(
+        structure, x0 + outer_low, x0 + outer_high, y0 + near_low * step, y0 + near_high * step
+    )
+    bottom = _rectangle_mean(
+        structure, x0 + outer_low, x0 + outer_high, y0 + far_low * step, y0 + far_high * step
+    )
+    height, width = content.shape[:2]
+    box_left = max(0, int(x0 + BOARD_CONTENT_BOX[0] * step))
+    box_right = min(width, int(x0 + BOARD_CONTENT_BOX[1] * step))
+    box_top = max(0, int(y0 + BOARD_CONTENT_BOX[0] * step))
+    box_bottom = min(height, int(y0 + BOARD_CONTENT_BOX[1] * step))
+    ratio = 0.0
+    if box_right > box_left and box_bottom > box_top:
+        ratio = float(content[box_top:box_bottom, box_left:box_right].mean())
+    return min(left, right, top, bottom), ratio
+
+
+def _board_supported(
+    texture: float, content: float, *, extending: bool
+) -> bool:
+    """Whether one cell carries board evidence.
+
+    While the rectangle grows outwards the texture gate is slightly lower, so a
+    zero target line with only faint in-cell strokes still joins the board;
+    cells inside the final rectangle and cells of the ring outside it use the
+    same, stricter gate, which keeps the comparison between them fair.
+    """
+    minimum = BOARD_TEXTURE_EXTEND_MIN if extending else BOARD_TEXTURE_MIN
+    return texture >= minimum or content >= BOARD_CONTENT_RATIO
+
+
+def _line_count(anchors: Sequence[float], fit: _AxisFit) -> int:
+    """Number of lines from the first centre to the last observed anchor."""
+    last = max(round((anchor - fit.first_center) / fit.pitch) for anchor in anchors)
+    return last + 1
+
+
+def _board_pair_candidate(
+    image: np.ndarray, horizontal: BarEnsemble, vertical: BarEnsemble
+) -> _BoardCandidate | None:
+    """Fit one board rectangle from one horizontal/vertical ensemble pair.
+
+    ``None`` means this pair cannot be a board: the two ensemble pitches differ
+    by more than ``BOARD_STEP_TOLERANCE``, no common pitch starts both cell
+    grids just outside their baselines, the first observed line is not the
+    first line of the board, the rectangle is smaller than two lines, fewer
+    than two rows and two columns carry evidence, or the ring just outside the
+    rectangle carries so much evidence that the rectangle is not maximal.
+    """
+    scale = max(horizontal.step, vertical.step)
+    if abs(horizontal.step - vertical.step) / scale > BOARD_STEP_TOLERANCE:
+        return None
+    provisional = float(statistics.median([horizontal.step, vertical.step]))
+    fits = _fit_board(
+        [stack.anchor for stack in horizontal.stacks],
+        vertical.baseline,
+        [stack.anchor for stack in vertical.stacks],
+        horizontal.baseline,
+        provisional,
+    )
+    if fits is None:
+        return None
+    columns_fit, rows_fit = fits
+    columns = _line_count([stack.anchor for stack in horizontal.stacks], columns_fit)
+    rows = _line_count([stack.anchor for stack in vertical.stacks], rows_fit)
+    if not BOARD_MIN_LINES <= rows <= BOARD_MAX_LINES:
+        return None
+    if not BOARD_MIN_LINES <= columns <= BOARD_MAX_LINES:
+        return None
+
+    structure, content = _board_signals(image, columns_fit.pitch)
+    limit = BOARD_MAX_LINES + 1
+    texture = [[0.0] * limit for _ in range(limit)]
+    ratio = [[0.0] * limit for _ in range(limit)]
+    for row in range(limit):
+        for column in range(limit):
+            texture[row][column], ratio[row][column] = _board_cell(
+                structure,
+                content,
+                columns_fit.first_center + (column - 0.5) * columns_fit.pitch,
+                rows_fit.first_center + (row - 0.5) * rows_fit.pitch,
+                columns_fit.pitch,
+            )
+
+    def supported(row: int, column: int) -> bool:
+        return _board_supported(texture[row][column], ratio[row][column], extending=False)
+
+    def extends(row: int, column: int) -> bool:
+        return _board_supported(texture[row][column], ratio[row][column], extending=True)
+
+    grew = True
+    while grew:
+        grew = False
+        if rows < BOARD_MAX_LINES and all(extends(rows, column) for column in range(columns)):
+            rows += 1
+            grew = True
+        if columns < BOARD_MAX_LINES and all(extends(row, columns) for row in range(rows)):
+            columns += 1
+            grew = True
+
+    supported_rows: set[int] = set()
+    supported_columns: set[int] = set()
+    supported_cells = 0
+    for row in range(rows):
+        for column in range(columns):
+            if supported(row, column):
+                supported_rows.add(row)
+                supported_columns.add(column)
+                supported_cells += 1
+    if len(supported_rows) < BOARD_MIN_SUPPORT_LINES:
+        return None
+    if len(supported_columns) < BOARD_MIN_SUPPORT_LINES:
+        return None
+    evidence_ratio = supported_cells / float(rows * columns)
+    ring = [(row, columns) for row in range(rows)] + [(rows, column) for column in range(columns)]
+    ring_supported = sum(1 for row, column in ring if supported(row, column))
+    ring_ratio = ring_supported / float(len(ring))
+    score = evidence_ratio - ring_ratio
+    if score < BOARD_MIN_SCORE:
+        return None
+    return _BoardCandidate(
+        first_center_x=float(columns_fit.first_center),
+        first_center_y=float(rows_fit.first_center),
+        pitch=float(columns_fit.pitch),
+        rows=int(rows),
+        columns=int(columns),
+        evidence_ratio=float(evidence_ratio),
+        ring_ratio=float(ring_ratio),
+        score=float(score),
+    )
+
+
+def _distinct_candidates(candidates: Sequence[_BoardCandidate]) -> list[_BoardCandidate]:
+    """Collapse near identical rectangles and rank them by score.
+
+    Two candidates describe the same rectangle when their first centres stay
+    within 5% of a pitch, their pitches within 2% and their line counts match;
+    the best score survives, so a duplicated geometry can never be mistaken for
+    the runner-up that decides the margin. The result is ordered by descending
+    score, descending evidence and ascending geometry, which makes the choice
+    independent of the ensemble order.
+    """
+    ordered = sorted(
+        candidates,
+        key=lambda candidate: (
+            -candidate.score,
+            -candidate.evidence_ratio,
+            candidate.rows,
+            candidate.columns,
+            candidate.first_center_x,
+            candidate.first_center_y,
+            candidate.pitch,
+        ),
+    )
+    merged: list[_BoardCandidate] = []
+    for candidate in ordered:
+        if any(
+            keep.rows == candidate.rows
+            and keep.columns == candidate.columns
+            and abs(keep.pitch - candidate.pitch) <= 0.02 * candidate.pitch
+            and abs(keep.first_center_x - candidate.first_center_x)
+            <= 0.05 * candidate.pitch
+            and abs(keep.first_center_y - candidate.first_center_y)
+            <= 0.05 * candidate.pitch
+            for keep in merged
+        ):
+            continue
+        merged.append(candidate)
+    return merged
+
+
+def locate_bar_board(
+    image: np.ndarray, ensembles: Sequence[BarEnsemble]
+) -> BoardGeometry | None:
+    """Locate the unique bar board rectangle of one full BGR screenshot.
+
+    ``image`` is validated exactly like :func:`saturated_components`, so a non
+    array, a non uint8, a non three channel or an empty image raises
+    ``ValueError``. ``ensembles`` must be a sequence of :class:`BarEnsemble`
+    values; anything else raises ``ValueError``.
+
+    Every horizontal/vertical ensemble pair whose pitches agree within
+    ``BOARD_STEP_TOLERANCE`` is fitted as a candidate board: one square pitch
+    and the two first line centres are read from the stack anchors, the cell
+    grid has to start within ``BOARD_GAP_MAX`` pitches below/right of the bar
+    baselines (the bar closest to the board sits about one slot outside it),
+    and the rectangle is grown line by line while its cells still carry board
+    texture or saturated content. That growth is what accepts a last line whose
+    target is zero and rejects a rectangle that would end inside a larger
+    board, while the decorative frame around the board never passes the texture
+    gate because it only hugs the cell edges. A candidate also needs evidence
+    on at least two rows and two columns, an ``evidence_ratio`` high enough to
+    reach ``BOARD_MIN_SCORE`` after the ring outside the rectangle is
+    subtracted, and a unique best score: near identical rectangles are merged
+    first, and when a second, different rectangle scores within
+    ``BOARD_MIN_SCORE_MARGIN`` the screenshot does not single out one geometry
+    and ``None`` is returned.
+
+    The returned :class:`BoardGeometry` holds only Python scalars and tuples
+    and never a pixel, a mask, a contour or a crop.
+    """
+    _validated_board_image(image, "locate_bar_board")
+    pool = _validated_ensembles(ensembles, "locate_bar_board")
+    horizontals = [item for item in pool if item.orientation == "horizontal"]
+    verticals = [item for item in pool if item.orientation == "vertical"]
+    candidates: list[_BoardCandidate] = []
+    for horizontal in horizontals:
+        for vertical in verticals:
+            candidate = _board_pair_candidate(image, horizontal, vertical)
+            if candidate is not None:
+                candidates.append(candidate)
+    ranked = _distinct_candidates(candidates)
+    if not ranked:
+        return None
+    best = ranked[0]
+    margin = best.score - ranked[1].score if len(ranked) > 1 else best.score
+    if margin < BOARD_MIN_SCORE_MARGIN:
+        return None
+
+    pitch = best.pitch
+    column_centers = tuple(
+        float(best.first_center_x + index * pitch) for index in range(best.columns)
+    )
+    row_centers = tuple(
+        float(best.first_center_y + index * pitch) for index in range(best.rows)
+    )
+    return BoardGeometry(
+        left=float(best.first_center_x - 0.5 * pitch),
+        top=float(best.first_center_y - 0.5 * pitch),
+        right=float(best.first_center_x + (best.columns - 0.5) * pitch),
+        bottom=float(best.first_center_y + (best.rows - 0.5) * pitch),
+        step=float(pitch),
+        rows=int(best.rows),
+        columns=int(best.columns),
+        row_centers=row_centers,
+        column_centers=column_centers,
+        evidence_ratio=float(best.evidence_ratio),
+        score_margin=float(margin),
+    )
+
+
+def _validated_geometry(geometry: BoardGeometry, function: str) -> None:
+    """Reject a board geometry whose own fields contradict each other.
+
+    This is a programmer error check, not a recognition step: a wrong type, a
+    non finite or non positive number, unordered boundaries, line counts
+    outside ``2..BOARD_MAX_LINES``, centre tuples whose length differs from the
+    line count, non increasing or non finite centres, centres that do not sit
+    inside their own cell, spacings that disagree with ``step`` or with each
+    other by more than ``BOARD_STEP_TOLERANCE``, a ratio outside ``0..1`` or a
+    negative margin all raise ``ValueError``.
+    """
+    if not isinstance(geometry, BoardGeometry):
+        raise ValueError(f"{function} expects a BoardGeometry instance")
+    for name in ("left", "top", "right", "bottom", "step", "evidence_ratio", "score_margin"):
+        value = getattr(geometry, name)
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
+            raise ValueError(f"board geometry {name} must be a finite number, got {value!r}")
+        if not math.isfinite(float(value)):
+            raise ValueError(f"board geometry {name} must be a finite number, got {value!r}")
+    if not float(geometry.step) > 0.0:
+        raise ValueError(f"board geometry step must be positive, got {geometry.step!r}")
+    if not (
+        float(geometry.right) > float(geometry.left)
+        and float(geometry.bottom) > float(geometry.top)
+    ):
+        raise ValueError("board geometry boundaries must be ordered")
+    for name in ("rows", "columns"):
+        value = getattr(geometry, name)
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError(
+                f"board geometry {name} must be an integer in "
+                f"{BOARD_MIN_LINES}..{BOARD_MAX_LINES}, got {value!r}"
+            )
+        if not BOARD_MIN_LINES <= value <= BOARD_MAX_LINES:
+            raise ValueError(
+                f"board geometry {name} must be an integer in "
+                f"{BOARD_MIN_LINES}..{BOARD_MAX_LINES}, got {value!r}"
+            )
+    evidence = float(geometry.evidence_ratio)
+    if not 0.0 <= evidence <= 1.0:
+        raise ValueError(
+            f"board geometry evidence_ratio must be a ratio in 0..1, got {evidence!r}"
+        )
+    if float(geometry.score_margin) < 0.0:
+        raise ValueError(
+            f"board geometry score_margin must not be negative, got {geometry.score_margin!r}"
+        )
+
+    pitches: list[float] = []
+    axes = (
+        ("column_centers", geometry.column_centers, geometry.columns, geometry.left, geometry.right),
+        ("row_centers", geometry.row_centers, geometry.rows, geometry.top, geometry.bottom),
+    )
+    for name, centers, count, low, high in axes:
+        if isinstance(centers, (str, bytes)) or not isinstance(
+            centers, (Sequence, np.ndarray)
+        ):
+            raise ValueError(f"board geometry {name} must be a sequence of centres")
+        values = tuple(centers)
+        if len(values) != count:
+            raise ValueError(
+                f"board geometry {name} must hold {count} centres, got {len(values)}"
+            )
+        previous: float | None = None
+        for value in values:
+            if isinstance(value, bool) or not isinstance(value, numbers.Real):
+                raise ValueError(f"board geometry {name} must hold finite numbers")
+            number = float(value)
+            if not math.isfinite(number):
+                raise ValueError(f"board geometry {name} must hold finite numbers")
+            if previous is not None and number <= previous:
+                raise ValueError(f"board geometry {name} must be strictly increasing")
+            previous = number
+        step = float(geometry.step)
+        if abs((values[0] - 0.5 * step) - float(low)) > BOARD_FIT_TOLERANCE * step:
+            raise ValueError(f"board geometry {name} disagrees with the near boundary")
+        if abs((values[-1] + 0.5 * step) - float(high)) > BOARD_FIT_TOLERANCE * step:
+            raise ValueError(f"board geometry {name} disagrees with the far boundary")
+        spacing = values[1] - values[0]
+        for earlier, later in zip(values, values[1:]):
+            if abs((later - earlier) - spacing) > 0.01 * step:
+                raise ValueError(f"board geometry {name} must be equally spaced")
+        if abs(spacing - step) > BOARD_STEP_TOLERANCE * step:
+            raise ValueError(f"board geometry {name} spacing disagrees with step")
+        pitches.append(spacing)
+    if abs(pitches[0] - pitches[1]) > BOARD_STEP_TOLERANCE * max(pitches):
+        raise ValueError("board geometry row and column pitches disagree")
+
+
+def extract_bar_targets(
+    geometry: BoardGeometry, ensembles: Sequence[BarEnsemble]
+) -> BarTargets | None:
+    """Decode the row and column targets of one already located board.
+
+    ``geometry`` must be a self consistent :class:`BoardGeometry` (see
+    :func:`_validated_geometry`) and ``ensembles`` a sequence of well formed
+    :class:`BarEnsemble` values, anything else raises ``ValueError``.
+
+    Only the unique horizontal ensemble just above the board and the unique
+    vertical ensemble just left of it are used: both have to agree with the
+    board pitch within ``BOARD_STEP_TOLERANCE`` and their baseline has to sit
+    within ``BAR_ENSEMBLE_GAP_MAX`` pitches outside the corresponding board
+    edge. Zero or several adjacent ensembles on either axis return ``None``,
+    because the board does not select one pair.
+
+    The stack hues are clustered with :func:`cluster_hues` into one to four
+    stable channels, every stack maps to the nearest line of its axis and to
+    exactly one channel, and each stack count is added to that channel's line.
+    A stack farther than ``BAR_CENTER_TOLERANCE`` pitches from any line centre,
+    a duplicate ``(channel, line)``, a channel whose display offsets on one
+    axis are not stable within ``BAR_OFFSET_TOLERANCE`` around their robust
+    median, a line target above its capacity, a channel whose row and column
+    totals differ, an empty channel or the combined channel targets exceeding
+    a row or column capacity return ``None`` as well. Lines
+    without a physical stack of a channel are the only thing filled in with
+    ``0``, and that only happens once the geometry is unique: a completed board
+    whose innermost bar was swallowed by the board highlight therefore stays
+    incomplete instead of being guessed.
+
+    ``channel_hues`` keeps the ascending OpenCV hue order of
+    :func:`cluster_hues`, targets use the channel first layout
+    ``row_targets[channel][row]`` / ``column_targets[channel][column]`` and
+    ``residual_ratio`` is the mean offset deviation from the per channel robust
+    median in units of the board step.
+    """
+    _validated_geometry(geometry, "extract_bar_targets")
+    pool = _validated_ensembles(ensembles, "extract_bar_targets")
+    step = float(geometry.step)
+
+    adjacent: dict[str, list[BarEnsemble]] = {"horizontal": [], "vertical": []}
+    for ensemble in pool:
+        scale = max(ensemble.step, step)
+        if abs(ensemble.step - step) / scale > BOARD_STEP_TOLERANCE:
+            continue
+        if ensemble.orientation == "horizontal":
+            gap = float(geometry.top) - float(ensemble.baseline)
+        else:
+            gap = float(geometry.left) - float(ensemble.baseline)
+        if 0.0 <= gap <= BAR_ENSEMBLE_GAP_MAX * step:
+            adjacent[ensemble.orientation].append(ensemble)
+    if len(adjacent["horizontal"]) != 1 or len(adjacent["vertical"]) != 1:
+        return None
+    stacks = tuple(adjacent["horizontal"][0].stacks) + tuple(adjacent["vertical"][0].stacks)
+
+    clusters = cluster_hues([stack.hue for stack in stacks])
+    if clusters is None:
+        return None
+    channels = len(clusters.centers)
+    row_targets = [[0] * geometry.rows for _ in range(channels)]
+    column_targets = [[0] * geometry.columns for _ in range(channels)]
+
+    entries: list[tuple[int, str, int, int, float]] = []
+    offsets: dict[tuple[int, str], list[float]] = {}
+    for position, stack in enumerate(stacks):
+        if stack.orientation == "horizontal":
+            centers = geometry.column_centers
+            axis = "column"
+        else:
+            centers = geometry.row_centers
+            axis = "row"
+        nearest = min(
+            range(len(centers)), key=lambda index: abs(float(centers[index]) - stack.anchor)
+        )
+        offset = (stack.anchor - float(centers[nearest])) / step
+        if abs(offset) > BAR_CENTER_TOLERANCE:
+            return None
+        channel = int(clusters.assignments[position])
+        entries.append((channel, axis, nearest, int(stack.count), offset))
+        offsets.setdefault((channel, axis), []).append(offset)
+
+    medians = {
+        key: float(statistics.median(values)) for key, values in offsets.items()
+    }
+    seen: set[tuple[int, str, int]] = set()
+    residual_sum = 0.0
+    for channel, axis, index, count, offset in entries:
+        deviation = abs(offset - medians[(channel, axis)])
+        if deviation > BAR_OFFSET_TOLERANCE:
+            return None
+        if (channel, axis, index) in seen:
+            return None
+        seen.add((channel, axis, index))
+        if axis == "column":
+            if count > geometry.rows:
+                return None
+            column_targets[channel][index] += count
+        else:
+            if count > geometry.columns:
+                return None
+            row_targets[channel][index] += count
+        residual_sum += deviation
+
+    for channel in range(channels):
+        rows_total = sum(row_targets[channel])
+        columns_total = sum(column_targets[channel])
+        if rows_total != columns_total or rows_total == 0:
+            return None
+        if any(target > geometry.columns for target in row_targets[channel]):
+            return None
+        if any(target > geometry.rows for target in column_targets[channel]):
+            return None
+    if any(
+        sum(row_targets[channel][row] for channel in range(channels)) > geometry.columns
+        for row in range(geometry.rows)
+    ):
+        return None
+    if any(
+        sum(column_targets[channel][column] for channel in range(channels)) > geometry.rows
+        for column in range(geometry.columns)
+    ):
+        return None
+
+    return BarTargets(
+        channel_hues=tuple(float(hue) for hue in clusters.centers),
+        row_targets=tuple(tuple(int(value) for value in row) for row in row_targets),
+        column_targets=tuple(
+            tuple(int(value) for value in column) for column in column_targets
+        ),
+        residual_ratio=float(residual_sum / len(entries)),
+    )
