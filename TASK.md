@@ -22,10 +22,24 @@
 
 #### DSH 回执
 
-- 实际改动：待批次 A 完成后填写。
-- 验证结果：待批次 A 完成后填写。
-- 未完成项 / 风险 / 待决策事项：待批次 A 完成后填写。
-- 建议写入长期记忆：待批次 A 完成后填写。
+- 实际改动：
+  - 新增 `api/app/puzzles/circuit/model.py`：`line-count-v1` 领域契约，`RULE_VERSION = "line-count-v1"`。Pydantic v2、`extra="forbid"`、所有整数用 `StrictInt`（`True`/`False` 会被拒绝）；rows/columns 2..10、通道 1..4、拼块 1..32、棋盘上限 100 格；通道 index 从 0 连续；行列目标长度分别等于 rows/columns、非负、单项不超过对应行/列长度；障碍与固定格坐标唯一、不越界、互不重叠，固定格与拼块的通道必须存在；拼块局部坐标唯一、非负、min row=min column=0、四连通，包围盒必须至少能在一个旋转方向放入棋盘；每通道 `sum(row_targets)==sum(column_targets)==固定格数+拼块面积`；每行/列跨通道目标总和不超过去掉障碍后的容量；每通道逐行、逐列的固定格计数不得超过该行/列目标（分别报 `row fixed coverage exceeds the row target`、`column fixed coverage exceeds the column target`）。结果侧：`CircuitPlacement`=piece_index/row/column/rotation（只允许 0/90/180/270）、`CircuitSolution` 只含 placements、`CircuitSolveResult` 为 solved/unsatisfiable/timeout，只有 timeout 能带 `time`/`work` 的 `limit_reason`，solved 必有解、其余必无解。
+  - 新增 `api/app/puzzles/circuit/solve.py`：模块级可 pickle 的 `solve_circuit_job(data, time_limit_seconds, max_nodes) -> dict` 与 `solve_circuit(puzzle, ...) -> CircuitSolveResult`，限制非正抛 `ValueError`。实现：棋盘整数 bitmask；四种旋转逐次 90° 重新归一化并去重（对称形状只保留一个方向）；从各通道目标扣除固定格，障碍与固定格都不可覆盖，预生成全部合法摆放（bitmask + 逐行逐列贡献）；DFS 使用 MRV（同通道且同规范形状的拼块归为可交换组，只对组内最小编号未放置拼块分支，消除交换对称）、每通道每行/列的剩余候选贡献上下界、行列空闲容量与剩余面积一致性、失败状态 `(占用位图, 剩余拼块组, 行列剩余量)` 缓存；候选按紧张行列优先排序；节点数受 `max_nodes`、时间受 `time.monotonic()` 单调 deadline 双重限制；找到解后必须通过 `verify.validate_solution`，失败即抛异常视为求解器缺陷。
+  - 新增 `api/app/puzzles/circuit/verify.py`：独立校验器，不导入 `solve.py` 任何辅助函数，也不使用预生成候选表；自行用 `(column, -row)` 再归一化实现旋转，从原始拼块与 rotation 重建覆盖，校验 piece_index 恰好覆盖 `0..n-1`、rotation 合法、越界、障碍格、固定格、重叠，并把固定格计数加回后逐通道比对行列计数。
+  - `api/app/puzzles/circuit/__init__.py` 仅更新过时文档字符串（原文写“outside the MVP scope”），未新增导出；批次 C 仍像 balloon 一样从子模块直接导入。
+  - 新增 `api/tests/test_circuit.py`（59 项）：单色可解、多色共享棋盘不重叠、灰色障碍与固定颜色格、必须旋转才能解、对称旋转去重（含 `_piece_orientations` 断言）、两个相同拼块、合法但无解（障碍型、形状型、固定格把剩余空格切成不连通型）、节点上限 `work`、monkeypatch 单调时钟 `time`、`solve_circuit_job` 的 JSON 与 pickle 往返、模型拒绝 30 余种非法输入（重复/越界/重叠坐标、断开/未归一化/任何旋转都放不下的拼块、非法或不连续通道、目标长度/负值/超长/总量/容量不符、固定格在某行或某列的计数超过对应目标（断言行、列两种错误文本）、bool 冒充整数、未知字段、结果模型不一致）、校验器拒绝漏块/重复 piece_index/非法 rotation/越界/重叠/覆盖障碍/覆盖固定格/行列计数错误；另有一组固定种子的随机小棋盘与测试内独立穷举器对拍。
+- 验证结果：
+  - `tests/test_circuit.py`：容器内 59 passed（仓库只读挂载，镜像 `endfield-workbench-api-test:latest`，`python -m pytest tests/test_circuit.py -q -p no:cacheprovider`）。
+  - 后端全量：无数据库 133 passed / 9 skipped（本次返工复跑；跳过为 4 项未设置 `CATALOG_TEST_DSN` 的目录存储用例和 5 项 VPS 缺失的 `samples/private/` 旧样本）；接临时 PostgreSQL 17（私有网络、不发布宿主端口，跑完已删除）的 134 passed / 5 skipped 为返工前结果，本次未复跑。相对 EW-003 基线 74/78 无回归（+59 全部为本批次）。
+  - 额外对拍（脚本不入库）：5×120 个随机小棋盘（2×2..4×4、1~2 通道、随机拼块/障碍/固定格，并用同面积改形制造无解例）与独立穷举器逐一比对，0 处不一致；求解器返回的所有解均通过独立校验器。
+  - 性能抽样（不入库）：8×8/10 拼块随机题 0.03~0.09s，10×10/14 拼块随机题 0.2~1.7s 内求解；更极端的随机实例会在 3s 服务上限内返回 `timeout/time`，属设计内的有界行为。
+  - 未修改 API 路由、PUZZLES 能力、catalog、识别器、OpenAPI、前端、依赖、Compose 或生产配置；未提交、未推送、未部署。
+- 未完成项 / 风险 / 待决策事项：
+  - 固定格已计入通道行列目标：模型现在按通道统计逐行、逐列固定格数，任一超过对应目标即在进入搜索前拒绝（`row fixed coverage exceeds the row target` / `column fixed coverage exceeds the column target`），不再接受后由求解器返回 `unsatisfiable`；原先固定旧行为的求解器用例已删除，新增模型分别拒绝行、列超目标的用例。批次 C 识别器组出的题面必须保证固定格与行列目标自洽，否则会在模型校验阶段被拒，而不是得到 unsatisfiable。
+  - 求解耗时对棋盘规模敏感，更大的随机 10×10/14 拼块实例可能触及 3s/300k 服务上限返回 timeout。批次 B 若发现真实题面超时，只能调 `SOLVE_TIME_LIMIT_SECONDS`/`SOLVE_MAX_NODES` 或调整启发式，属契约外决策。
+  - 本批次没有真实截图或真实题面回归（识别器未实现），全部为合成用例；旋转与通道编号在真实题面上的表现留待批次 B 验证。
+  - 新增文件写入后默认为 0600，已改为 0644 以与仓库其他文件及容器内非 root 测试用户一致。
+- 建议写入长期记忆：源石电路三条兼容边界——(1) 求解结果是最小集，只有 placements，棋盘由题面+摆放推导，前端不得依赖结果里的冗余棋盘；(2) 固定格计入通道行列目标，模型在进入搜索前拒绝固定格数超过行/列目标的题面，独立校验器必须把固定格计数加回后再比对；(3) 求解器与校验器必须保持零共享辅助函数（旋转、候选、计数各自独立实现），否则“独立校验”失效。原因：这三条最容易在后续批次被改错，且改错后仍可能自洽通过。
 
 #### Codex 验收
 
