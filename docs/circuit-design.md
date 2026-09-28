@@ -255,6 +255,19 @@ api/app/catalog/
 - `BarTargets` 保存按稳定色相编号的通道及完整整数行列目标。重复映射、越界数量、颜色偏移不稳定或行列总数不相等都返回不完整。
 - 每层只接受上一层已确认的不可变结果；诊断只含 Python 标量和元组。原图、裁剪、OpenCV 轮廓和 NumPy 数组不能进入返回对象。
 
+B1b2 的公开接口冻结为：
+
+```text
+locate_bar_board(image, ensembles) -> BoardGeometry | None
+extract_bar_targets(geometry, ensembles) -> BarTargets | None
+```
+
+- `BoardGeometry` 字段为 `left/top/right/bottom/step`、`rows/columns`、完整 `row_centers/column_centers`、`evidence_ratio` 和 `score_margin`。四条边表示单元格外边界，中心线长度必须与行列数一致，所有值都是 Python 标量或 tuple。
+- `BarTargets.row_targets[channel][row]` 与 `column_targets[channel][column]` 均采用通道优先布局；`channel_hues` 按 OpenCV 环形色相的稳定中心升序，另保留归一化映射残差 `residual_ratio`。
+- 棋盘定位枚举横纵 `BarEnsemble` 配对，只接受格距差不超过 12%、基线位于棋盘上/左外侧、且方格轮廓或角标在矩形内部形成重复二维支持的候选。行列范围固定为 2～10；矩形外继续出现同格距单元、只有单轴支持或前两名不同几何过近时返回 `None`。
+- 目标解码只使用与已确认棋盘相邻且格距相容的横纵集合。上方横栈映射列目标，左侧竖栈映射行目标；同一颜色的显示偏移分别在两轴内取稳健中位数，偏移或残差不稳定、一个栈映射多个中心、同通道同一行列重复映射时返回 `None`。
+- 只有棋盘几何唯一后，缺少物理栈的 `(通道, 行或列)` 才补为 0。任何条数超过对应轴容量、通道超过 4 个或同通道行列总数不相等都返回 `None`；完成画面因高亮吞并而少计的短条不得在本层猜补。
+
 ### 库存拼块
 
 1. 搜索棋盘右侧的库存区域，按两列槽位或独立高饱和连通域分割拼块；排除底部装饰色条、文字和小图标。
