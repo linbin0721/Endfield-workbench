@@ -11,6 +11,7 @@
 - `deploy/`：Docker Compose、Caddy 基础配置，以及复用 VPS 现有 Nginx 的 Compose 覆盖配置。
 - `docs/`：产品、架构、规则、识别和压测文档；`docs/tasks.md` 保存早期开发验收历史。
 - `samples/private/`：不提交的私有识别样本。
+- `set/`：根目录下不提交的私有训练/测试样本，当前分为 `set/test set baloons/`（浮空回收回归样本）、`set/train set puzzle/`（源石电路训练样本）、`set/test set puzzel/`（源石电路测试样本）。脚本按实际路径读取；若目录改名，需同步项目内引用。样本原图和派生审计图都不进入 Git。
 
 ## 项目约束
 

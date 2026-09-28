@@ -31,6 +31,9 @@ pnpm-debug.log*
 
 # Private recognition samples
 samples/private/
+# Root-level private training/test samples; never commit the originals
+/set/
+# Kept for compatibility: the root sample directory used to be named "test set/"
 /test set/
 /deploy/backups/
 
