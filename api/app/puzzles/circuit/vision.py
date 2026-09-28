@@ -2322,3 +2322,534 @@ def extract_bar_targets(
         ),
         residual_ratio=float(residual_sum / len(entries)),
     )
+
+
+# ---------------------------------------------------------------------------
+# board cell states (B1b3a)
+
+CELL_DIM_MIN_SATURATION = 180
+CELL_DIM_MIN_VALUE = 30
+CELL_INNER_LOW = 0.06
+CELL_INNER_HIGH = 0.94
+CELL_COLORED_RATIO = 0.25
+CELL_COLORED_AMBIGUITY_RATIO = 0.15
+CELL_COLORED_THRESHOLD_MARGIN = 0.03
+CELL_SEAM_HALF_WIDTH = 0.06
+CELL_SEAM_MIN_RATIO = 0.45
+CELL_SEAM_THRESHOLD_MARGIN = 0.03
+
+CELL_LOCK_WINDOW_LOW = 0.28
+CELL_LOCK_WINDOW_HIGH = 0.72
+CELL_LOCK_VALUE_DELTA = 30
+CELL_LOCK_MIN_RATIO = 0.28
+CELL_LOCK_MAX_RATIO = 0.50
+CELL_LOCK_MIN_SYMMETRY = 0.55
+CELL_LOCK_THRESHOLD_MARGIN = 0.02
+CELL_FIXED_BORDER_WIDTH = 0.025
+CELL_FIXED_MIN_BORDER_GAP = 0.28
+CELL_FIXED_BORDER_MARGIN = 0.03
+
+CELL_NEUTRAL_MAX_SATURATION = 60
+CELL_BLOCKED_MIN_NEUTRAL_RATIO = 0.70
+CELL_BLOCKED_MIN_STRUCTURE_RATIO = 0.35
+CELL_BLOCKED_STRONG_STRUCTURE_RATIO = 0.28
+CELL_BLOCKED_LOCAL_VALUE_DELTA = 2
+CELL_BLOCKED_BASELINE_MINIMUM = 3
+CELL_BLOCKED_THRESHOLD_MARGIN = 0.005
+
+
+@dataclass(frozen=True)
+class BoardCellMap:
+    """Complete immutable state matrix of one already located board.
+
+    ``cells`` is row major and has exactly the dimensions of the supplied
+    :class:`BoardGeometry`. ``minimum_confidence`` is the smallest confidence
+    in that matrix. The public function returns ``None`` instead of this value
+    when any cell is too close to a decision boundary, so no partial map can
+    be mistaken for a complete puzzle statement.
+    """
+
+    cells: tuple[tuple[CellClass, ...], ...]
+    minimum_confidence: float
+
+
+def _board_channel_masks(
+    hsv: np.ndarray, hues: tuple[float, ...]
+) -> tuple[np.ndarray, ...]:
+    """Mutually exclusive nearest-channel masks for one board ROI.
+
+    The normal tier preserves the B1a saturation/value floor. The second tier
+    admits completion screens darkened by the game's overlay, but only when
+    saturation is high enough that a smooth page glow cannot become content.
+    """
+    saturation = hsv[:, :, 1]
+    value = hsv[:, :, 2]
+    candidate = ((saturation >= MIN_SATURATION) & (value >= MIN_VALUE)) | (
+        (saturation >= CELL_DIM_MIN_SATURATION) & (value >= CELL_DIM_MIN_VALUE)
+    )
+    masks = tuple(np.zeros(candidate.shape, dtype=bool) for _ in hues)
+    positions = np.flatnonzero(candidate.reshape(-1))
+    if positions.size == 0:
+        return masks
+
+    samples = hsv[:, :, 0].reshape(-1)[positions].astype(np.float64)
+    deltas = np.abs(samples[:, None] - np.asarray(hues, dtype=np.float64)[None, :])
+    distances = np.minimum(deltas, HUE_PERIOD - deltas)
+    owners = np.argmin(distances, axis=1)
+    accepted = distances[np.arange(len(positions)), owners] <= CHANNEL_HUE_TOLERANCE
+    if len(hues) > 1:
+        nearest = np.partition(distances, 1, axis=1)[:, :2]
+        accepted &= nearest[:, 1] - nearest[:, 0] > CHANNEL_AMBIGUITY_MARGIN
+    for channel, mask in enumerate(masks):
+        mask.reshape(-1)[positions[accepted & (owners == channel)]] = True
+    return masks
+
+
+def _board_cell_boxes(
+    geometry: BoardGeometry, origin_x: int, origin_y: int, width: int, height: int
+) -> tuple[tuple[tuple[int, int, int, int], ...], ...] | None:
+    """Integer ``(left, top, right, bottom)`` boxes relative to a board ROI."""
+    step = float(geometry.step)
+    rows: list[tuple[tuple[int, int, int, int], ...]] = []
+    for center_y in geometry.row_centers:
+        top = int(round(float(center_y) - origin_y - 0.5 * step))
+        bottom = int(round(float(center_y) - origin_y + 0.5 * step))
+        line: list[tuple[int, int, int, int]] = []
+        for center_x in geometry.column_centers:
+            left = int(round(float(center_x) - origin_x - 0.5 * step))
+            right = int(round(float(center_x) - origin_x + 0.5 * step))
+            if (
+                left < 0
+                or top < 0
+                or right > width
+                or bottom > height
+                or right - left < MIN_CELL_SIDE
+                or bottom - top < MIN_CELL_SIDE
+            ):
+                return None
+            inner_x = _region_bounds(right - left, CELL_INNER_LOW, CELL_INNER_HIGH)
+            inner_y = _region_bounds(bottom - top, CELL_INNER_LOW, CELL_INNER_HIGH)
+            if inner_x[1] - inner_x[0] < MIN_CELL_SIDE:
+                return None
+            if inner_y[1] - inner_y[0] < MIN_CELL_SIDE:
+                return None
+            line.append((left, top, right, bottom))
+        rows.append(tuple(line))
+    return tuple(rows)
+
+
+def _board_box_ratio(mask: np.ndarray, box: tuple[int, int, int, int]) -> float:
+    """Foreground share of one non-empty integer box."""
+    left, top, right, bottom = box
+    return float(np.count_nonzero(mask[top:bottom, left:right])) / float(
+        (right - left) * (bottom - top)
+    )
+
+
+def _board_inner_box(box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """The fixed inner sampling rectangle of one cell box."""
+    left, top, right, bottom = box
+    inner_x = _region_bounds(right - left, CELL_INNER_LOW, CELL_INNER_HIGH)
+    inner_y = _region_bounds(bottom - top, CELL_INNER_LOW, CELL_INNER_HIGH)
+    return (
+        left + inner_x[0],
+        top + inner_y[0],
+        left + inner_x[1],
+        top + inner_y[1],
+    )
+
+
+def _board_lock_evidence(
+    channel_mask: np.ndarray,
+    value: np.ndarray,
+    box: tuple[int, int, int, int],
+) -> tuple[float, float]:
+    """Central glyph coverage and vertical mirror IoU of one colored cell."""
+    left, top, right, bottom = box
+    window_x = _region_bounds(right - left, CELL_LOCK_WINDOW_LOW, CELL_LOCK_WINDOW_HIGH)
+    window_y = _region_bounds(bottom - top, CELL_LOCK_WINDOW_LOW, CELL_LOCK_WINDOW_HIGH)
+    x0, x1 = left + window_x[0], left + window_x[1]
+    y0, y1 = top + window_y[0], top + window_y[1]
+    mask = channel_mask[y0:y1, x0:x1]
+    if np.count_nonzero(mask) < MIN_CELL_SIDE:
+        return 0.0, 0.0
+    window_value = value[y0:y1, x0:x1].astype(np.float64)
+    median = float(np.median(window_value[mask]))
+    glyph = mask & (np.abs(window_value - median) >= CELL_LOCK_VALUE_DELTA)
+    ratio = float(np.count_nonzero(glyph)) / float(glyph.size)
+    mirrored = glyph[:, ::-1]
+    union = int(np.count_nonzero(glyph | mirrored))
+    symmetry = 0.0 if union == 0 else float(np.count_nonzero(glyph & mirrored)) / union
+    return ratio, symmetry
+
+
+def _board_border_gap(
+    channel_mask: np.ndarray,
+    box: tuple[int, int, int, int],
+    inner_ratio: float,
+) -> float:
+    """Difference between cell fill and the four narrow boundary bands.
+
+    Fixed squares keep their own dark outline on every side. A placed piece
+    can contain a lock-like highlight, but its channel normally continues to
+    one or more grid boundaries. Averaging all four bands gives an independent
+    square-border signal without depending on an absolute line thickness.
+    """
+    left, top, right, bottom = box
+    width = max(1, int(round(CELL_FIXED_BORDER_WIDTH * (right - left))))
+    height = max(1, int(round(CELL_FIXED_BORDER_WIDTH * (bottom - top))))
+    sides = (
+        (left, top, min(right, left + width), bottom),
+        (max(left, right - width), top, right, bottom),
+        (left, top, right, min(bottom, top + height)),
+        (left, max(top, bottom - height), right, bottom),
+    )
+    border_ratio = statistics.fmean(
+        _board_box_ratio(channel_mask, side) for side in sides
+    )
+    return float(inner_ratio - border_ratio)
+
+
+def _board_seam_ratio(
+    mask: np.ndarray,
+    first: tuple[int, int, int, int],
+    second: tuple[int, int, int, int],
+    step: float,
+) -> float:
+    """Channel coverage in the thin band shared by adjacent cell boxes."""
+    half = max(1, int(round(CELL_SEAM_HALF_WIDTH * step)))
+    first_left, first_top, first_right, first_bottom = first
+    second_left, second_top, second_right, second_bottom = second
+    if first_top == second_top:
+        boundary = int(round((first_right + second_left) / 2.0))
+        box = (
+            max(0, boundary - half),
+            max(first_top, second_top),
+            min(mask.shape[1], boundary + half),
+            min(first_bottom, second_bottom),
+        )
+    else:
+        boundary = int(round((first_bottom + second_top) / 2.0))
+        box = (
+            max(first_left, second_left),
+            max(0, boundary - half),
+            min(first_right, second_right),
+            min(mask.shape[0], boundary + half),
+        )
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return 0.0
+    return _board_box_ratio(mask, box)
+
+
+def _board_neutral_features(
+    hsv: np.ndarray, box: tuple[int, int, int, int]
+) -> tuple[float, float, float]:
+    """Neutral coverage, median value and distributed structure of one cell."""
+    left, top, right, bottom = box
+    crop = hsv[top:bottom, left:right]
+    neutral = crop[:, :, 1] <= CELL_NEUTRAL_MAX_SATURATION
+    neutral_count = int(np.count_nonzero(neutral))
+    if neutral_count == 0:
+        return 0.0, 0.0, 0.0
+    values = crop[:, :, 2].astype(np.float64)
+    median = float(np.median(values[neutral]))
+
+    # Empty cells may sit under a strong but smooth page glow. Measuring a
+    # deviation from the cell median would turn that gradient into structure,
+    # so normalize the cell to a fixed grid and compare it with a local blur.
+    # The obstacle hatch and central prohibition glyph retain local contrast;
+    # a smooth glow and the sparse empty-cell corner ticks do not.
+    normalized_value = cv2.resize(
+        crop[:, :, 2], (48, 48), interpolation=cv2.INTER_AREA
+    ).astype(np.float32)
+    normalized_saturation = cv2.resize(
+        crop[:, :, 1], (48, 48), interpolation=cv2.INTER_AREA
+    )
+    normalized_neutral = normalized_saturation <= CELL_NEUTRAL_MAX_SATURATION
+    local_mean = cv2.GaussianBlur(normalized_value, (7, 7), 0)
+    structured = normalized_neutral & (
+        np.abs(normalized_value - local_mean) >= CELL_BLOCKED_LOCAL_VALUE_DELTA
+    )
+    normalized_neutral_count = int(np.count_nonzero(normalized_neutral))
+    return (
+        neutral_count / float(neutral.size),
+        median,
+        0.0
+        if normalized_neutral_count == 0
+        else float(np.count_nonzero(structured)) / normalized_neutral_count,
+    )
+
+
+def _board_empty_baseline(values: Sequence[float]) -> tuple[float, float]:
+    """Robust dark-cell baseline and spread, resistant to bright blockers."""
+    ordered = sorted(float(value) for value in values)
+    lower_count = max(1, (len(ordered) + 1) // 2)
+    lower = ordered[:lower_count]
+    baseline = float(statistics.median(lower))
+    mad = float(statistics.median(abs(value - baseline) for value in lower))
+    return baseline, max(2.0, 1.4826 * mad)
+
+
+def extract_board_cells(
+    image: np.ndarray,
+    geometry: BoardGeometry,
+    channel_hues: Sequence[float],
+) -> BoardCellMap | None:
+    """Classify every cell of an already confirmed board rectangle.
+
+    Invalid argument types or contradictory immutable inputs raise
+    ``ValueError``. A valid screenshot whose board is clipped or whose visual
+    evidence is incomplete returns ``None``. The function performs one HSV
+    conversion for the whole board, resolves channel ownership globally,
+    confirms lock-bearing fixed cells before joining placed cells across grid
+    seams, then distinguishes neutral blockers from empty cells with a robust
+    within-board brightness baseline and distributed structure.
+    """
+    _validated_board_image(image, "extract_board_cells")
+    _validated_geometry(geometry, "extract_board_cells")
+    hues = _normalized_channel_hues(channel_hues)
+
+    left = int(math.floor(float(geometry.left)))
+    top = int(math.floor(float(geometry.top)))
+    right = int(math.ceil(float(geometry.right)))
+    bottom = int(math.ceil(float(geometry.bottom)))
+    height, width = image.shape[:2]
+    if left < 0 or top < 0 or right > width or bottom > height:
+        return None
+    roi = image[top:bottom, left:right]
+    if roi.shape[0] < MIN_CELL_SIDE or roi.shape[1] < MIN_CELL_SIDE:
+        return None
+
+    boxes = _board_cell_boxes(geometry, left, top, roi.shape[1], roi.shape[0])
+    if boxes is None:
+        return None
+    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    value = hsv[:, :, 2]
+    masks = _board_channel_masks(hsv, hues)
+
+    owners: list[list[int | None]] = []
+    owner_ratios: list[list[float]] = []
+    for row in range(geometry.rows):
+        owner_row: list[int | None] = []
+        ratio_row: list[float] = []
+        for column in range(geometry.columns):
+            inner = _board_inner_box(boxes[row][column])
+            ratios = [_board_box_ratio(mask, inner) for mask in masks]
+            order = sorted(range(len(ratios)), key=lambda index: ratios[index], reverse=True)
+            best = float(ratios[order[0]])
+            second = float(ratios[order[1]]) if len(order) > 1 else 0.0
+            if second >= CELL_COLORED_AMBIGUITY_RATIO:
+                return None
+            if abs(best - CELL_COLORED_RATIO) <= CELL_COLORED_THRESHOLD_MARGIN:
+                return None
+            owner_row.append(int(order[0]) if best > CELL_COLORED_RATIO else None)
+            ratio_row.append(best)
+        owners.append(owner_row)
+        owner_ratios.append(ratio_row)
+
+    kinds: list[list[Literal["empty", "blocked", "fixed", "placed"] | None]] = [
+        [None] * geometry.columns for _ in range(geometry.rows)
+    ]
+    confidences = [[1.0] * geometry.columns for _ in range(geometry.rows)]
+
+    # Locks are conclusive before connectivity: adjacent fixed squares can be
+    # close enough to share saturated antialiasing, but each keeps its own
+    # centred, mirror-symmetric padlock glyph.
+    for row in range(geometry.rows):
+        for column in range(geometry.columns):
+            owner = owners[row][column]
+            if owner is None:
+                continue
+            glyph_ratio, symmetry = _board_lock_evidence(
+                masks[owner], value, boxes[row][column]
+            )
+            border_gap = _board_border_gap(
+                masks[owner], boxes[row][column], owner_ratios[row][column]
+            )
+            near_lock = (
+                CELL_LOCK_MIN_RATIO - CELL_LOCK_THRESHOLD_MARGIN
+                <= glyph_ratio
+                <= CELL_LOCK_MAX_RATIO + CELL_LOCK_THRESHOLD_MARGIN
+                and symmetry >= CELL_LOCK_MIN_SYMMETRY - CELL_LOCK_THRESHOLD_MARGIN
+            )
+            locked = (
+                CELL_LOCK_MIN_RATIO < glyph_ratio < CELL_LOCK_MAX_RATIO
+                and symmetry > CELL_LOCK_MIN_SYMMETRY
+            )
+            bordered = border_gap > CELL_FIXED_MIN_BORDER_GAP
+            if locked and bordered:
+                if (
+                    abs(glyph_ratio - CELL_LOCK_MIN_RATIO) <= CELL_LOCK_THRESHOLD_MARGIN
+                    or abs(glyph_ratio - CELL_LOCK_MAX_RATIO) <= CELL_LOCK_THRESHOLD_MARGIN
+                    or symmetry - CELL_LOCK_MIN_SYMMETRY <= CELL_LOCK_THRESHOLD_MARGIN
+                    or border_gap - CELL_FIXED_MIN_BORDER_GAP
+                    <= CELL_FIXED_BORDER_MARGIN
+                ):
+                    return None
+                kinds[row][column] = "fixed"
+            elif (
+                near_lock
+                and abs(border_gap - CELL_FIXED_MIN_BORDER_GAP)
+                <= CELL_FIXED_BORDER_MARGIN
+            ):
+                return None
+            elif near_lock and not locked:
+                return None
+
+    # Remove fixed boxes from the masks before joining placed cells. This is
+    # what prevents a lock cell touching a completed piece from joining it.
+    placed_masks = [mask.copy() for mask in masks]
+    for row in range(geometry.rows):
+        for column in range(geometry.columns):
+            if kinds[row][column] != "fixed":
+                continue
+            owner = owners[row][column]
+            assert owner is not None
+            box = boxes[row][column]
+            placed_masks[owner][box[1] : box[3], box[0] : box[2]] = False
+
+    adjacency: dict[tuple[int, int], set[tuple[int, int]]] = {}
+    seam_margins: dict[tuple[int, int], list[float]] = {}
+    for row in range(geometry.rows):
+        for column in range(geometry.columns):
+            if owners[row][column] is None or kinds[row][column] == "fixed":
+                continue
+            point = (row, column)
+            adjacency.setdefault(point, set())
+            seam_margins.setdefault(point, [])
+            for neighbor in ((row, column + 1), (row + 1, column)):
+                other_row, other_column = neighbor
+                if other_row >= geometry.rows or other_column >= geometry.columns:
+                    continue
+                owner = owners[row][column]
+                if owner != owners[other_row][other_column]:
+                    continue
+                if kinds[other_row][other_column] == "fixed":
+                    continue
+                assert owner is not None
+                seam = _board_seam_ratio(
+                    placed_masks[owner],
+                    boxes[row][column],
+                    boxes[other_row][other_column],
+                    float(geometry.step),
+                )
+                if abs(seam - CELL_SEAM_MIN_RATIO) <= CELL_SEAM_THRESHOLD_MARGIN:
+                    return None
+                if seam > CELL_SEAM_MIN_RATIO:
+                    adjacency.setdefault(neighbor, set()).add(point)
+                    adjacency[point].add(neighbor)
+                    margin = seam - CELL_SEAM_MIN_RATIO
+                    seam_margins[point].append(margin)
+                    seam_margins.setdefault(neighbor, []).append(margin)
+
+    pending = set(adjacency)
+    while pending:
+        start = min(pending)
+        group = {start}
+        stack = [start]
+        pending.remove(start)
+        while stack:
+            point = stack.pop()
+            for neighbor in adjacency[point]:
+                if neighbor not in group:
+                    group.add(neighbor)
+                    pending.discard(neighbor)
+                    stack.append(neighbor)
+        if len(group) < 2:
+            return None
+        for row, column in group:
+            kinds[row][column] = "placed"
+            minimum_margin = min(seam_margins[(row, column)])
+            confidences[row][column] = min(
+                1.0,
+                minimum_margin / (2.0 * CELL_SEAM_THRESHOLD_MARGIN),
+            )
+
+    # Remaining cells have no recognized channel. Neutral candidates use the
+    # same-board lower half as the empty brightness baseline, so the bright
+    # blocker population cannot pull the reference up to itself.
+    neutral: list[list[tuple[float, float, float] | None]] = [
+        [None] * geometry.columns for _ in range(geometry.rows)
+    ]
+    baseline_values: list[float] = []
+    for row in range(geometry.rows):
+        for column in range(geometry.columns):
+            if owners[row][column] is not None:
+                continue
+            features = _board_neutral_features(hsv, boxes[row][column])
+            neutral[row][column] = features
+            if features[0] >= 0.50:
+                baseline_values.append(features[1])
+    if baseline_values:
+        baseline, spread = _board_empty_baseline(baseline_values)
+    else:
+        baseline, spread = 0.0, 2.0
+    brightness_threshold = baseline + 3.0 * spread
+    thin_baseline = len(baseline_values) < CELL_BLOCKED_BASELINE_MINIMUM
+
+    for row in range(geometry.rows):
+        for column in range(geometry.columns):
+            if kinds[row][column] in ("fixed", "placed"):
+                continue
+            if owners[row][column] is not None:
+                # A colored singleton without a confirmed lock is an
+                # indistinguishable one-cell placed piece, never a guess.
+                return None
+            features = neutral[row][column]
+            assert features is not None
+            neutral_ratio, neutral_value, structure_ratio = features
+            bright = neutral_value > brightness_threshold
+            if thin_baseline:
+                # A nearly completed board can leave only blockers outside the
+                # channel mask, so there may be no dark empty population from
+                # which to infer brightness. In that case the dense neutral
+                # cover and the scale-normalized hatch/symbol must both be
+                # strong; weaker evidence stays incomplete.
+                blocked = (
+                    neutral_ratio >= 0.85
+                    and structure_ratio >= CELL_BLOCKED_STRONG_STRUCTURE_RATIO
+                )
+                structure_threshold = CELL_BLOCKED_STRONG_STRUCTURE_RATIO
+            else:
+                blocked = (
+                    neutral_ratio > CELL_BLOCKED_MIN_NEUTRAL_RATIO
+                    and structure_ratio > CELL_BLOCKED_MIN_STRUCTURE_RATIO
+                    and bright
+                )
+                structure_threshold = CELL_BLOCKED_MIN_STRUCTURE_RATIO
+            if blocked:
+                near_boundary = (
+                    neutral_ratio
+                    - (0.85 if thin_baseline else CELL_BLOCKED_MIN_NEUTRAL_RATIO)
+                    <= CELL_BLOCKED_THRESHOLD_MARGIN
+                    or structure_ratio - structure_threshold
+                    <= CELL_BLOCKED_THRESHOLD_MARGIN
+                )
+                # A thin baseline is used precisely when a nearly completed
+                # board has too few dark empty cells to provide a trustworthy
+                # brightness reference. Do not apply that unavailable signal
+                # as a confidence margin after the structural test succeeds.
+                if not thin_baseline:
+                    near_boundary |= (
+                        (neutral_value - brightness_threshold)
+                        / max(1.0, brightness_threshold)
+                        <= CELL_BLOCKED_THRESHOLD_MARGIN
+                    )
+                if near_boundary:
+                    return None
+                kinds[row][column] = "blocked"
+            else:
+                kinds[row][column] = "empty"
+
+    cells: list[tuple[CellClass, ...]] = []
+    for row in range(geometry.rows):
+        line: list[CellClass] = []
+        for column in range(geometry.columns):
+            kind = kinds[row][column]
+            assert kind is not None
+            channel = owners[row][column] if kind in ("fixed", "placed") else None
+            confidence = float(confidences[row][column])
+            line.append(CellClass(kind=kind, channel=channel, confidence=confidence))
+        cells.append(tuple(line))
+    minimum_confidence = min(cell.confidence for row in cells for cell in row)
+    return BoardCellMap(cells=tuple(cells), minimum_confidence=float(minimum_confidence))

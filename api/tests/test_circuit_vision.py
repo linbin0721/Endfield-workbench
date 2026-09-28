@@ -2,9 +2,9 @@
 
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
 ``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell``,
-``reconstruct_piece``, bar extraction, board location and target decoding are
-exercised. Every image is built in memory from simple shapes, no file is read
-and no other recognition stage is imported.
+``reconstruct_piece``, bar extraction, board location, target decoding and
+board cell extraction are exercised. Every image is built in memory from
+simple shapes, no file is read and no other recognition stage is imported.
 """
 
 import dataclasses
@@ -19,6 +19,7 @@ from app.puzzles.circuit.vision import (
     BarEnsemble,
     BarStack,
     BarTargets,
+    BoardCellMap,
     BoardGeometry,
     CellClass,
     CellEvidence,
@@ -30,6 +31,7 @@ from app.puzzles.circuit.vision import (
     cluster_hues,
     extract_bar_stacks,
     extract_bar_targets,
+    extract_board_cells,
     fit_axis_lattice,
     group_bar_ensembles,
     locate_bar_board,
@@ -2444,3 +2446,319 @@ def test_board_results_are_frozen_plain_values_and_do_not_alias_pixels() -> None
         geometry.rows = 3
     with pytest.raises(dataclasses.FrozenInstanceError):
         targets.residual_ratio = 1.0
+
+
+# ---------------------------------------------------------------------------
+# board cell map
+
+CELL_MAP_HUES = (40, 105)
+
+
+def cell_map_geometry(
+    rows: int,
+    columns: int,
+    *,
+    step: int = 100,
+    origin: tuple[int, int] = (40, 30),
+) -> BoardGeometry:
+    left, top = origin
+    return BoardGeometry(
+        left=float(left),
+        top=float(top),
+        right=float(left + columns * step),
+        bottom=float(top + rows * step),
+        step=float(step),
+        rows=rows,
+        columns=columns,
+        row_centers=tuple(float(top + (row + 0.5) * step) for row in range(rows)),
+        column_centers=tuple(
+            float(left + (column + 0.5) * step) for column in range(columns)
+        ),
+        evidence_ratio=1.0,
+        score_margin=1.0,
+    )
+
+
+def cell_map_image(geometry: BoardGeometry) -> np.ndarray:
+    return blank(int(math.ceil(geometry.right)) + 30, int(math.ceil(geometry.bottom)) + 30)
+
+
+def cell_map_box(
+    geometry: BoardGeometry, row: int, column: int
+) -> tuple[int, int, int]:
+    return (
+        int(round(geometry.left + column * geometry.step)),
+        int(round(geometry.top + row * geometry.step)),
+        int(round(geometry.step)),
+    )
+
+
+def paint_colored_cell(
+    image: np.ndarray,
+    geometry: BoardGeometry,
+    row: int,
+    column: int,
+    hue: int,
+) -> None:
+    left, top, side = cell_map_box(geometry, row, column)
+    paste(image, left, top, solid(hue, width=side, height=side))
+
+
+def paint_blocked_cell(
+    image: np.ndarray, geometry: BoardGeometry, row: int, column: int
+) -> None:
+    left, top, side = cell_map_box(geometry, row, column)
+    period = max(4, 2 * round(side / 10))
+    paste(image, left, top, striped_cell(side, period=period, high=220, low=150))
+
+
+def paint_locked_cell(
+    image: np.ndarray,
+    geometry: BoardGeometry,
+    row: int,
+    column: int,
+    hue: int,
+    *,
+    patch_ratio: float = 0.84,
+) -> None:
+    """Draw one colored square with a centered, mirror-symmetric padlock."""
+    left, top, side = cell_map_box(geometry, row, column)
+    patch_side = max(1, int(round(patch_ratio * side)))
+    patch_left = left + (side - patch_side) // 2
+    patch_top = top + (side - patch_side) // 2
+    base = solid(hue, width=patch_side, height=patch_side, value=255)
+    paste(image, patch_left, patch_top, base)
+
+    center_x = left + side // 2
+    center_y = top + side // 2
+    body_width = max(1, int(round(0.30 * side)))
+    body_height = max(1, int(round(0.16 * side)))
+    arch_width = max(1, int(round(0.20 * side)))
+    arch_height = max(1, int(round(0.14 * side)))
+    hole_width = max(1, int(round(0.10 * side)))
+    hole_height = max(1, int(round(0.06 * side)))
+    body_top = center_y - int(round(0.02 * side))
+    arch_top = body_top - arch_height
+
+    paste(
+        image,
+        center_x - body_width // 2,
+        body_top,
+        solid(hue, width=body_width, height=body_height, value=150),
+    )
+    paste(
+        image,
+        center_x - arch_width // 2,
+        arch_top,
+        solid(hue, width=arch_width, height=arch_height, value=150),
+    )
+    paste(
+        image,
+        center_x - hole_width // 2,
+        body_top - hole_height,
+        solid(hue, width=hole_width, height=hole_height, value=255),
+    )
+
+
+def render_cell_map_scene(
+    *, step: int = 100, origin: tuple[int, int] = (40, 30)
+) -> tuple[np.ndarray, BoardGeometry]:
+    """Two-channel rectangular board containing every stable cell kind."""
+    geometry = cell_map_geometry(2, 4, step=step, origin=origin)
+    image = cell_map_image(geometry)
+    paint_blocked_cell(image, geometry, 0, 2)
+    paint_locked_cell(image, geometry, 0, 3, CELL_MAP_HUES[0])
+    paint_colored_cell(image, geometry, 1, 1, CELL_MAP_HUES[1])
+    paint_colored_cell(image, geometry, 1, 2, CELL_MAP_HUES[1])
+    paint_locked_cell(image, geometry, 1, 3, CELL_MAP_HUES[1])
+    return image, geometry
+
+
+def cell_kinds_and_channels(result: BoardCellMap) -> tuple[tuple[tuple[str, int | None], ...], ...]:
+    return tuple(tuple((cell.kind, cell.channel) for cell in row) for row in result.cells)
+
+
+EXPECTED_CELL_MAP = (
+    (("empty", None), ("empty", None), ("blocked", None), ("fixed", 0)),
+    (("empty", None), ("placed", 1), ("placed", 1), ("fixed", 1)),
+)
+
+
+def test_extract_board_cells_recovers_every_cell_kind_and_channel() -> None:
+    image, geometry = render_cell_map_scene()
+
+    result = extract_board_cells(image, geometry, CELL_MAP_HUES)
+
+    assert result is not None
+    assert cell_kinds_and_channels(result) == EXPECTED_CELL_MAP
+    assert result.minimum_confidence == min(
+        cell.confidence for row in result.cells for cell in row
+    )
+    assert BoardCellMap.__dataclass_params__.frozen is True
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.minimum_confidence = 0.0
+
+
+def test_adjacent_locked_cells_remain_two_fixed_cells() -> None:
+    geometry = cell_map_geometry(2, 2)
+    image = cell_map_image(geometry)
+    paint_locked_cell(image, geometry, 0, 0, CELL_MAP_HUES[0])
+    paint_locked_cell(image, geometry, 0, 1, CELL_MAP_HUES[0])
+
+    result = extract_board_cells(image, geometry, CELL_MAP_HUES)
+
+    assert result is not None
+    assert [result.cells[0][column].kind for column in range(2)] == ["fixed", "fixed"]
+    assert [result.cells[0][column].channel for column in range(2)] == [0, 0]
+
+
+def test_lock_like_highlight_without_a_cell_border_remains_placed() -> None:
+    geometry = cell_map_geometry(2, 2)
+    image = cell_map_image(geometry)
+    paint_locked_cell(
+        image,
+        geometry,
+        0,
+        0,
+        CELL_MAP_HUES[0],
+        patch_ratio=1.0,
+    )
+    paint_colored_cell(image, geometry, 0, 1, CELL_MAP_HUES[0])
+
+    result = extract_board_cells(image, geometry, CELL_MAP_HUES)
+
+    assert result is not None
+    assert [result.cells[0][column].kind for column in range(2)] == ["placed", "placed"]
+
+
+def test_single_colored_cell_without_a_lock_is_incomplete() -> None:
+    geometry = cell_map_geometry(2, 2)
+    image = cell_map_image(geometry)
+    paint_colored_cell(image, geometry, 0, 0, CELL_MAP_HUES[0])
+
+    assert extract_board_cells(image, geometry, CELL_MAP_HUES) is None
+
+
+def test_channel_coverage_near_the_decision_boundary_is_incomplete() -> None:
+    geometry = cell_map_geometry(2, 2)
+    ambiguous = cell_map_image(geometry)
+    paint_locked_cell(
+        ambiguous,
+        geometry,
+        0,
+        0,
+        CELL_MAP_HUES[0],
+        patch_ratio=0.45,
+    )
+    stable = cell_map_image(geometry)
+    paint_locked_cell(stable, geometry, 0, 0, CELL_MAP_HUES[0], patch_ratio=0.60)
+
+    assert extract_board_cells(ambiguous, geometry, CELL_MAP_HUES) is None
+    stable_result = extract_board_cells(stable, geometry, CELL_MAP_HUES)
+    assert stable_result is not None
+    assert stable_result.cells[0][0] == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_two_channels_in_one_cell_are_incomplete() -> None:
+    geometry = cell_map_geometry(2, 2)
+    image = cell_map_image(geometry)
+    left, top, side = cell_map_box(geometry, 0, 0)
+    paste(image, left, top, solid(CELL_MAP_HUES[0], width=side // 2, height=side))
+    paste(
+        image,
+        left + side // 2,
+        top,
+        solid(CELL_MAP_HUES[1], width=side - side // 2, height=side),
+    )
+
+    assert extract_board_cells(image, geometry, CELL_MAP_HUES) is None
+
+
+@pytest.mark.parametrize(
+    ("step", "origin"),
+    [
+        pytest.param(50, (31, 47), id="half-scale-translated"),
+        pytest.param(100, (73, 41), id="base-scale-translated"),
+        pytest.param(200, (29, 83), id="double-scale-translated"),
+    ],
+)
+def test_board_cell_map_is_scale_and_translation_invariant(
+    step: int, origin: tuple[int, int]
+) -> None:
+    image, geometry = render_cell_map_scene(step=step, origin=origin)
+
+    result = extract_board_cells(image, geometry, CELL_MAP_HUES)
+
+    assert result is not None
+    assert cell_kinds_and_channels(result) == EXPECTED_CELL_MAP
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((20, 20), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((20, 20, 3), dtype=np.float32), id="float"),
+        pytest.param("not an image", id="string"),
+    ],
+)
+def test_extract_board_cells_rejects_invalid_images(image: object) -> None:
+    with pytest.raises(ValueError):
+        extract_board_cells(image, cell_map_geometry(2, 2), CELL_MAP_HUES)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "hues",
+    [
+        pytest.param((), id="empty"),
+        pytest.param((10, 30, 50, 70, 90), id="too-many"),
+        pytest.param((float("nan"),), id="not-finite"),
+        pytest.param((10, 11), id="too-close"),
+        pytest.param(("blue",), id="not-a-number"),
+    ],
+)
+def test_extract_board_cells_rejects_invalid_channel_hues(hues: object) -> None:
+    with pytest.raises(ValueError):
+        extract_board_cells(
+            cell_map_image(cell_map_geometry(2, 2)),
+            cell_map_geometry(2, 2),
+            hues,  # type: ignore[arg-type]
+        )
+
+
+def test_extract_board_cells_rejects_invalid_geometry() -> None:
+    image = blank(300, 300)
+    with pytest.raises(ValueError, match="BoardGeometry"):
+        extract_board_cells(image, "not geometry", CELL_MAP_HUES)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="step must be positive"):
+        extract_board_cells(
+            image,
+            dataclasses.replace(cell_map_geometry(2, 2), step=-1.0),
+            CELL_MAP_HUES,
+        )
+
+
+def test_extract_board_cells_returns_none_for_out_of_bounds_or_tiny_board() -> None:
+    image = blank(300, 300)
+    outside = cell_map_geometry(2, 2, step=60, origin=(200, 200))
+    tiny = cell_map_geometry(2, 2, step=5, origin=(10, 10))
+
+    assert extract_board_cells(image, outside, CELL_MAP_HUES) is None
+    assert extract_board_cells(image, tiny, CELL_MAP_HUES) is None
+
+
+def test_board_cell_map_is_detached_from_source_pixels() -> None:
+    image, geometry = render_cell_map_scene()
+    result = extract_board_cells(image, geometry, CELL_MAP_HUES)
+    assert result is not None
+    before = result
+
+    image[:] = 255
+
+    assert result == before
+    assert all(
+        not isinstance(value, np.ndarray)
+        for row in result.cells
+        for cell in row
+        for value in (cell.kind, cell.channel, cell.confidence)
+    )
