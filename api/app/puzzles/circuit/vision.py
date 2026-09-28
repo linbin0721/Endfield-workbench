@@ -3,9 +3,10 @@
 The recognizer extracts observations (short-bar centers, hue samples, ...)
 outside this module; the helpers here turn a screenshot into saturated
 components, fit the integer line lattice, decide whether the two axis pitches
-match, cluster hues on the circular OpenCV 0..179 scale, and summarize a single
-board cell as immutable evidence with a fixed classification. Every function is
-pure and keeps no reference to the source image or to any crop.
+match, cluster hues on the circular OpenCV 0..179 scale, summarize a single
+board cell as immutable evidence with a fixed classification, and rebuild one
+already segmented inventory piece mask as an immutable square grid shape. Every
+function is pure and keeps no reference to the source image or to any crop.
 """
 
 from __future__ import annotations
@@ -706,3 +707,289 @@ def classify_cell(evidence: CellEvidence) -> CellClass:
         )
     )
     return CellClass(kind="empty", channel=None, confidence=0.0 if unstable else 1.0)
+
+
+# ---------------------------------------------------------------------------
+# inventory piece raster reconstruction
+#
+# B1b hands over one already segmented, clean piece mask (no morphology, no
+# outlier removal). These helpers only rasterize that mask back onto the square
+# game grid. Every fraction is relative to the piece crop or to one candidate
+# cell, never to a screenshot coordinate.
+PIECE_MAX_GRID = 5
+PIECE_MIN_IOU = 0.72
+PIECE_AMBIGUITY_MARGIN = 0.04
+PIECE_MAX_AXIS_DELTA_RATIO = 0.12
+PIECE_OCCUPIED_RATIO = 0.50
+PIECE_INNER_LOW = 0.20
+PIECE_INNER_HIGH = 0.80
+
+
+@dataclass(frozen=True)
+class PieceShape:
+    """One inventory piece rebuilt as an immutable grid shape.
+
+    ``cells`` are the occupied zero based, normalized ``(row, column)``
+    coordinates sorted ascending; ``rows`` and ``columns`` are the bounding box
+    of that normalized shape and ``iou`` is the achieved intersection over
+    union in ``0..1``. All values are plain Python ``int``/``float``; no field
+    aliases a mask, a crop or any other array.
+    """
+
+    cells: tuple[tuple[int, int], ...]
+    rows: int
+    columns: int
+    iou: float
+
+
+def _piece_unit_number(name: str, value: object) -> float:
+    """Validate one ``0..1`` parameter and return it as a Python float.
+
+    Non-numbers, NaN and infinities raise ``ValueError``. ``bool`` is a Python
+    ``Real`` and therefore passes as ``0``/``1`` here; only ``max_grid``, which
+    must be a plain ``int``, rejects it explicitly.
+    """
+    if not isinstance(value, numbers.Real):
+        raise ValueError(f"{name} must be a finite number in 0..1, got {value!r}")
+    number = float(value)
+    if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+        raise ValueError(f"{name} must be a finite number in 0..1, got {number!r}")
+    return number
+
+
+def _piece_grid_bounds(size: int, count: int) -> tuple[int, ...] | None:
+    """Integer boundaries of ``count`` cells over ``size`` pixels.
+
+    Boundary ``i`` is ``round(i * size / count)``. ``None`` means at least one
+    cell would be empty, which makes the hypothesis unusable.
+    """
+    bounds = tuple(int(round(index * size / count)) for index in range(count + 1))
+    if any(later <= earlier for earlier, later in zip(bounds, bounds[1:])):
+        return None
+    return bounds
+
+
+def _piece_cells_connected(cells: Sequence[tuple[int, int]]) -> bool:
+    """Whether the occupied grid cells form exactly one 4-connected group."""
+    remaining = set(cells)
+    start = cells[0]
+    remaining.discard(start)
+    stack = [start]
+    while stack:
+        row, column = stack.pop()
+        for neighbor in (
+            (row - 1, column),
+            (row + 1, column),
+            (row, column - 1),
+            (row, column + 1),
+        ):
+            if neighbor in remaining:
+                remaining.discard(neighbor)
+                stack.append(neighbor)
+    return not remaining
+
+
+def _piece_occupied_cells(
+    foreground: np.ndarray,
+    row_bounds: tuple[int, ...],
+    column_bounds: tuple[int, ...],
+) -> tuple[tuple[int, int], ...] | None:
+    """Occupied cells of one grid, or ``None`` when the grid is unusable.
+
+    Each cell is sampled on its inner ``[20%, 80%)`` box per axis (``floor``
+    start, ``ceil`` end, at least one pixel) and is occupied when at least half
+    of that box is foreground. A grid needs at least one occupied cell and its
+    occupied cells must be 4-connected; nothing is dilated, closed or dropped
+    here.
+    """
+    occupied: list[tuple[int, int]] = []
+    for row in range(len(row_bounds) - 1):
+        row_start = row_bounds[row]
+        inner_row = _region_bounds(
+            row_bounds[row + 1] - row_start, PIECE_INNER_LOW, PIECE_INNER_HIGH
+        )
+        for column in range(len(column_bounds) - 1):
+            column_start = column_bounds[column]
+            inner_column = _region_bounds(
+                column_bounds[column + 1] - column_start, PIECE_INNER_LOW, PIECE_INNER_HIGH
+            )
+            window = foreground[
+                row_start + inner_row[0] : row_start + inner_row[1],
+                column_start + inner_column[0] : column_start + inner_column[1],
+            ]
+            if np.count_nonzero(window) / window.size >= PIECE_OCCUPIED_RATIO:
+                occupied.append((row, column))
+    if not occupied or not _piece_cells_connected(occupied):
+        return None
+    return tuple(occupied)
+
+
+def _piece_candidate(
+    foreground: np.ndarray, rows: int, columns: int
+) -> PieceShape | None:
+    """One square ``rows`` x ``columns`` hypothesis over a cropped piece mask.
+
+    ``foreground`` is the boolean crop returned by the caller. The candidate is
+    rejected when the two pitches differ by more than
+    ``PIECE_MAX_AXIS_DELTA_RATIO``, when a cell boundary would collapse, when
+    no cell is occupied or when the occupied cells are not 4-connected. The
+    occupied coordinates are normalized so their minimum row and column are
+    ``0``; ``rows``/``columns`` describe that normalized bounding box, while
+    the ideal mask and the IoU use the full, unshifted cell boundaries.
+    """
+    height, width = foreground.shape
+    row_pitch = height / rows
+    column_pitch = width / columns
+    if (
+        abs(row_pitch - column_pitch) / max(row_pitch, column_pitch)
+        > PIECE_MAX_AXIS_DELTA_RATIO
+    ):
+        return None
+    row_bounds = _piece_grid_bounds(height, rows)
+    column_bounds = _piece_grid_bounds(width, columns)
+    if row_bounds is None or column_bounds is None:
+        return None
+    occupied = _piece_occupied_cells(foreground, row_bounds, column_bounds)
+    if occupied is None:
+        return None
+
+    minimum_row = min(row for row, _ in occupied)
+    minimum_column = min(column for _, column in occupied)
+    cells = tuple(
+        sorted((row - minimum_row, column - minimum_column) for row, column in occupied)
+    )
+    ideal = np.zeros(foreground.shape, dtype=bool)
+    for row, column in occupied:
+        ideal[
+            row_bounds[row] : row_bounds[row + 1],
+            column_bounds[column] : column_bounds[column + 1],
+        ] = True
+    intersection = int(np.count_nonzero(foreground & ideal))
+    union = int(np.count_nonzero(foreground | ideal))
+    return PieceShape(
+        cells=cells,
+        rows=cells[-1][0] + 1,
+        columns=max(column for _, column in cells) + 1,
+        iou=intersection / union,
+    )
+
+
+def _piece_candidates(foreground: np.ndarray, max_grid: int) -> tuple[PieceShape, ...]:
+    """Every usable 1..``max_grid`` square hypothesis of one cropped mask.
+
+    Hypotheses that normalize to the same ``(cells, rows, columns)`` are merged
+    and only the one with the highest IoU survives.
+    """
+    best: dict[tuple[tuple[tuple[int, int], ...], int, int], PieceShape] = {}
+    for rows in range(1, max_grid + 1):
+        for columns in range(1, max_grid + 1):
+            candidate = _piece_candidate(foreground, rows, columns)
+            if candidate is None:
+                continue
+            key = (candidate.cells, candidate.rows, candidate.columns)
+            previous = best.get(key)
+            if previous is None or candidate.iou > previous.iou:
+                best[key] = candidate
+    return tuple(best.values())
+
+
+def reconstruct_piece(
+    mask: np.ndarray,
+    *,
+    max_grid: int = PIECE_MAX_GRID,
+    minimum_iou: float = PIECE_MIN_IOU,
+    ambiguity_margin: float = PIECE_AMBIGUITY_MARGIN,
+) -> PieceShape | None:
+    """Rebuild one segmented inventory piece mask as a square grid shape.
+
+    ``mask`` must be a non-empty two dimensional ``bool`` or ``uint8`` array,
+    anything else raises ``ValueError``; ``uint8`` counts every non-zero pixel
+    as foreground and the array is never modified. ``max_grid`` must be a plain
+    ``int`` in ``1..5`` and both ratios must be finite numbers in ``0..1``,
+    otherwise ``ValueError``.
+
+    The mask is cropped to its foreground bounding box and must then hold
+    exactly one 4-connected component: isolated noise, diagonally touching
+    blocks or several separate blobs return ``None``. No closing, dilation or
+    small blob removal happens here; B1b has to hand over a clean piece mask.
+
+    For every ``rows``/``columns`` in ``1..max_grid`` the two pitches must match
+    within 12%, because game cells are square and a rectangular piece must not
+    be read as a single cell. Cell boundaries use ``round(i * size / count)``
+    and every cell has to stay non-empty. A cell counts as occupied when at
+    least half of its inner ``[20%, 80%)`` box is foreground, and the occupied
+    cells have to form one 4-connected group. Occupied coordinates are
+    normalized to a zero based bounding box, the ideal mask is built from the
+    full cell boundaries, and only hypotheses with an IoU of at least
+    ``minimum_iou`` survive; equal shapes keep their best IoU.
+
+    Among the survivors only candidates within ``ambiguity_margin`` of the best
+    IoU are considered, and the one with the fewest occupied cells wins so that
+    an integer multiple subdivision (a 4x4 rendering of a 2x2 L) loses against
+    the coarse shape. A remaining tie between different shapes returns ``None``
+    as ambiguous; enumeration order and floating point noise never decide.
+    """
+
+    if not isinstance(mask, np.ndarray):
+        raise ValueError("reconstruct_piece expects a numpy array")
+    if mask.dtype != np.bool_ and mask.dtype != np.uint8:
+        raise ValueError(
+            f"reconstruct_piece expects a bool or uint8 mask, got {mask.dtype}"
+        )
+    if mask.ndim != 2:
+        raise ValueError(
+            f"reconstruct_piece expects a two dimensional mask, got shape {mask.shape}"
+        )
+    if mask.size == 0:
+        raise ValueError("reconstruct_piece expects a non-empty mask")
+    if isinstance(max_grid, bool) or not isinstance(max_grid, int):
+        raise ValueError(
+            f"max_grid must be an integer in 1..{PIECE_MAX_GRID}, got {max_grid!r}"
+        )
+    if not 1 <= max_grid <= PIECE_MAX_GRID:
+        raise ValueError(
+            f"max_grid must be an integer in 1..{PIECE_MAX_GRID}, got {max_grid!r}"
+        )
+    minimum_iou = _piece_unit_number("minimum_iou", minimum_iou)
+    ambiguity_margin = _piece_unit_number("ambiguity_margin", ambiguity_margin)
+
+    foreground = np.array(mask, dtype=bool, copy=True)
+    if not foreground.any():
+        return None
+    occupied_rows = np.flatnonzero(foreground.any(axis=1))
+    occupied_columns = np.flatnonzero(foreground.any(axis=0))
+    crop = foreground[
+        occupied_rows[0] : occupied_rows[-1] + 1,
+        occupied_columns[0] : occupied_columns[-1] + 1,
+    ]
+    component_count, _ = cv2.connectedComponents(crop.astype(np.uint8), connectivity=4)
+    if component_count - 1 != 1:
+        return None
+
+    candidates = [
+        candidate
+        for candidate in _piece_candidates(crop, max_grid)
+        if candidate.iou >= minimum_iou
+    ]
+    if not candidates:
+        return None
+    best_iou = max(candidate.iou for candidate in candidates)
+    near_best = [
+        candidate
+        for candidate in candidates
+        if best_iou - candidate.iou <= ambiguity_margin
+    ]
+    fewest_cells = min(len(candidate.cells) for candidate in near_best)
+    finalists = [
+        candidate for candidate in near_best if len(candidate.cells) == fewest_cells
+    ]
+    shapes = {(candidate.cells, candidate.rows, candidate.columns) for candidate in finalists}
+    if len(shapes) != 1:
+        return None
+    chosen = finalists[0]
+    return PieceShape(
+        cells=chosen.cells,
+        rows=chosen.rows,
+        columns=chosen.columns,
+        iou=float(chosen.iou),
+    )

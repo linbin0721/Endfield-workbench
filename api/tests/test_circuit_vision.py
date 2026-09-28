@@ -1,9 +1,9 @@
 """Synthetic coverage for the circuit recognition math primitives (EW-006 B1a).
 
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
-``square_lattices``, ``cluster_hues``, ``cell_evidence`` and ``classify_cell``
-are exercised. Every image is built in memory from simple rectangles, no file
-is read and no other recognition stage is imported.
+``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell`` and
+``reconstruct_piece`` are exercised. Every image is built in memory from simple
+rectangles, no file is read and no other recognition stage is imported.
 """
 
 import dataclasses
@@ -19,10 +19,12 @@ from app.puzzles.circuit.vision import (
     CellEvidence,
     ChannelClusters,
     Component,
+    PieceShape,
     cell_evidence,
     classify_cell,
     cluster_hues,
     fit_axis_lattice,
+    reconstruct_piece,
     saturated_components,
     square_lattices,
 )
@@ -1021,3 +1023,390 @@ def test_cell_class_is_frozen_and_holds_plain_values() -> None:
     assert CellClass.__dataclass_params__.frozen is True
     with pytest.raises(dataclasses.FrozenInstanceError):
         placed.kind = "empty"
+
+
+# ---------------------------------------------------------------------------
+# inventory piece reconstruction
+
+
+PIECE_CELL = 20
+# I, L, S and T tromino/tetromino shapes as normalized (row, column) cells.
+PIECE_SHAPES = (
+    pytest.param(((0, 0), (0, 1), (0, 2), (0, 3)), 1, 4, id="i"),
+    pytest.param(((0, 0), (1, 0), (1, 1)), 2, 2, id="l"),
+    pytest.param(((0, 1), (0, 2), (1, 0), (1, 1)), 2, 3, id="s"),
+    pytest.param(((0, 0), (0, 1), (0, 2), (1, 1)), 2, 3, id="t"),
+)
+
+# Fixed 11x9 uncertainty fixture: a 3 px wide vertical bar with a 3 px tall
+# horizontal bar attached to its middle left. It was found once by a
+# deterministic seeded search over small rectangle unions and is hard coded
+# here; the test never searches. Two different near-best grids explain it with
+# eight occupied cells each: 5x4 at IoU 0.8431372549019608 and 4x3 at IoU
+# 0.8095238095238095, only 0.0336 apart and therefore inside the default 0.04
+# ambiguity margin.
+AMBIGUOUS_PIECE_ROWS = (
+    "......###",
+    "......###",
+    "......###",
+    "......###",
+    "#########",
+    "#########",
+    "#########",
+    "......###",
+    "......###",
+    "......###",
+    "......###",
+)
+
+
+def piece_mask(
+    cells: tuple[tuple[int, int], ...],
+    *,
+    cell: int = PIECE_CELL,
+    canvas: tuple[int, int] | None = None,
+) -> np.ndarray:
+    """Render one piece as a uint8 0/255 mask, optionally inside a canvas.
+
+    The shape bounding box comes from the cells themselves, so a canvas only
+    translates the piece and adds background around it.
+    """
+    rows = max(row for row, _ in cells) + 1
+    columns = max(column for _, column in cells) + 1
+    mask = np.zeros((rows * cell, columns * cell), dtype=np.uint8)
+    for row, column in cells:
+        mask[row * cell : (row + 1) * cell, column * cell : (column + 1) * cell] = 255
+    if canvas is not None:
+        framed = np.zeros(canvas, dtype=np.uint8)
+        framed[3 : 3 + mask.shape[0], 5 : 5 + mask.shape[1]] = mask
+        mask = framed
+    return mask
+
+
+def mask_from_rows(rows: tuple[str, ...]) -> np.ndarray:
+    """Build a bool mask from ``#``/``.`` rows so fixed fixtures stay readable."""
+    return np.array([[value == "#" for value in row] for row in rows], dtype=bool)
+
+
+def rotate_cells(
+    cells: tuple[tuple[int, int], ...],
+    rows: int,
+    columns: int,
+    quarter_turns: int,
+) -> tuple[tuple[int, int], ...]:
+    """Cell coordinates after ``np.rot90(mask, quarter_turns)``.
+
+    Cell ``(row, column)`` of a ``rows`` x ``columns`` grid moves to
+    ``(columns - 1 - column, row)`` per counter clockwise quarter turn about
+    the image, which is the orientation a rotated screenshot would show.
+    """
+    if quarter_turns == 0:
+        rotated = tuple(cells)
+    elif quarter_turns == 1:
+        rotated = tuple((columns - 1 - column, row) for row, column in cells)
+    elif quarter_turns == 2:
+        rotated = tuple((rows - 1 - row, columns - 1 - column) for row, column in cells)
+    else:
+        rotated = tuple((column, rows - 1 - row) for row, column in cells)
+    return tuple(sorted(rotated))
+
+
+@pytest.mark.parametrize(("cells", "rows", "columns"), PIECE_SHAPES)
+def test_reconstruct_piece_reads_the_square_grid(
+    cells: tuple[tuple[int, int], ...], rows: int, columns: int
+) -> None:
+    result = reconstruct_piece(piece_mask(cells))
+    assert result is not None
+    assert result.cells == cells
+    assert result.rows == rows
+    assert result.columns == columns
+    assert result.iou == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("quarter_turns", [0, 1, 2, 3])
+@pytest.mark.parametrize(("cells", "rows", "columns"), PIECE_SHAPES)
+def test_reconstruct_piece_follows_the_image_orientation(
+    cells: tuple[tuple[int, int], ...], rows: int, columns: int, quarter_turns: int
+) -> None:
+    rotated_mask = np.rot90(piece_mask(cells), quarter_turns)
+    result = reconstruct_piece(rotated_mask)
+    expected = rotate_cells(cells, rows, columns, quarter_turns)
+    assert result is not None
+    assert result.cells == expected
+    assert result.rows == max(row for row, _ in expected) + 1
+    assert result.columns == max(column for _, column in expected) + 1
+    assert result.iou == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(("cells", "rows", "columns"), PIECE_SHAPES)
+def test_reconstruct_piece_is_scale_and_translation_invariant(
+    cells: tuple[tuple[int, int], ...], rows: int, columns: int
+) -> None:
+    half = reconstruct_piece(piece_mask(cells, cell=PIECE_CELL // 2))
+    plain = reconstruct_piece(piece_mask(cells))
+    double = reconstruct_piece(piece_mask(cells, cell=PIECE_CELL * 2))
+    translated = reconstruct_piece(piece_mask(cells, canvas=(200, 220)))
+    assert half is not None
+    assert plain is not None
+    assert double is not None
+    assert translated is not None
+    for result in (half, plain, double, translated):
+        assert result.cells == cells
+        assert result.rows == rows
+        assert result.columns == columns
+        assert result.iou == pytest.approx(1.0, abs=0.02)
+
+
+def test_reconstruct_piece_never_reads_an_l_as_a_single_cell() -> None:
+    result = reconstruct_piece(piece_mask(((0, 0), (1, 0), (1, 1))))
+    assert result is not None
+    assert result.cells == ((0, 0), (1, 0), (1, 1))
+    assert result.rows == 2
+    assert result.columns == 2
+    assert len(result.cells) == 3
+
+
+def test_reconstruct_piece_never_reads_a_long_bar_as_a_single_cell() -> None:
+    # A 1x4 bar has a 4:1 bounding box, so the 1x1 hypothesis fails the square
+    # pitch check and only the four cell row survives.
+    result = reconstruct_piece(piece_mask(((0, 0), (0, 1), (0, 2), (0, 3))))
+    assert result is not None
+    assert result.cells == ((0, 0), (0, 1), (0, 2), (0, 3))
+    assert result.rows == 1
+    assert result.columns == 4
+
+
+def test_reconstruct_piece_eliminates_integer_multiple_subdivisions() -> None:
+    # At 10 px per cell the 2x2 L is also exactly representable on a 4x4 grid
+    # with 12 cells and IoU 1.0. The fewest-cell rule must keep the 3 cell
+    # shape instead of the subdivision.
+    result = reconstruct_piece(piece_mask(((0, 0), (1, 0), (1, 1)), cell=10), max_grid=4)
+    assert result is not None
+    assert result.cells == ((0, 0), (1, 0), (1, 1))
+    assert result.rows == 2
+    assert result.columns == 2
+    assert len(result.cells) == 3
+    assert result.iou == pytest.approx(1.0)
+
+
+def test_reconstruct_piece_accepts_bool_and_uint8() -> None:
+    boolean = reconstruct_piece(piece_mask(((0, 0), (1, 0), (1, 1))).astype(bool))
+    unsigned = reconstruct_piece(piece_mask(((0, 0), (1, 0), (1, 1))))
+    assert boolean is not None
+    assert boolean == unsigned
+
+
+def test_reconstruct_piece_treats_any_nonzero_uint8_as_foreground() -> None:
+    mask = piece_mask(((0, 0), (1, 0), (1, 1)))
+    mask[mask == 255] = 7
+    result = reconstruct_piece(mask)
+    assert result is not None
+    assert result.cells == ((0, 0), (1, 0), (1, 1))
+
+
+def test_reconstruct_piece_handles_a_single_pixel() -> None:
+    result = reconstruct_piece(np.ones((1, 1), dtype=bool))
+    assert result is not None
+    assert result.cells == ((0, 0),)
+    assert result.rows == 1
+    assert result.columns == 1
+    assert result.iou == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("dtype", [np.bool_, np.uint8])
+def test_reconstruct_piece_returns_none_without_foreground(dtype: type) -> None:
+    assert reconstruct_piece(np.zeros((6, 7), dtype=dtype)) is None
+
+
+def test_reconstruct_piece_returns_none_for_isolated_noise() -> None:
+    canvas = np.zeros((50, 50), dtype=np.uint8)
+    canvas[0:40, 0:40] = piece_mask(((0, 0), (1, 0), (1, 1)))
+    canvas[45, 45] = 1
+    assert reconstruct_piece(canvas) is None
+
+
+def test_reconstruct_piece_returns_none_for_a_diagonal_touch() -> None:
+    # Two blocks meeting at one corner pixel are not 4-connected.
+    canvas = np.zeros((20, 20), dtype=bool)
+    canvas[0:10, 0:10] = True
+    canvas[10:20, 10:20] = True
+    assert reconstruct_piece(canvas) is None
+
+
+def test_reconstruct_piece_returns_none_for_disconnected_blocks() -> None:
+    canvas = np.zeros((30, 50), dtype=bool)
+    canvas[0:20, 0:20] = True
+    canvas[0:20, 30:50] = True
+    assert reconstruct_piece(canvas) is None
+
+
+def test_reconstruct_piece_returns_none_below_the_iou_threshold() -> None:
+    # A 10 px thick square ring: the only usable hypothesis is the 5x5 ring at
+    # IoU 0.5625, below the 0.72 gate. Lowering the gate proves the rejection
+    # came from the IoU threshold and not from a missing hypothesis.
+    ring = np.ones((100, 100), dtype=bool)
+    ring[10:90, 10:90] = False
+    assert reconstruct_piece(ring) is None
+    lowered = reconstruct_piece(ring, minimum_iou=0.5)
+    assert lowered is not None
+    assert lowered.rows == 5
+    assert lowered.columns == 5
+    assert len(lowered.cells) == 16
+    assert lowered.iou == pytest.approx(0.5625)
+    assert lowered.iou < 0.72
+    assert reconstruct_piece(ring, minimum_iou=0.57) is None
+
+
+def test_reconstruct_piece_returns_none_on_an_ambiguous_tie() -> None:
+    mask = mask_from_rows(AMBIGUOUS_PIECE_ROWS)
+    assert reconstruct_piece(mask) is None
+    assert reconstruct_piece(mask.astype(np.uint8) * 255) is None
+
+    # With no ambiguity margin only the single best IoU survives.
+    strict = reconstruct_piece(mask, ambiguity_margin=0.0)
+    assert strict is not None
+    assert strict.cells == (
+        (0, 3),
+        (1, 3),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+        (2, 3),
+        (3, 3),
+        (4, 3),
+    )
+    assert strict.rows == 5
+    assert strict.columns == 4
+    assert strict.iou == pytest.approx(0.8431372549019608)
+
+    # The competing eight cell candidate is the 4x3 reading; max_grid=4 removes
+    # the 5x4 winner and shows the other finalist of the tie.
+    competing = reconstruct_piece(mask, max_grid=4)
+    assert competing is not None
+    assert competing.cells == (
+        (0, 2),
+        (1, 0),
+        (1, 1),
+        (1, 2),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+        (3, 2),
+    )
+    assert competing.rows == 4
+    assert competing.columns == 3
+    assert competing.iou == pytest.approx(0.8095238095238095)
+    assert len(competing.cells) == len(strict.cells) == 8
+
+
+@pytest.mark.parametrize("dtype", [np.bool_, np.uint8])
+def test_reconstruct_piece_does_not_modify_the_input(dtype: type) -> None:
+    mask = piece_mask(((0, 0), (1, 0), (1, 1))).astype(dtype)
+    snapshot = mask.copy()
+    result = reconstruct_piece(mask)
+    assert result is not None
+    assert mask.dtype == dtype
+    assert np.array_equal(mask, snapshot)
+
+
+@pytest.mark.parametrize(
+    "mask",
+    [
+        [[True, False], [False, True]],
+        None,
+        7,
+        np.zeros((3, 3), dtype=np.float32),
+        np.zeros((3, 3), dtype=np.int32),
+        np.zeros((3, 3), dtype=np.uint16),
+        np.zeros((3, 3, 1), dtype=bool),
+        np.zeros(3, dtype=bool),
+        np.zeros((0, 4), dtype=bool),
+        np.zeros((4, 0), dtype=np.uint8),
+        np.zeros((0, 0), dtype=bool),
+    ],
+)
+def test_reconstruct_piece_rejects_invalid_masks(mask: object) -> None:
+    with pytest.raises(ValueError):
+        reconstruct_piece(mask)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("max_grid", [0, 6, -1, True, False, 2.5, "3", None, np.int64(3)])
+def test_reconstruct_piece_rejects_invalid_max_grid(max_grid: object) -> None:
+    with pytest.raises(ValueError):
+        reconstruct_piece(np.ones((4, 4), dtype=bool), max_grid=max_grid)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [-0.01, 1.01, float("nan"), float("inf"), float("-inf"), "0.5", None],
+)
+def test_reconstruct_piece_rejects_invalid_minimum_iou(value: object) -> None:
+    with pytest.raises(ValueError):
+        reconstruct_piece(np.ones((4, 4), dtype=bool), minimum_iou=value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [-0.01, 1.01, float("nan"), float("inf"), float("-inf"), "0.04", None],
+)
+def test_reconstruct_piece_rejects_invalid_ambiguity_margin(value: object) -> None:
+    with pytest.raises(ValueError):
+        reconstruct_piece(
+            np.ones((4, 4), dtype=bool), ambiguity_margin=value  # type: ignore[arg-type]
+        )
+
+
+def test_reconstruct_piece_ratio_booleans_count_as_zero_and_one() -> None:
+    # The two ratios only have to be finite numbers, so a Python bool passes as
+    # 0/1; max_grid is the one parameter that must be a plain int.
+    mask = piece_mask(((0, 0), (1, 0), (1, 1)))
+    assert reconstruct_piece(mask, minimum_iou=False, ambiguity_margin=False) == (
+        reconstruct_piece(mask, minimum_iou=0.0, ambiguity_margin=0.0)
+    )
+    assert reconstruct_piece(mask, minimum_iou=True, ambiguity_margin=True) == (
+        reconstruct_piece(mask, minimum_iou=1.0, ambiguity_margin=1.0)
+    )
+
+
+def test_reconstruct_piece_accepts_the_unit_parameter_boundaries() -> None:
+    mask = piece_mask(((0, 0), (1, 0), (1, 1)))
+    # A zero gate with the widest margin pulls in the 1x1 reading at IoU 0.75,
+    # which then wins on cell count; both boundary values stay legal.
+    loose = reconstruct_piece(mask, minimum_iou=0.0, ambiguity_margin=1.0)
+    assert loose is not None
+    assert loose.cells == ((0, 0),)
+    assert loose.rows == 1
+    assert loose.columns == 1
+    assert loose.iou == pytest.approx(0.75)
+
+    # minimum_iou=1.0 keeps only exact fits, and max_grid=5 is the upper bound.
+    exact = reconstruct_piece(mask, minimum_iou=1.0)
+    assert exact is not None
+    assert exact.cells == ((0, 0), (1, 0), (1, 1))
+    assert exact.iou == pytest.approx(1.0)
+    widest = reconstruct_piece(mask, max_grid=5)
+    assert widest == exact
+
+
+def test_piece_shape_is_frozen_and_holds_plain_values() -> None:
+    result = reconstruct_piece(piece_mask(((0, 1), (0, 2), (1, 0), (1, 1))))
+    assert result is not None
+    assert [field.name for field in dataclasses.fields(PieceShape)] == [
+        "cells",
+        "rows",
+        "columns",
+        "iou",
+    ]
+    assert type(result.cells) is tuple
+    assert all(type(cell) is tuple and len(cell) == 2 for cell in result.cells)
+    assert all(type(value) is int for cell in result.cells for value in cell)
+    assert list(result.cells) == sorted(result.cells)
+    assert min(row for row, _ in result.cells) == 0
+    assert min(column for _, column in result.cells) == 0
+    assert type(result.rows) is int
+    assert type(result.columns) is int
+    assert type(result.iou) is float
+
+    assert PieceShape.__dataclass_params__.frozen is True
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.rows = 3
