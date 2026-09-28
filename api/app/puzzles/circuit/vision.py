@@ -4,15 +4,18 @@ The recognizer extracts observations (short-bar centers, hue samples, ...)
 outside this module; the helpers here turn a screenshot into saturated
 components, fit the integer line lattice, decide whether the two axis pitches
 match, cluster hues on the circular OpenCV 0..179 scale, summarize a single
-board cell as immutable evidence with a fixed classification, and rebuild one
-already segmented inventory piece mask as an immutable square grid shape. Every
-function is pure and keeps no reference to the source image or to any crop.
+board cell as immutable evidence with a fixed classification, rebuild one
+already segmented inventory piece mask as an immutable square grid shape, and
+reduce a full screenshot to the short bar stacks of both board sides plus the
+candidate ensembles that share a baseline. Every function is pure and keeps no
+reference to the source image or to any crop.
 """
 
 from __future__ import annotations
 
 import math
 import numbers
+import statistics
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
@@ -993,3 +996,485 @@ def reconstruct_piece(
         columns=chosen.columns,
         iou=float(chosen.iou),
     )
+
+
+# ---------------------------------------------------------------------------
+# short bar stacks and board side candidate ensembles (B1b1)
+#
+# A line whose target is ``n`` is drawn as ``n`` small bars stacked away from
+# the board, so the bar closest to the board sits on the common outer edge of
+# the board side: the bottom edge for the stacks above the board and the right
+# edge for the stacks left of it. On real screenshots the bar long side is
+# about 0.31 of the board step, its short side about 0.10 and the centre
+# distance between two bars of one stack about 0.15. Every threshold below is a
+# share of that step, so 0.5x/1x/2x renderings and crops behave identically.
+# Only ``BAR_MIN_SIDE`` is an absolute pixel floor and it merely rejects sub
+# pixel noise. Nothing here knows about the board, the line count or a
+# filename: B1b2 fits the board from these candidates.
+
+BAR_LONG_RATIO = 0.31
+BAR_SHORT_RATIO = 0.10
+BAR_STEP_RATIO = 0.15
+# Dimming, anti aliasing and clipping shrink the saturated core of a bar, so a
+# measured aspect ratio of a real bar ranges from about 2.4 to about 5.
+BAR_ASPECT_MIN = 2.2
+BAR_ASPECT_MAX = 5.0
+BAR_MIN_SIDE = 3
+BAR_MAX_COUNT = 10
+# Relative spread accepted when one screenshot's bars are collected into a
+# single scale, and when a bar is compared with the stack it may join.
+BAR_SCALE_TOLERANCE = 0.30
+BAR_SIZE_TOLERANCE = 0.30
+# Within one stack, in units of the estimated step.
+BAR_ANCHOR_TOLERANCE = 0.12
+BAR_SPACING_TOLERANCE = 0.35
+# A stack is one colour; the screenshot wide hue gradient stays well below this.
+BAR_HUE_TOLERANCE = 8.0
+# Ensemble gates, in units of the ensemble step.
+BAR_BASELINE_TOLERANCE = 0.20
+BAR_BASELINE_SPAN_TOLERANCE = 0.40
+BAR_ENSEMBLE_STEP_TOLERANCE = 0.25
+
+_ORIENTATION_ORDER = {"horizontal": 0, "vertical": 1}
+
+
+@dataclass(frozen=True)
+class BarStack:
+    """One physical stack of equally coloured bars of a single line.
+
+    ``orientation`` is ``horizontal`` for the stacks above the board and
+    ``vertical`` for the stacks left of it. ``anchor`` is the perpendicular
+    centre (``x`` for horizontal, ``y`` for vertical) and ``baseline`` the
+    outer edge of the bar closest to the board (bottom edge for horizontal,
+    right edge for vertical). ``hue`` is the circular mean of the member hues
+    on the OpenCV 0..179 scale, ``count`` the number of bars (1..10) and
+    ``step`` the board pitch estimated from the bar size and from the centre
+    distances inside the stack. ``residual_ratio`` is the mean absolute
+    deviation of those centre distances from ``BAR_STEP_RATIO * step`` in units
+    of ``step``; a single bar has no spacing evidence and reports ``0.0``.
+
+    All fields are plain Python scalars and no field aliases a pixel, a mask or
+    a contour. Two stacks of the same logical line but of different colour keep
+    their own fixed anchor offset and stay separate here.
+    """
+
+    orientation: Literal["horizontal", "vertical"]
+    anchor: float
+    baseline: float
+    hue: float
+    count: int
+    step: float
+    residual_ratio: float
+
+
+@dataclass(frozen=True)
+class BarEnsemble:
+    """The stacks of one board side that share a baseline and a step.
+
+    ``baseline`` and ``step`` are the median of the member values, ``stacks``
+    holds the members ordered by ascending ``anchor``, and ``residual_ratio``
+    is the mean normalized deviation of the member baselines and steps from
+    those medians. An ensemble always covers at least two different anchors, so
+    a lone title stroke, one inventory piece or the bottom colour strip can
+    never become a valid ensemble on its own.
+    """
+
+    orientation: Literal["horizontal", "vertical"]
+    baseline: float
+    step: float
+    stacks: tuple[BarStack, ...]
+    residual_ratio: float
+
+
+@dataclass(frozen=True)
+class _Bar:
+    """One saturated component that may be a short bar; never returned."""
+
+    orientation: Literal["horizontal", "vertical"]
+    anchor: float
+    position: float
+    baseline: float
+    size_step: float
+    hue: float
+
+
+def _circular_mean_hue(hues: Sequence[float]) -> float:
+    """Circular mean of OpenCV hues on the 0..179 scale.
+
+    A fully cancelled resultant falls back to ``0.0``, exactly like the
+    per component hue of ``saturated_components``.
+    """
+    angles = [math.radians(hue * 2.0) for hue in hues]
+    sin_sum = math.fsum(math.sin(angle) for angle in angles)
+    cos_sum = math.fsum(math.cos(angle) for angle in angles)
+    return math.degrees(math.atan2(sin_sum, cos_sum)) / 2.0 % HUE_PERIOD
+
+
+def _bar_candidates(components: Sequence[Component]) -> list[_Bar]:
+    """The saturated components that could be one short bar of any step.
+
+    A component is elongated when its long side is ``BAR_ASPECT_MIN`` to
+    ``BAR_ASPECT_MAX`` times its short side, and its short side must reach
+    ``BAR_MIN_SIDE`` pixels. ``size_step`` is the geometric mean of the step
+    implied by the long side (``long / BAR_LONG_RATIO``) and by the short side
+    (``short / BAR_SHORT_RATIO``); the geometric mean keeps the estimate
+    symmetric when anti aliasing shaves pixels off one side only.
+    """
+    bars: list[_Bar] = []
+    for component in components:
+        horizontal = component.width >= component.height
+        long_side = component.width if horizontal else component.height
+        short_side = component.height if horizontal else component.width
+        if short_side < BAR_MIN_SIDE:
+            continue
+        aspect = long_side / short_side
+        if aspect < BAR_ASPECT_MIN or aspect > BAR_ASPECT_MAX:
+            continue
+        bars.append(
+            _Bar(
+                orientation="horizontal" if horizontal else "vertical",
+                anchor=float(component.center_x if horizontal else component.center_y),
+                position=float(component.center_y if horizontal else component.center_x),
+                baseline=float(
+                    component.y + component.height
+                    if horizontal
+                    else component.x + component.width
+                ),
+                size_step=float(
+                    math.sqrt(
+                        (long_side / BAR_LONG_RATIO) * (short_side / BAR_SHORT_RATIO)
+                    )
+                ),
+                hue=float(component.hue),
+            )
+        )
+    return bars
+
+
+def _dominant_size_scale(values: Sequence[float]) -> float | None:
+    """The median of the widest cluster of mutually compatible ``values``.
+
+    Two values are compatible when their relative difference is at most
+    ``BAR_SCALE_TOLERANCE``, so the window grows until the next sorted value
+    leaves the band opened by its smallest member. A tie keeps the window
+    holding the smallest values, which makes the result deterministic. The
+    returned median is the provisional scale of the screenshot; the spacing
+    inside the stacks corrects its bias afterwards.
+    """
+    if not values:
+        return None
+    ordered = sorted(float(value) for value in values)
+    best_start = 0
+    best_end = 0
+    for start in range(len(ordered)):
+        end = start
+        while (
+            end + 1 < len(ordered)
+            and ordered[end + 1] <= ordered[start] * (1.0 + BAR_SCALE_TOLERANCE)
+        ):
+            end += 1
+        if end - start > best_end - best_start:
+            best_start, best_end = start, end
+    return float(statistics.median(ordered[best_start : best_end + 1]))
+
+
+def _bar_members(
+    bars: Sequence[_Bar], seed: int, scale: float, selected: Sequence[int]
+) -> list[int]:
+    """Grow one stack from ``seed`` along both stacking directions.
+
+    ``scale`` is the provisional step of the screenshot and ``selected`` lists
+    the still unassigned candidate indices. A member has to share the seed's
+    orientation, keep the seed's anchor within ``BAR_ANCHOR_TOLERANCE * scale``,
+    its hue within ``BAR_HUE_TOLERANCE`` and its own size estimate within
+    ``BAR_SIZE_TOLERANCE`` of the seed's. Along the stacking direction each next
+    bar must sit one slot away, where a slot is ``BAR_STEP_RATIO`` of the scale
+    with ``BAR_SPACING_TOLERANCE`` slack; a larger gap therefore ends the stack
+    instead of bridging it. The nearest slot wins, and a smaller position
+    breaks a remaining tie, so the walk never depends on input order.
+    """
+    expected = BAR_STEP_RATIO * scale
+    minimum = expected * (1.0 - BAR_SPACING_TOLERANCE)
+    maximum = expected * (1.0 + BAR_SPACING_TOLERANCE)
+    remaining = sorted(selected)
+    remaining.remove(seed)
+    members = [seed]
+    for direction in (-1.0, 1.0):
+        cursor = bars[seed]
+        while True:
+            chosen: tuple[tuple[float, float, float], int] | None = None
+            for index in remaining:
+                candidate = bars[index]
+                if candidate.orientation != bars[seed].orientation:
+                    continue
+                if abs(candidate.anchor - bars[seed].anchor) > BAR_ANCHOR_TOLERANCE * scale:
+                    continue
+                if _circular_hue_distance(candidate.hue, bars[seed].hue) > BAR_HUE_TOLERANCE:
+                    continue
+                if (
+                    abs(candidate.size_step - bars[seed].size_step)
+                    > BAR_SIZE_TOLERANCE * bars[seed].size_step
+                ):
+                    continue
+                spacing = (candidate.position - cursor.position) * direction
+                if spacing < minimum or spacing > maximum:
+                    continue
+                key = (abs(spacing - expected), spacing, candidate.position)
+                if chosen is None or key < chosen[0]:
+                    chosen = (key, index)
+            if chosen is None:
+                break
+            remaining.remove(chosen[1])
+            members.append(chosen[1])
+            cursor = bars[chosen[1]]
+    return members
+
+
+def _bar_stack(bars: Sequence[_Bar], members: Sequence[int], calibration: float) -> BarStack:
+    """Summarize one stack as an immutable :class:`BarStack`.
+
+    ``calibration`` corrects the size estimate of a single bar stack: the
+    per screenshot ratio between the spacing estimate (unbiased) and the size
+    estimate (shrunk by dimming) measured over every stack that has spacing
+    evidence. A stack with two or more bars uses its own spacing directly.
+    """
+    ordered = sorted(members, key=lambda index: (bars[index].position, bars[index].anchor))
+    positions = [bars[index].position for index in ordered]
+    spacings = [later - earlier for earlier, later in zip(positions, positions[1:])]
+    size_step = float(statistics.median([bars[index].size_step for index in ordered]))
+    if spacings:
+        step = float(statistics.median(spacings) / BAR_STEP_RATIO)
+        residual = sum(abs(spacing - BAR_STEP_RATIO * step) for spacing in spacings) / (
+            len(spacings) * step
+        )
+    else:
+        step = float(size_step * calibration)
+        residual = 0.0
+    return BarStack(
+        orientation=bars[ordered[0]].orientation,
+        anchor=float(statistics.fmean([bars[index].anchor for index in ordered])),
+        baseline=float(max(bars[index].baseline for index in ordered)),
+        hue=float(_circular_mean_hue([bars[index].hue for index in ordered])),
+        count=int(len(ordered)),
+        step=step,
+        residual_ratio=float(residual),
+    )
+
+
+def extract_bar_stacks(image: np.ndarray) -> tuple[BarStack, ...]:
+    """Extract the physical short bar stacks of one full BGR screenshot.
+
+    ``image`` is validated by :func:`saturated_components`, so anything that
+    function rejects (a non array, a non uint8, a non three channel or an empty
+    image) raises ``ValueError`` here as well.
+
+    The saturated components are reduced to elongated bar candidates, the
+    dominant candidate size picks the screenshot scale, candidates outside
+    ``BAR_SCALE_TOLERANCE`` of it are dropped, and the survivors are chained
+    into stacks of 1 to ``BAR_MAX_COUNT`` bars that share orientation, anchor,
+    hue, size and one slot spacing. The current UI title strokes, inventory
+    pieces and the bottom colour strip are allowed to survive as lone
+    candidates; ``group_bar_ensembles`` is what rejects them.
+
+    Stacks are returned ordered by ``(orientation, baseline, anchor)`` so the
+    top stacks read left to right and the left stacks top to bottom. Every
+    field is a Python scalar and no returned object keeps a pixel, a mask, a
+    contour or a component.
+    """
+    bars = _bar_candidates(saturated_components(image))
+    if not bars:
+        return ()
+    scale = _dominant_size_scale([bar.size_step for bar in bars])
+    if scale is None or scale <= 0.0:
+        return ()
+    selected = [
+        index
+        for index, bar in enumerate(bars)
+        if abs(bar.size_step - scale) <= BAR_SCALE_TOLERANCE * scale
+    ]
+    groups: list[list[int]] = []
+    assigned: set[int] = set()
+    for seed in selected:
+        if seed in assigned:
+            continue
+        members = _bar_members(
+            bars, seed, scale, [index for index in selected if index not in assigned]
+        )
+        assigned.update(members)
+        groups.append(members)
+
+    ratios: list[float] = []
+    for members in groups:
+        if len(members) < 2:
+            continue
+        ordered = sorted(members, key=lambda index: bars[index].position)
+        positions = [bars[index].position for index in ordered]
+        spacings = [later - earlier for earlier, later in zip(positions, positions[1:])]
+        size_step = float(statistics.median([bars[index].size_step for index in ordered]))
+        if size_step > 0.0:
+            ratios.append(float(statistics.median(spacings) / BAR_STEP_RATIO / size_step))
+    calibration = float(statistics.median(ratios)) if ratios else 1.0
+
+    stacks: list[BarStack] = []
+    for members in groups:
+        ordered = sorted(members, key=lambda index: (bars[index].position, bars[index].anchor))
+        for start in range(0, len(ordered), BAR_MAX_COUNT):
+            stacks.append(_bar_stack(bars, ordered[start : start + BAR_MAX_COUNT], calibration))
+    stacks.sort(
+        key=lambda stack: (
+            _ORIENTATION_ORDER[stack.orientation],
+            stack.baseline,
+            stack.anchor,
+            stack.hue,
+            stack.count,
+        )
+    )
+    return tuple(stacks)
+
+
+def _validated_stacks(stacks: Sequence[BarStack]) -> tuple[BarStack, ...]:
+    """Validate a stack sequence and return it as a tuple of ``BarStack``.
+
+    Anything but a sequence of well formed :class:`BarStack` values raises
+    ``ValueError``: a wrong type, an unknown orientation, a count outside
+    ``1..BAR_MAX_COUNT``, a non positive or non finite ``step``, a negative or
+    non finite ``residual_ratio`` and a non finite anchor, baseline or hue are
+    all rejected instead of silently producing an unusable ensemble.
+    """
+    if isinstance(stacks, (str, bytes)) or not isinstance(stacks, (Sequence, np.ndarray)):
+        raise ValueError("group_bar_ensembles expects a sequence of BarStack instances")
+    result: list[BarStack] = []
+    for stack in stacks:
+        if not isinstance(stack, BarStack):
+            raise ValueError(
+                f"group_bar_ensembles expects BarStack instances, got {type(stack).__name__}"
+            )
+        if stack.orientation not in _ORIENTATION_ORDER:
+            raise ValueError(f"unknown bar stack orientation {stack.orientation!r}")
+        if not 1 <= stack.count <= BAR_MAX_COUNT:
+            raise ValueError(
+                f"bar stack count must be 1 to {BAR_MAX_COUNT}, got {stack.count!r}"
+            )
+        for name in ("anchor", "baseline", "hue"):
+            value = getattr(stack, name)
+            if not isinstance(value, numbers.Real) or not math.isfinite(float(value)):
+                raise ValueError(f"bar stack {name} must be a finite number, got {value!r}")
+        if not isinstance(stack.step, numbers.Real) or not math.isfinite(float(stack.step)):
+            raise ValueError(f"bar stack step must be a finite number, got {stack.step!r}")
+        if float(stack.step) <= 0.0:
+            raise ValueError(f"bar stack step must be positive, got {stack.step!r}")
+        if not isinstance(stack.residual_ratio, numbers.Real) or not math.isfinite(
+            float(stack.residual_ratio)
+        ):
+            raise ValueError(
+                f"bar stack residual_ratio must be a finite number, got {stack.residual_ratio!r}"
+            )
+        if float(stack.residual_ratio) < 0.0:
+            raise ValueError(
+                f"bar stack residual_ratio must not be negative, got {stack.residual_ratio!r}"
+            )
+        result.append(stack)
+    return tuple(result)
+
+
+def _distinct_anchor_count(anchors: Sequence[float], tolerance: float) -> int:
+    """Number of anchor clusters when neighbours within ``tolerance`` merge.
+
+    Each cluster is compared with its first, ascending member, so a slow drift
+    cannot chain two far apart anchors into one cluster.
+    """
+    count = 0
+    reference: float | None = None
+    for anchor in sorted(anchors):
+        if reference is None or anchor - reference > tolerance:
+            count += 1
+            reference = anchor
+    return count
+
+
+def group_bar_ensembles(stacks: Sequence[BarStack]) -> tuple[BarEnsemble, ...]:
+    """Group stacks into candidate board sides without touching any pixel.
+
+    ``stacks`` must be a sequence of :class:`BarStack`; anything else raises
+    ``ValueError``. The stacks are first ordered by
+    ``(orientation, baseline, anchor, hue, count)``, so the result never
+    depends on the caller's order. Each remaining stack then starts a group
+    that walks the ascending baselines: a later stack joins while it stays
+    within ``BAR_BASELINE_TOLERANCE`` of the last accepted baseline, within
+    ``BAR_BASELINE_SPAN_TOLERANCE`` of the seed baseline and within
+    ``BAR_ENSEMBLE_STEP_TOLERANCE`` of the seed step. Chaining one bar slot at a
+    time keeps a stack whose innermost bar was clipped or merged with the board
+    border in the same ensemble, while an unrelated cluster of UI components
+    hundreds of pixels away still stays out. A group is only returned when it
+    covers at least two distinct anchors, which is what keeps a single title
+    stroke, one inventory piece or the bottom colour strip from becoming a
+    valid ensemble on its own. Multi colour constraints keep their physical
+    stacks here: two colours of one line differ by a fixed anchor offset and
+    are not merged.
+
+    ``baseline`` and ``step`` of the result are the member medians, the members
+    are ordered by anchor and ``residual_ratio`` is the mean deviation of the
+    member baselines and steps from those medians, in units of the ensemble
+    step. Ensembles are returned by ``(orientation, baseline, anchor)``.
+    """
+    ordered = sorted(
+        _validated_stacks(stacks),
+        key=lambda stack: (
+            _ORIENTATION_ORDER[stack.orientation],
+            stack.baseline,
+            stack.anchor,
+            stack.hue,
+            stack.count,
+        ),
+    )
+    assigned = [False] * len(ordered)
+    ensembles: list[BarEnsemble] = []
+    for seed in range(len(ordered)):
+        if assigned[seed]:
+            continue
+        reference = ordered[seed]
+        members = [seed]
+        last_baseline = reference.baseline
+        for index in range(seed + 1, len(ordered)):
+            if assigned[index]:
+                continue
+            candidate = ordered[index]
+            if candidate.orientation != reference.orientation:
+                continue
+            if candidate.baseline - last_baseline > BAR_BASELINE_TOLERANCE * reference.step:
+                continue
+            if (
+                candidate.baseline - reference.baseline
+                > BAR_BASELINE_SPAN_TOLERANCE * reference.step
+            ):
+                continue
+            scale = max(candidate.step, reference.step)
+            if abs(candidate.step - reference.step) / scale > BAR_ENSEMBLE_STEP_TOLERANCE:
+                continue
+            members.append(index)
+            last_baseline = candidate.baseline
+
+        anchors = [ordered[index].anchor for index in members]
+        if _distinct_anchor_count(anchors, BAR_ANCHOR_TOLERANCE * reference.step) < 2:
+            continue
+
+        chosen = sorted(
+            (ordered[index] for index in members), key=lambda stack: stack.anchor
+        )
+        step = float(statistics.median([stack.step for stack in chosen]))
+        baseline = float(statistics.median([stack.baseline for stack in chosen]))
+        residual = sum(
+            abs(stack.baseline - baseline) + abs(stack.step - step) for stack in chosen
+        ) / (2.0 * len(chosen) * step)
+        ensembles.append(
+            BarEnsemble(
+                orientation=chosen[0].orientation,
+                baseline=baseline,
+                step=step,
+                stacks=tuple(chosen),
+                residual_ratio=float(residual),
+            )
+        )
+        for index in members:
+            assigned[index] = True
+    return tuple(ensembles)

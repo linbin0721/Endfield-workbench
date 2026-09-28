@@ -1,9 +1,10 @@
-"""Synthetic coverage for the circuit recognition math primitives (EW-006 B1a).
+"""Synthetic coverage for the circuit recognition math primitives (EW-006 B1a/B1b1).
 
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
-``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell`` and
-``reconstruct_piece`` are exercised. Every image is built in memory from simple
-rectangles, no file is read and no other recognition stage is imported.
+``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell``,
+``reconstruct_piece``, ``extract_bar_stacks`` and ``group_bar_ensembles`` are
+exercised. Every image is built in memory from simple rectangles, no file is
+read and no other recognition stage is imported.
 """
 
 import dataclasses
@@ -15,6 +16,8 @@ import pytest
 
 from app.puzzles.circuit.vision import (
     AxisLattice,
+    BarEnsemble,
+    BarStack,
     CellClass,
     CellEvidence,
     ChannelClusters,
@@ -23,7 +26,9 @@ from app.puzzles.circuit.vision import (
     cell_evidence,
     classify_cell,
     cluster_hues,
+    extract_bar_stacks,
     fit_axis_lattice,
+    group_bar_ensembles,
     reconstruct_piece,
     saturated_components,
     square_lattices,
@@ -1410,3 +1415,533 @@ def test_piece_shape_is_frozen_and_holds_plain_values() -> None:
     assert PieceShape.__dataclass_params__.frozen is True
     with pytest.raises(dataclasses.FrozenInstanceError):
         result.rows = 3
+
+
+# ---------------------------------------------------------------------------
+# short bar stacks and ensembles
+#
+# Every scene is drawn from the documented ratios: a bar long side of
+# 0.31 * step, a short side of 0.10 * step and a centre distance of 0.15 * step
+# inside one stack. The stacks sit on the outer edge of their board side, so a
+# horizontal stack grows upward from its bottom edge and a vertical stack
+# grows leftward from its right edge.
+
+BAR_LONG_RATIO = 0.31
+BAR_SHORT_RATIO = 0.10
+BAR_SLOT_RATIO = 0.15
+SCENE_ORIGIN = (400.0, 300.0)
+SCENE_MARGIN = 0.10
+
+
+def draw_horizontal_bars(
+    image: np.ndarray,
+    centre_x: float,
+    baseline_y: float,
+    step: float,
+    count: int,
+    hue: int,
+) -> None:
+    """Stack ``count`` horizontal bars upward from one common bottom edge."""
+    long_side = max(1, int(round(step * BAR_LONG_RATIO)))
+    short_side = max(1, int(round(step * BAR_SHORT_RATIO)))
+    for index in range(count):
+        bottom = int(round(baseline_y - index * step * BAR_SLOT_RATIO))
+        paste(
+            image,
+            int(round(centre_x - long_side / 2)),
+            bottom - short_side,
+            solid(hue, width=long_side, height=short_side),
+        )
+
+
+def draw_vertical_bars(
+    image: np.ndarray,
+    centre_y: float,
+    baseline_x: float,
+    step: float,
+    count: int,
+    hue: int,
+) -> None:
+    """Stack ``count`` vertical bars leftward from one common right edge."""
+    long_side = max(1, int(round(step * BAR_LONG_RATIO)))
+    short_side = max(1, int(round(step * BAR_SHORT_RATIO)))
+    for index in range(count):
+        right = int(round(baseline_x - index * step * BAR_SLOT_RATIO))
+        paste(
+            image,
+            right - short_side,
+            int(round(centre_y - long_side / 2)),
+            solid(hue, width=short_side, height=long_side),
+        )
+
+
+def drawn_anchor(centre: float, step: float, orientation: str) -> float:
+    """The centroid the renderer actually produces for one stack centre."""
+    long_side = max(1, int(round(step * BAR_LONG_RATIO)))
+    offset = int(round(centre - long_side / 2))
+    return offset + (long_side - 1) / 2.0
+
+
+def bar_scene(
+    columns: tuple[int, ...] = (3, 1, 4, 0, 2),
+    rows: tuple[int, ...] = (2, 5, 0, 3),
+    *,
+    step: float = 100.0,
+    origin: tuple[float, float] = SCENE_ORIGIN,
+    hue: int = 40,
+    width: int = 1000,
+    height: int = 800,
+) -> np.ndarray:
+    """A dark canvas with the top and left stacks of a virtual board."""
+    image = blank(width, height)
+    for index, count in enumerate(columns):
+        if count <= 0:  # a zero target draws no bar at all
+            continue
+        draw_horizontal_bars(
+            image,
+            origin[0] + (index + 0.5) * step,
+            origin[1] - SCENE_MARGIN * step,
+            step,
+            count,
+            hue,
+        )
+    for index, count in enumerate(rows):
+        if count <= 0:
+            continue
+        draw_vertical_bars(
+            image,
+            origin[1] + (index + 0.5) * step,
+            origin[0] - SCENE_MARGIN * step,
+            step,
+            count,
+            hue,
+        )
+    return image
+
+
+def normalized_stack(
+    stack: BarStack, origin: tuple[float, float], step: float
+) -> tuple[float, ...]:
+    """One stack in board step units relative to the scene origin."""
+    if stack.orientation == "horizontal":
+        anchor = (stack.anchor - origin[0]) / step
+        baseline = (stack.baseline - origin[1]) / step
+    else:
+        anchor = (stack.anchor - origin[1]) / step
+        baseline = (stack.baseline - origin[0]) / step
+    return (
+        anchor,
+        baseline,
+        stack.hue,
+        stack.count,
+        stack.step / step,
+        stack.residual_ratio,
+    )
+
+
+def test_extract_bar_stacks_reads_every_stack() -> None:
+    image = bar_scene()
+
+    stacks = extract_bar_stacks(image)
+
+    assert [stack.orientation for stack in stacks] == ["horizontal"] * 4 + ["vertical"] * 3
+    assert [stack.count for stack in stacks] == [3, 1, 4, 2, 2, 5, 3]
+    # The top stacks read left to right, the left stacks top to bottom.
+    assert [stack.anchor for stack in stacks] == pytest.approx(
+        [
+            drawn_anchor(450.0, 100.0, "horizontal"),
+            drawn_anchor(550.0, 100.0, "horizontal"),
+            drawn_anchor(650.0, 100.0, "horizontal"),
+            drawn_anchor(850.0, 100.0, "horizontal"),
+            drawn_anchor(350.0, 100.0, "vertical"),
+            drawn_anchor(450.0, 100.0, "vertical"),
+            drawn_anchor(650.0, 100.0, "vertical"),
+        ]
+    )
+    assert [stack.baseline for stack in stacks] == pytest.approx([290.0] * 4 + [390.0] * 3)
+    assert [stack.step for stack in stacks] == pytest.approx([100.0] * 7)
+    assert [stack.hue for stack in stacks] == pytest.approx([40.0] * 7, abs=1.0)
+    assert [stack.residual_ratio for stack in stacks] == pytest.approx([0.0] * 7)
+    assert isinstance(stacks, tuple)
+    assert all(isinstance(stack, BarStack) for stack in stacks)
+
+
+def test_extract_bar_stacks_returns_nothing_without_bars() -> None:
+    assert extract_bar_stacks(blank()) == ()
+
+    image = blank(300, 120)
+    # A wide flat blob and a square block are no bars, however saturated.
+    paste(image, 10, 10, solid(60, width=200, height=9))
+    paste(image, 10, 40, solid(60, width=40, height=40))
+    assert extract_bar_stacks(image) == ()
+
+
+@pytest.mark.parametrize(
+    ("scale", "step", "origin", "size"),
+    [
+        pytest.param(0.5, 100.0, (300.0, 250.0), (900, 700), id="half"),
+        pytest.param(1.0, 200.0, (600.0, 500.0), (1800, 1400), id="unit"),
+        pytest.param(1.0, 200.0, (637.0, 531.0), (1800, 1400), id="shifted"),
+        pytest.param(2.0, 400.0, (1200.0, 1000.0), (3600, 2800), id="double"),
+    ],
+)
+def test_extract_bar_stacks_is_scale_and_translation_invariant(
+    scale: float, step: float, origin: tuple[float, float], size: tuple[int, int]
+) -> None:
+    image = bar_scene(
+        columns=(3, 1, 4, 0, 2),
+        rows=(2, 5, 0, 3),
+        step=step,
+        origin=origin,
+        width=size[0],
+        height=size[1],
+    )
+
+    stacks = extract_bar_stacks(image)
+
+    assert [stack.count for stack in stacks] == [3, 1, 4, 2, 2, 5, 3]
+    # The raw pixels follow the rendering, the normalized result does not.
+    assert [stack.step for stack in stacks] == pytest.approx([200.0 * scale] * 7, rel=0.02)
+    expected = [
+        (0.5, -0.1, 40.0, 3, 1.0, 0.0),
+        (1.5, -0.1, 40.0, 1, 1.0, 0.0),
+        (2.5, -0.1, 40.0, 4, 1.0, 0.0),
+        (4.5, -0.1, 40.0, 2, 1.0, 0.0),
+        (0.5, -0.1, 40.0, 2, 1.0, 0.0),
+        (1.5, -0.1, 40.0, 5, 1.0, 0.0),
+        (3.5, -0.1, 40.0, 3, 1.0, 0.0),
+    ]
+    for stack, wanted in zip(stacks, expected):
+        assert normalized_stack(stack, origin, step) == pytest.approx(
+            wanted, rel=0.02, abs=0.02
+        )
+
+
+@pytest.mark.parametrize("scale", [0.5, 2.0])
+def test_extract_bar_stacks_survives_resampling(scale: float) -> None:
+    unit = bar_scene(columns=(3, 1, 4, 0, 2), rows=(2, 5, 0, 3), step=200.0,
+                     origin=(600.0, 500.0), width=1800, height=1400)
+    resampled = cv2.resize(unit, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA) \
+        if scale < 1.0 else cv2.resize(unit, None, fx=scale, fy=scale,
+                                       interpolation=cv2.INTER_NEAREST)
+
+    stacks = extract_bar_stacks(resampled)
+
+    assert [stack.count for stack in stacks] == [3, 1, 4, 2, 2, 5, 3]
+    origin = (600.0 * scale, 500.0 * scale)
+    for stack in stacks:
+        normalized = normalized_stack(stack, origin, 200.0 * scale)
+        assert normalized[3] == stack.count
+        assert normalized[4] == pytest.approx(1.0, rel=0.08)
+        assert normalized[1] == pytest.approx(-0.1, abs=0.05)
+        assert normalized[5] == pytest.approx(0.0, abs=0.05)
+
+
+def test_extract_bar_stacks_is_rotation_equivalent() -> None:
+    image = bar_scene(columns=(3, 1, 4, 0, 2), rows=(), step=100.0, width=1000, height=800)
+    turned = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    upright = extract_bar_stacks(image)
+    rotated = extract_bar_stacks(turned)
+
+    assert [stack.orientation for stack in upright] == ["horizontal"] * 4
+    assert [stack.orientation for stack in rotated] == ["vertical"] * 4
+    # Rotating counter clockwise sends the stacks above the board to the left
+    # of it, so the anchor becomes the old x mirrored in the image width and
+    # the reading order turns around, while the baseline stays the bottom edge.
+    assert [stack.count for stack in rotated] == list(
+        reversed([stack.count for stack in upright])
+    )
+    for before, after in zip(reversed(upright), rotated):
+        assert after.anchor == pytest.approx(1000 - 1 - before.anchor, abs=2.0)
+        assert after.baseline == pytest.approx(before.baseline, abs=2.0)
+        assert after.step == pytest.approx(before.step, rel=0.05)
+        assert after.hue == pytest.approx(before.hue, abs=1.0)
+    assert [ensemble.orientation for ensemble in group_bar_ensembles(upright)] == [
+        "horizontal"
+    ]
+    assert [ensemble.orientation for ensemble in group_bar_ensembles(rotated)] == ["vertical"]
+    assert [len(ensemble.stacks) for ensemble in group_bar_ensembles(upright)] == [4]
+    assert [len(ensemble.stacks) for ensemble in group_bar_ensembles(rotated)] == [4]
+
+
+def test_stacks_never_absorb_bars_of_the_other_orientation() -> None:
+    # With ``origin_x == origin_y`` the anchor of top column ``i`` is numerically
+    # equal to the anchor of left row ``i`` and the two bar slots of one index
+    # share their coordinate too, so a candidate of the other orientation would
+    # pass every anchor, hue, size and spacing test. A stack may only grow along
+    # its own orientation: neither side may take a bar of the other, no stack
+    # may disappear and no anchor may carry two stacks of the same orientation.
+    image = bar_scene(
+        columns=(3, 1, 2), rows=(2, 3, 1), step=100.0, origin=(400.0, 400.0)
+    )
+
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    assert [stack.orientation for stack in stacks] == ["horizontal"] * 3 + ["vertical"] * 3
+    assert [stack.count for stack in stacks] == [3, 1, 2, 2, 3, 1]
+    assert [stack.baseline for stack in stacks] == pytest.approx([390.0] * 6)
+    assert [ensemble.orientation for ensemble in ensembles] == ["horizontal", "vertical"]
+    assert [len(ensemble.stacks) for ensemble in ensembles] == [3, 3]
+    assert [stack.count for stack in ensembles[0].stacks] == [3, 1, 2]
+    assert [stack.count for stack in ensembles[1].stacks] == [2, 3, 1]
+
+
+def test_extract_bar_stacks_keeps_a_single_bar_and_a_full_ten() -> None:
+    one = extract_bar_stacks(bar_scene(columns=(1,), rows=(), step=100.0))
+    ten = extract_bar_stacks(bar_scene(columns=(10,), rows=(), step=100.0,
+                                       height=900))
+
+    assert len(one) == 1
+    assert (one[0].count, one[0].step, one[0].residual_ratio) == (1, 100.0, 0.0)
+    assert one[0].baseline == pytest.approx(290.0)
+
+    assert len(ten) == 1
+    assert ten[0].count == 10
+    assert ten[0].step == pytest.approx(100.0)
+    assert ten[0].residual_ratio == pytest.approx(0.0)
+    assert ten[0].baseline == pytest.approx(290.0)
+    # Ten bars reach nine slots away from the board side.
+    assert ten[0].anchor == pytest.approx(drawn_anchor(450.0, 100.0, "horizontal"), abs=0.5)
+
+
+def test_a_zero_target_only_leaves_a_gap() -> None:
+    image = bar_scene(columns=(3, 0, 2), rows=(1, 4), step=100.0)
+
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    horizontal = [stack for stack in stacks if stack.orientation == "horizontal"]
+    assert [stack.count for stack in horizontal] == [3, 2]
+    assert [stack.anchor for stack in horizontal] == pytest.approx(
+        [drawn_anchor(450.0, 100.0, "horizontal"), drawn_anchor(650.0, 100.0, "horizontal")]
+    )
+    assert [stack.baseline for stack in horizontal] == pytest.approx([290.0, 290.0])
+    # The missing middle line does not stop the two stacks from sharing a side.
+    assert len(ensembles) == 2
+    assert [len(ensemble.stacks) for ensemble in ensembles] == [2, 2]
+
+
+def test_two_colours_of_one_line_stay_two_physical_stacks() -> None:
+    image = blank(1000, 800)
+    step = 100.0
+    baseline = 290.0
+    # The second logical column carries two colours, each offset to its own
+    # side of the line centre; the first column stays single colour.
+    draw_horizontal_bars(image, 550.0 - 22.0, baseline, step, 2, 40)
+    draw_horizontal_bars(image, 550.0 + 22.0, baseline, step, 3, 100)
+    draw_horizontal_bars(image, 450.0, baseline, step, 4, 40)
+
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    assert [(stack.anchor, stack.count) for stack in stacks] == pytest.approx(
+        [
+            (drawn_anchor(450.0, step, "horizontal"), 4),
+            (drawn_anchor(528.0, step, "horizontal"), 2),
+            (drawn_anchor(572.0, step, "horizontal"), 3),
+        ]
+    )
+    assert [stack.hue for stack in stacks] == pytest.approx([40.0, 40.0, 100.0], abs=1.0)
+    assert len(ensembles) == 1
+    assert [stack.count for stack in ensembles[0].stacks] == [4, 2, 3]
+    assert [stack.anchor for stack in ensembles[0].stacks] == pytest.approx(
+        [
+            drawn_anchor(450.0, step, "horizontal"),
+            drawn_anchor(528.0, step, "horizontal"),
+            drawn_anchor(572.0, step, "horizontal"),
+        ]
+    )
+
+
+def test_ensembles_keep_two_baselines_and_sort_deterministically() -> None:
+    image = blank(1100, 900)
+    step = 100.0
+    draw_horizontal_bars(image, 450.0, 290.0, step, 3, 40)
+    draw_horizontal_bars(image, 550.0, 290.0, step, 1, 40)
+    draw_horizontal_bars(image, 450.0, 790.0, step, 2, 40)
+    draw_horizontal_bars(image, 550.0, 790.0, step, 4, 40)
+
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    assert [(ensemble.baseline, [stack.count for stack in ensemble.stacks])
+            for ensemble in ensembles] == [(290.0, [3, 1]), (790.0, [2, 4])]
+    assert [ensemble.orientation for ensemble in ensembles] == ["horizontal", "horizontal"]
+    # The result does not depend on the caller's order.
+    assert group_bar_ensembles(tuple(reversed(stacks))) == ensembles
+    assert group_bar_ensembles(list(reversed(list(stacks)))) == ensembles
+
+
+def test_a_large_gap_splits_one_stack() -> None:
+    image = blank(1000, 800)
+    step = 100.0
+    draw_horizontal_bars(image, 450.0, 290.0, step, 3, 40)
+    # The fourth bar belongs to the same line but sits five slots out: three
+    # empty slots are far more than one bar slot and end the stack.
+    draw_horizontal_bars(image, 450.0, 290.0 - 5 * 15.0, step, 1, 40)
+
+    stacks = extract_bar_stacks(image)
+
+    assert len(stacks) == 2
+    # Sorted by baseline: the detached bar sits one slot further from the board.
+    assert [stack.count for stack in stacks] == [1, 3]
+    assert [stack.anchor for stack in stacks] == pytest.approx(
+        [drawn_anchor(450.0, step, "horizontal")] * 2
+    )
+    assert [stack.baseline for stack in stacks] == pytest.approx([215.0, 290.0])
+    assert [stack.step for stack in stacks] == pytest.approx([100.0, 100.0])
+
+
+def test_lone_ui_components_do_not_form_an_ensemble() -> None:
+    image = blank(1000, 800)
+    # Title stroke, an inventory I piece, an inventory square and the bottom
+    # colour strip: all alone on their own baseline.
+    paste(image, 20, 40, solid(24, width=9, height=42))
+    paste(image, 880, 300, solid(50, width=12, height=48))
+    paste(image, 820, 420, solid(50, width=60, height=60))
+    paste(image, 400, 780, solid(100, width=40, height=10))
+
+    stacks = extract_bar_stacks(image)
+
+    assert group_bar_ensembles(stacks) == ()
+    # The bar shaped outliers may survive as candidates, the square may not.
+    assert all(stack.count == 1 for stack in stacks)
+    assert len(stacks) == 3
+
+
+def test_ui_outliers_do_not_disturb_the_two_board_sides() -> None:
+    image = bar_scene(columns=(3, 1, 4, 2), rows=(2, 5, 3), step=100.0)
+    paste(image, 20, 40, solid(24, width=9, height=42))
+    paste(image, 900, 500, solid(50, width=12, height=48))
+    paste(image, 850, 650, solid(50, width=60, height=60))
+    paste(image, 400, 780, solid(100, width=40, height=10))
+
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    assert len(ensembles) == 2
+    top, left = ensembles
+    assert (top.orientation, top.baseline) == ("horizontal", 290.0)
+    assert [stack.count for stack in top.stacks] == [3, 1, 4, 2]
+    assert (left.orientation, left.baseline) == ("vertical", 390.0)
+    assert [stack.count for stack in left.stacks] == [2, 5, 3]
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((8, 8), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((8, 8, 4), dtype=np.uint8), id="four-channel"),
+        pytest.param(np.zeros((8, 8, 3), dtype=np.float32), id="float"),
+        pytest.param("not an image", id="string"),
+    ],
+)
+def test_extract_bar_stacks_rejects_unsupported_images(image: object) -> None:
+    with pytest.raises(ValueError):
+        extract_bar_stacks(image)  # type: ignore[arg-type]
+
+
+def test_group_bar_ensembles_validates_its_input() -> None:
+    stack = BarStack(
+        orientation="horizontal",
+        anchor=100.0,
+        baseline=200.0,
+        hue=40.0,
+        count=2,
+        step=100.0,
+        residual_ratio=0.0,
+    )
+    assert group_bar_ensembles([]) == ()
+    assert group_bar_ensembles(()) == ()
+    for broken in (
+        "not a sequence",
+        [stack, "not a stack"],
+        [dataclasses.replace(stack, orientation="diagonal")],
+        [dataclasses.replace(stack, count=0)],
+        [dataclasses.replace(stack, count=11)],
+        [dataclasses.replace(stack, step=0.0)],
+        [dataclasses.replace(stack, step=float("nan"))],
+        [dataclasses.replace(stack, anchor=math.inf)],
+        [dataclasses.replace(stack, residual_ratio=-0.1)],
+    ):
+        with pytest.raises(ValueError):
+            group_bar_ensembles(broken)  # type: ignore[arg-type]
+
+
+def test_group_bar_ensembles_needs_two_anchors() -> None:
+    def stack(anchor: float) -> BarStack:
+        return BarStack(
+            orientation="vertical",
+            anchor=anchor,
+            baseline=500.0,
+            hue=40.0,
+            count=1,
+            step=100.0,
+            residual_ratio=0.0,
+        )
+
+    # Two colour offsets of one logical line are still one anchor cluster.
+    assert group_bar_ensembles([stack(300.0), stack(305.0)]) == ()
+    # A lone stack never forms an ensemble either.
+    assert group_bar_ensembles([stack(300.0)]) == ()
+    ensembles = group_bar_ensembles([stack(300.0), stack(500.0)])
+    assert len(ensembles) == 1
+    assert [item.anchor for item in ensembles[0].stacks] == [300.0, 500.0]
+    assert ensembles[0].baseline == 500.0
+    assert ensembles[0].step == 100.0
+    assert ensembles[0].residual_ratio == 0.0
+
+
+def test_bar_structures_are_frozen_and_hold_plain_values() -> None:
+    image = bar_scene()
+    stacks = extract_bar_stacks(image)
+    ensembles = group_bar_ensembles(stacks)
+
+    assert [field.name for field in dataclasses.fields(BarStack)] == [
+        "orientation",
+        "anchor",
+        "baseline",
+        "hue",
+        "count",
+        "step",
+        "residual_ratio",
+    ]
+    assert [field.name for field in dataclasses.fields(BarEnsemble)] == [
+        "orientation",
+        "baseline",
+        "step",
+        "stacks",
+        "residual_ratio",
+    ]
+
+    for stack in stacks:
+        assert type(stack.orientation) is str
+        assert type(stack.anchor) is float
+        assert type(stack.baseline) is float
+        assert type(stack.hue) is float
+        assert type(stack.count) is int
+        assert type(stack.step) is float
+        assert type(stack.residual_ratio) is float
+        assert BarStack.__dataclass_params__.frozen is True
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            stack.count = 2
+    for ensemble in ensembles:
+        assert type(ensemble.orientation) is str
+        assert type(ensemble.baseline) is float
+        assert type(ensemble.step) is float
+        assert type(ensemble.stacks) is tuple
+        assert type(ensemble.residual_ratio) is float
+        assert all(isinstance(stack, BarStack) for stack in ensemble.stacks)
+        assert BarEnsemble.__dataclass_params__.frozen is True
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            ensemble.step = 1.0
+
+    # No returned value aliases the source pixels: overwriting the image in
+    # place cannot change a stack that was already extracted.
+    before = stacks
+    image[:] = 0
+    assert extract_bar_stacks(image) == ()
+    assert before == stacks
