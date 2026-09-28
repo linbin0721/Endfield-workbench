@@ -1,10 +1,10 @@
 """Deterministic math primitives for circuit screenshot recognition.
 
 The recognizer extracts observations (short-bar centers, hue samples, ...)
-outside this module; the helpers here turn them into the integer line lattice,
-decide whether the two axis pitches match, and cluster hues on the circular
-OpenCV 0..179 scale. Every function is pure and keeps no reference to the
-source image or to any crop.
+outside this module; the helpers here turn a screenshot into saturated
+components, fit the integer line lattice, decide whether the two axis pitches
+match, and cluster hues on the circular OpenCV 0..179 scale. Every function is
+pure and keeps no reference to the source image or to any crop.
 """
 
 from __future__ import annotations
@@ -13,7 +13,35 @@ import math
 from dataclasses import dataclass
 from typing import Sequence
 
+import cv2
+import numpy as np
+
 HUE_PERIOD = 180.0
+MIN_SATURATION = 90
+MIN_VALUE = 80
+
+
+@dataclass(frozen=True)
+class Component:
+    """One saturated connected component summarized without its pixels.
+
+    ``x``/``y``/``width``/``height`` are the bounding box, ``area`` the pixel
+    count and ``center_x``/``center_y`` the centroid. ``hue`` is the circular
+    mean over the component pixels on the OpenCV 0..179 scale, while
+    ``saturation`` and ``value`` are their medians. No field aliases an image
+    array.
+    """
+
+    x: int
+    y: int
+    width: int
+    height: int
+    area: int
+    center_x: float
+    center_y: float
+    hue: float
+    saturation: float
+    value: float
 
 
 @dataclass(frozen=True)
@@ -41,6 +69,74 @@ class ChannelClusters:
 
     centers: tuple[float, ...]
     assignments: tuple[int, ...]
+
+
+def saturated_components(image: np.ndarray) -> tuple[Component, ...]:
+    """Extract the 8-connected saturated components of one BGR screenshot.
+
+    ``image`` must be a non-empty uint8 array with three BGR channels, anything
+    else raises ``ValueError``. The mask keeps pixels whose OpenCV HSV
+    saturation is at least ``MIN_SATURATION`` and whose value is at least
+    ``MIN_VALUE``. No morphology and no size filter is applied: the caller fits
+    the grid lattice and rejects UI outliers (title strokes, inventory pieces,
+    the bottom colour strip) by their distance to that lattice.
+
+    Every component keeps its bounding box, pixel area and centroid. Because
+    the hue scale is circular (0 and 179 are neighbours), ``hue`` is the
+    circular mean of the component pixels; a fully cancelled resultant falls
+    back to 0.0. ``saturation`` and ``value`` are plain medians. The result is
+    sorted by ``(y, x, center_y, center_x)`` so repeated runs on the same image
+    give the same order.
+    """
+    if not isinstance(image, np.ndarray):
+        raise ValueError("saturated_components expects a numpy array")
+    if image.dtype != np.uint8:
+        raise ValueError(f"saturated_components expects uint8 pixels, got {image.dtype}")
+    if image.ndim != 3 or image.shape[2] != 3:
+        raise ValueError(
+            f"saturated_components expects a three channel BGR image, got shape {image.shape}"
+        )
+    if image.size == 0:
+        raise ValueError("saturated_components expects a non-empty image")
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hue_plane = hsv[:, :, 0]
+    saturation_plane = hsv[:, :, 1]
+    value_plane = hsv[:, :, 2]
+    mask = ((saturation_plane >= MIN_SATURATION) & (value_plane >= MIN_VALUE)).astype(np.uint8)
+    label_count, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+
+    components: list[Component] = []
+    for label in range(1, label_count):
+        x = int(stats[label, cv2.CC_STAT_LEFT])
+        y = int(stats[label, cv2.CC_STAT_TOP])
+        width = int(stats[label, cv2.CC_STAT_WIDTH])
+        height = int(stats[label, cv2.CC_STAT_HEIGHT])
+        window = (slice(y, y + height), slice(x, x + width))
+        member = labels[window] == label
+        hues = hue_plane[window][member].astype(np.float64)
+        angles = np.radians(hues * (360.0 / HUE_PERIOD))
+        sin_sum = float(np.sin(angles).sum())
+        cos_sum = float(np.cos(angles).sum())
+        components.append(
+            Component(
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                area=int(stats[label, cv2.CC_STAT_AREA]),
+                center_x=float(centroids[label][0]),
+                center_y=float(centroids[label][1]),
+                hue=math.degrees(math.atan2(sin_sum, cos_sum)) / 2.0 % HUE_PERIOD,
+                saturation=float(np.median(saturation_plane[window][member])),
+                value=float(np.median(value_plane[window][member])),
+            )
+        )
+
+    components.sort(
+        key=lambda component: (component.y, component.x, component.center_y, component.center_x)
+    )
+    return tuple(components)
 
 
 def fit_axis_lattice(
