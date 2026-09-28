@@ -268,6 +268,23 @@ extract_bar_targets(geometry, ensembles) -> BarTargets | None
 - 目标解码只使用与已确认棋盘相邻且格距相容的横纵集合。上方横栈映射列目标，左侧竖栈映射行目标；同一颜色的显示偏移分别在两轴内取稳健中位数，偏移或残差不稳定、一个栈映射多个中心、同通道同一行列重复映射时返回 `None`。
 - 只有棋盘几何唯一后，缺少物理栈的 `(通道, 行或列)` 才补为 0。任何条数超过对应轴容量、通道超过 4 个或同通道行列总数不相等都返回 `None`；完成画面因高亮吞并而少计的短条不得在本层猜补。
 
+B1b3 按棋盘、库存、闭环三个顺序子批实现，接口冻结为：
+
+```text
+extract_board_cells(image, geometry, channel_hues) -> BoardCellMap | None
+extract_inventory(image, geometry, channel_hues) -> InventoryState | None
+analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis
+```
+
+- `BoardCellMap.cells[row][column]` 是完整的 `CellClass` 矩阵，另保存所有格子的最低置信度；尺寸必须与 `BoardGeometry` 一致，任何低置信度或通道歧义都返回 `None`。空间采样只按 `step` 和格内比例计算。
+- 真实固定格会接近铺满一格，不能只凭颜色面积把它当作已放置拼块。先建立棋盘区域内的通道掩膜和跨格连通关系：跨越内部格线、覆盖多个格子的同色区域属于已放置拼块；单格区域还必须得到居中的锁形高对比结构和四周独立边框支持才属于固定格。单格彩色区域没有锁形证据时保持不完整，不能猜成固定格。
+- 障碍格必须同时得到大面积中性灰覆盖和斜纹或禁用符号结构支持。亮度门槛相对同一棋盘的普通空格稳健统计校准，不能依赖某张截图的绝对曝光；背景光晕只能影响置信度，不能单独生成障碍。
+- `InventoryState` 保存已确认的完整槽位数、空槽数、置信度和按槽位行优先排序的 `InventoryPiece`。每个拼块保存 `slot_index/channel/cells/rows/columns/iou` 及槽位中心标量，不保存裁剪或掩膜。
+- 库存先在棋盘右侧寻找一至两列重复方形槽位，再在每个槽位内按通道色相生成一个干净的四连通掩膜并调用 `reconstruct_piece`。独立搜索到的彩色组件只能作为槽位内容证据，不能替代完整槽位格阵；面板被裁断、一个槽位有多个候选、颜色歧义或形状重建歧义都返回 `None`。
+- 完成图的槽位框仍在，但所有槽位为空。只有“确认到完整空库存、棋盘至少有一个已放置的跨格组件、格子状态无歧义”才能返回 `already_completed`；库存仍有拼块且棋盘已有放置组件视为中途状态，返回 `incomplete`。空库存且棋盘没有放置组件也返回 `incomplete`。
+- `BarImageAnalysis` 只有 `recognized/incomplete/no_board/already_completed` 四种离线结果，保存可选的 `CircuitPuzzle`、已经独立校验的 `CircuitSolution` 和纯文本 `issues`。只有 `recognized` 可携带题面和解答；其余结果两者都为空。
+- `analyze_bar_image` 只编排条形模式：依次执行短条、集合、几何、通道、格子、库存和目标解析。普通未完成图必须没有已放置组件，再构造领域模型并依次通过 `solve_circuit` 与 `validate_solution`；模型拒绝、无解、求解超限或独立校验失败都返回 `incomplete`。完成图允许条形目标因高亮吞并而不完整，但仍必须满足上一条的空库存和已放置证据。数字/罗马数字、题号 OCR、进程监督和公开 API 留在 B2。
+
 ### 库存拼块
 
 1. 搜索棋盘右侧的库存区域，按两列槽位或独立高饱和连通域分割拼块；排除底部装饰色条、文字和小图标。
