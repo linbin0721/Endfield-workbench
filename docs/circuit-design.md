@@ -285,6 +285,33 @@ analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis
 - `BarImageAnalysis` 只有 `recognized/incomplete/no_board/already_completed` 四种离线结果，保存可选的 `CircuitPuzzle`、已经独立校验的 `CircuitSolution` 和纯文本 `issues`。只有 `recognized` 可携带题面和解答；其余结果两者都为空。
 - `analyze_bar_image` 只编排条形模式：依次执行短条、集合、几何、通道、格子、库存和目标解析。普通未完成图必须没有已放置组件，再构造领域模型并依次通过 `solve_circuit` 与 `validate_solution`；模型拒绝、无解、求解超限或独立校验失败都返回 `incomplete`。完成图允许条形目标因高亮吞并而不完整，但仍必须满足上一条的空库存和已放置证据。数字/罗马数字、题号 OCR、进程监督和公开 API 留在 B2。
 
+B1b3b 的库存返回结构冻结为：
+
+```text
+InventoryPiece(
+    slot_index: int,
+    channel: int,
+    cells: tuple[tuple[int, int], ...],
+    rows: int,
+    columns: int,
+    iou: float,
+    center_x: float,
+    center_y: float,
+)
+
+InventoryState(
+    slot_count: int,
+    empty_count: int,
+    pieces: tuple[InventoryPiece, ...],
+    minimum_confidence: float,
+)
+```
+
+- `slot_index` 从 0 开始，按行优先排列；`pieces` 只保存非空槽，并按 `slot_index` 递增。完整空库存是合法的 `InventoryState`，不是 `None`。
+- 槽框外边长约为 `1.57 × step`，横纵中心距约为 `1.72 × step`。实现应在棋盘右侧对这些比例保留缩放容差，以灰度局部高频结构的四边独立支持确认槽框，并选择唯一的一列或两列行优先前缀。彩色内容不能补造缺失槽框；前缀有空洞、后续又出现槽框、最后一行或面板被截图边界裁断、两个不同网格近似同优时返回 `None`。
+- 每个槽位只采样中央内容区。候选饱和像素必须唯一归属到一个已知通道；未知颜色、两个通道都有实质内容或两个彼此分离的实质组件均返回 `None`。约 `0.04 × step` 的受限闭运算只用于连接同一拼块的描边与填充，随后保留其凹形外轮廓、裁成紧包围盒并调用 `reconstruct_piece`；不得直接从外接矩形猜形状。
+- `minimum_confidence` 是全部槽框结构裕量、空槽内容裕量和非空拼块 IoU 的最小值，限制在 `0..1`。无槽框、槽框不完整、颜色或形状不唯一均返回 `None`，不得输出部分库存。
+
 ### 库存拼块
 
 1. 搜索棋盘右侧的库存区域，按两列槽位或独立高饱和连通域分割拼块；排除底部装饰色条、文字和小图标。
