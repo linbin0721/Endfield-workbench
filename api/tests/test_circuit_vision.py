@@ -1,12 +1,13 @@
 """Synthetic coverage for the circuit recognition math primitives (EW-006 B1a).
 
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
-``square_lattices`` and ``cluster_hues`` are exercised. Every image is built in
-memory from simple rectangles, no file is read and no other recognition stage
-is imported.
+``square_lattices``, ``cluster_hues``, ``cell_evidence`` and ``classify_cell``
+are exercised. Every image is built in memory from simple rectangles, no file
+is read and no other recognition stage is imported.
 """
 
 import dataclasses
+import math
 
 import cv2
 import numpy as np
@@ -14,8 +15,12 @@ import pytest
 
 from app.puzzles.circuit.vision import (
     AxisLattice,
+    CellClass,
+    CellEvidence,
     ChannelClusters,
     Component,
+    cell_evidence,
+    classify_cell,
     cluster_hues,
     fit_axis_lattice,
     saturated_components,
@@ -401,3 +406,618 @@ def test_saturated_components_returns_frozen_plain_values() -> None:
     for field in dataclasses.fields(Component):
         with pytest.raises(dataclasses.FrozenInstanceError):
             setattr(component, field.name, getattr(component, field.name))
+
+
+# ---------------------------------------------------------------------------
+# cell evidence
+
+CELL_SIZE = 64
+CELL_HUE = 100
+
+
+def dark_cell(size: int = CELL_SIZE) -> np.ndarray:
+    """Dark, unsaturated background: neither bright neutral nor channel."""
+    return solid(0, width=size, height=size, saturation=0, value=40)
+
+
+def centered_block_cell(
+    hue: int = CELL_HUE,
+    *,
+    size: int = CELL_SIZE,
+    block: int = 24,
+    saturation: int = 255,
+    value: int = 255,
+) -> np.ndarray:
+    """One saturated square centered in the cell, well inside the edge ring."""
+    image = dark_cell(size)
+    offset = (size - block) // 2
+    paste(
+        image,
+        offset,
+        offset,
+        solid(hue, width=block, height=block, saturation=saturation, value=value),
+    )
+    return image
+
+
+def striped_cell(
+    size: int = CELL_SIZE,
+    *,
+    period: int = 8,
+    high: int = 220,
+    low: int = 150,
+) -> np.ndarray:
+    """Diagonal bright neutral stripes with a large value step between them."""
+    rows, columns = np.mgrid[0:size, 0:size]
+    hsv = np.zeros((size, size, 3), dtype=np.uint8)
+    hsv[:, :, 2] = np.where(((rows + columns) % period) < period // 2, high, low)
+    return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+
+def evidence_for(**overrides: object) -> CellEvidence:
+    """Valid placed-like evidence whose fields each test overrides as needed."""
+    fields: dict[str, object] = {
+        "bright_neutral_ratio": 0.0,
+        "channel_ratio": 0.80,
+        "centered_channel_ratio": 0.90,
+        "edge_channel_ratio": 0.60,
+        "stripe_ratio": 0.0,
+        "channel_distances": (1.0,),
+    }
+    fields.update(overrides)
+    return CellEvidence(**fields)  # type: ignore[arg-type]
+
+
+def test_dark_cell_is_empty_with_full_confidence() -> None:
+    evidence = cell_evidence(dark_cell(), [40.0])
+
+    assert evidence.bright_neutral_ratio == 0.0
+    assert evidence.channel_ratio == 0.0
+    assert evidence.centered_channel_ratio == 0.0
+    assert evidence.edge_channel_ratio == 0.0
+    assert evidence.stripe_ratio == 0.0
+    assert evidence.channel_distances == (math.inf,)
+    assert classify_cell(evidence) == CellClass(kind="empty", channel=None, confidence=1.0)
+
+
+def test_flat_bright_gray_is_empty_and_not_blocked() -> None:
+    flat = solid(0, width=CELL_SIZE, height=CELL_SIZE, saturation=0, value=200)
+    evidence = cell_evidence(flat, [40.0])
+
+    assert evidence.bright_neutral_ratio == pytest.approx(1.0)
+    assert evidence.stripe_ratio == 0.0
+    result = classify_cell(evidence)
+    assert result == CellClass(kind="empty", channel=None, confidence=1.0)
+
+
+def test_diagonal_gray_stripes_are_blocked() -> None:
+    evidence = cell_evidence(striped_cell(), [40.0])
+
+    assert evidence.bright_neutral_ratio == pytest.approx(1.0)
+    assert evidence.stripe_ratio >= 0.06
+    assert evidence.channel_ratio == 0.0
+    assert classify_cell(evidence) == CellClass(kind="blocked", channel=None, confidence=1.0)
+
+
+def test_flat_stripes_below_the_value_step_are_not_blocked() -> None:
+    # Bright neutral and striped in space, but the value step of 8 is below
+    # the transition threshold of 12, so the cell must not read as blocked.
+    evidence = cell_evidence(striped_cell(high=200, low=192), [40.0])
+
+    assert evidence.bright_neutral_ratio == pytest.approx(1.0)
+    assert evidence.stripe_ratio == 0.0
+    assert classify_cell(evidence).kind == "empty"
+
+
+def test_small_centered_block_is_fixed() -> None:
+    evidence = cell_evidence(centered_block_cell(), [CELL_HUE])
+
+    assert evidence.channel_ratio == pytest.approx(0.140625)
+    assert evidence.centered_channel_ratio == pytest.approx(0.5625)
+    assert evidence.edge_channel_ratio == 0.0
+    assert evidence.channel_distances == pytest.approx((0.0,), abs=2.0)
+    assert classify_cell(evidence) == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_wide_block_that_stops_short_of_the_edge_is_fixed() -> None:
+    image = dark_cell()
+    paste(image, 12, 12, solid(CELL_HUE, width=40, height=40))
+    evidence = cell_evidence(image, [CELL_HUE])
+
+    assert evidence.channel_ratio == pytest.approx(0.390625)
+    assert evidence.centered_channel_ratio == pytest.approx(1.0)
+    assert evidence.edge_channel_ratio == 0.0
+    assert classify_cell(evidence) == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_block_reaching_the_edge_is_placed() -> None:
+    image = dark_cell()
+    paste(image, 4, 4, solid(CELL_HUE, width=56, height=56))
+    evidence = cell_evidence(image, [CELL_HUE])
+
+    assert evidence.channel_ratio == pytest.approx(0.765625)
+    assert evidence.edge_channel_ratio == pytest.approx(1372 / 2332)
+    assert classify_cell(evidence) == CellClass(kind="placed", channel=0, confidence=1.0)
+
+
+def test_fully_covered_cell_is_placed() -> None:
+    evidence = cell_evidence(
+        solid(CELL_HUE, width=CELL_SIZE, height=CELL_SIZE), [CELL_HUE]
+    )
+
+    assert evidence.channel_ratio == 1.0
+    assert evidence.edge_channel_ratio == 1.0
+    assert classify_cell(evidence) == CellClass(kind="placed", channel=0, confidence=1.0)
+
+
+def test_single_channel_block_selects_index_zero() -> None:
+    evidence = cell_evidence(centered_block_cell(30), [30.0])
+    result = classify_cell(evidence)
+
+    assert evidence.channel_distances == pytest.approx((0.0,), abs=2.0)
+    assert result == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_two_channels_select_the_matching_index() -> None:
+    first = cell_evidence(centered_block_cell(30), [30.0, 120.0])
+    second = cell_evidence(centered_block_cell(120), [30.0, 120.0])
+
+    assert first.channel_distances == pytest.approx((0.0, 90.0), abs=2.0)
+    assert second.channel_distances == pytest.approx((90.0, 0.0), abs=2.0)
+    assert classify_cell(first).channel == 0
+    assert classify_cell(second).channel == 1
+
+
+def test_four_channels_select_the_matching_index() -> None:
+    hues = [10.0, 55.0, 100.0, 145.0]
+    evidence = cell_evidence(centered_block_cell(100), hues)
+
+    assert evidence.channel_distances == pytest.approx((90.0, 45.0, 0.0, 45.0), abs=2.0)
+    result = classify_cell(evidence)
+    assert result == CellClass(kind="fixed", channel=2, confidence=1.0)
+
+
+def test_zero_and_one_seventy_nine_are_neighbours() -> None:
+    evidence = cell_evidence(centered_block_cell(0), [179.0, 90.0])
+
+    assert evidence.channel_distances[0] == pytest.approx(1.0, abs=2.0)
+    assert evidence.channel_distances[1] == pytest.approx(90.0, abs=2.0)
+    assert classify_cell(evidence) == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_hues_are_folded_by_the_opencv_period() -> None:
+    evidence = cell_evidence(centered_block_cell(10), [190.0, 100.0])
+
+    assert evidence.channel_distances[0] == pytest.approx(0.0, abs=2.0)
+    assert classify_cell(evidence).channel == 0
+
+
+def test_hue_separation_of_exactly_two_is_accepted() -> None:
+    evidence = cell_evidence(dark_cell(8), [10.0, 12.0])
+
+    assert evidence.channel_distances == (math.inf, math.inf)
+
+
+def test_numpy_sequence_inputs_are_accepted() -> None:
+    evidence = cell_evidence(centered_block_cell(), np.array([CELL_HUE, 10.0]))
+
+    assert len(evidence.channel_distances) == 2
+    assert classify_cell(evidence).channel == 0
+    assert classify_cell(evidence_for(channel_distances=np.array([1.0, 40.0]))) == CellClass(
+        kind="placed", channel=0, confidence=1.0
+    )
+
+
+@pytest.mark.parametrize("scale", [0.5, 1.0, 2.0])
+def test_cell_evidence_is_scale_invariant(scale: float) -> None:
+    unit = centered_block_cell()
+    scaled = (
+        unit
+        if scale == 1.0
+        else cv2.resize(unit, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+    )
+    base = cell_evidence(unit, [CELL_HUE])
+    evidence = cell_evidence(scaled, [CELL_HUE])
+
+    assert evidence.bright_neutral_ratio == pytest.approx(base.bright_neutral_ratio, abs=0.01)
+    assert evidence.channel_ratio == pytest.approx(base.channel_ratio, rel=0.05, abs=0.01)
+    assert evidence.centered_channel_ratio == pytest.approx(
+        base.centered_channel_ratio, rel=0.05, abs=0.01
+    )
+    assert evidence.edge_channel_ratio == pytest.approx(base.edge_channel_ratio, abs=0.01)
+    assert evidence.stripe_ratio == pytest.approx(base.stripe_ratio, abs=0.01)
+
+
+@pytest.mark.parametrize("scale", [0.5, 1.0, 2.0])
+def test_scaled_cells_keep_the_same_kind_and_channel(scale: float) -> None:
+    unit = centered_block_cell()
+    scaled = (
+        unit
+        if scale == 1.0
+        else cv2.resize(unit, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+    )
+
+    base = classify_cell(cell_evidence(unit, [CELL_HUE]))
+    result = classify_cell(cell_evidence(scaled, [CELL_HUE]))
+
+    assert base == CellClass(kind="fixed", channel=0, confidence=1.0)
+    assert result == base
+
+
+def test_bright_neutral_gates_are_inclusive() -> None:
+    included = cell_evidence(solid(0, width=16, height=16, saturation=60, value=150), [40.0])
+    too_saturated = cell_evidence(solid(0, width=16, height=16, saturation=61, value=150), [40.0])
+    too_dark = cell_evidence(solid(0, width=16, height=16, saturation=60, value=149), [40.0])
+
+    assert included.bright_neutral_ratio == 1.0
+    assert too_saturated.bright_neutral_ratio == 0.0
+    assert too_dark.bright_neutral_ratio == 0.0
+
+
+def test_channel_gates_are_inclusive() -> None:
+    at_saturation = cell_evidence(centered_block_cell(CELL_HUE, saturation=90, value=255), [100.0])
+    below_saturation = cell_evidence(
+        centered_block_cell(CELL_HUE, saturation=89, value=255), [100.0]
+    )
+    at_value = cell_evidence(centered_block_cell(CELL_HUE, saturation=255, value=80), [100.0])
+    below_value = cell_evidence(centered_block_cell(CELL_HUE, saturation=255, value=79), [100.0])
+
+    assert at_saturation.channel_ratio == pytest.approx(0.140625)
+    assert at_value.channel_ratio == pytest.approx(0.140625)
+    assert below_saturation.channel_ratio == 0.0
+    assert below_value.channel_ratio == 0.0
+
+
+def test_tied_nearest_hues_leave_the_pixel_unassigned() -> None:
+    # The block hue 100 sits exactly between the two channel hues, so the
+    # nearest distances are equal and no pixel may be attributed to a channel.
+    evidence = cell_evidence(centered_block_cell(CELL_HUE), [95.0, 105.0])
+
+    assert evidence.channel_ratio == 0.0
+    assert evidence.channel_distances == (math.inf, math.inf)
+    assert classify_cell(evidence) == CellClass(kind="empty", channel=None, confidence=1.0)
+
+
+def test_cell_evidence_accepts_a_crop_view_of_a_larger_screenshot() -> None:
+    screenshot = np.zeros((200, 200, 3), dtype=np.uint8)
+    screenshot[50:114, 60:124] = dark_cell()
+    screenshot[70:94, 80:104] = solid(CELL_HUE, width=24, height=24)
+    crop = screenshot[50:114, 60:124]
+
+    assert crop.flags["C_CONTIGUOUS"] is False
+    evidence = cell_evidence(crop, [CELL_HUE])
+    assert classify_cell(evidence) == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+# ---------------------------------------------------------------------------
+# classification
+
+
+def test_blocked_wins_over_a_placed_looking_channel_ratio() -> None:
+    result = classify_cell(
+        evidence_for(bright_neutral_ratio=0.5, stripe_ratio=0.5, channel_ratio=0.9)
+    )
+    assert result == CellClass(kind="blocked", channel=None, confidence=1.0)
+
+
+def test_equal_nearest_distances_are_an_ambiguous_channel() -> None:
+    result = classify_cell(evidence_for(channel_distances=(3.0, 3.0, 40.0)))
+    assert result == CellClass(kind="placed", channel=None, confidence=0.0)
+
+
+def test_nearly_equal_distances_are_an_ambiguous_channel() -> None:
+    result = classify_cell(evidence_for(channel_distances=(3.0, 4.5, 40.0)))
+    assert result == CellClass(kind="placed", channel=None, confidence=0.0)
+
+
+def test_runner_up_gap_of_exactly_two_is_an_ambiguous_channel() -> None:
+    result = classify_cell(evidence_for(channel_distances=(1.0, 3.0)))
+    assert result == CellClass(kind="placed", channel=None, confidence=0.0)
+
+
+def test_close_runner_up_keeps_the_channel_with_zero_confidence() -> None:
+    result = classify_cell(evidence_for(channel_distances=(1.0, 4.0, 40.0)))
+    assert result == CellClass(kind="placed", channel=0, confidence=0.0)
+
+
+def test_far_runner_up_keeps_full_confidence() -> None:
+    result = classify_cell(evidence_for(channel_distances=(10.0, 40.0)))
+    assert result == CellClass(kind="placed", channel=0, confidence=1.0)
+
+
+def test_missing_channel_keeps_the_kind_but_is_incomplete() -> None:
+    assert classify_cell(evidence_for(channel_distances=())) == CellClass(
+        kind="placed", channel=None, confidence=0.0
+    )
+    assert classify_cell(evidence_for(channel_distances=(10.5, 40.0))) == CellClass(
+        kind="placed", channel=None, confidence=0.0
+    )
+
+
+def test_fixed_cell_with_an_ambiguous_channel_is_incomplete() -> None:
+    fields = {
+        "channel_ratio": 0.15,
+        "centered_channel_ratio": 0.50,
+        "edge_channel_ratio": 0.05,
+    }
+    assert classify_cell(evidence_for(channel_distances=(5.0, 6.0), **fields)) == CellClass(
+        kind="fixed", channel=None, confidence=0.0
+    )
+    assert classify_cell(evidence_for(channel_distances=(), **fields)) == CellClass(
+        kind="fixed", channel=None, confidence=0.0
+    )
+
+
+def test_fixed_with_a_unique_far_channel_is_confident() -> None:
+    result = classify_cell(
+        evidence_for(
+            channel_ratio=0.15,
+            centered_channel_ratio=0.50,
+            edge_channel_ratio=0.05,
+            channel_distances=(1.0, 40.0),
+        )
+    )
+    assert result == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+def test_fixed_ignores_thresholds_of_the_other_kinds() -> None:
+    # 0.40 is within 0.03 of the placed channel ratio 0.42, but the cell is
+    # decided by the fixed rule, whose own thresholds are all far away.
+    result = classify_cell(
+        evidence_for(
+            channel_ratio=0.40,
+            centered_channel_ratio=0.50,
+            edge_channel_ratio=0.05,
+            channel_distances=(1.0, 40.0),
+        )
+    )
+    assert result == CellClass(kind="fixed", channel=0, confidence=1.0)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"bright_neutral_ratio": 0.31, "stripe_ratio": 0.50}, id="bright-near"),
+        pytest.param({"bright_neutral_ratio": 0.30, "stripe_ratio": 0.50}, id="bright-exact"),
+        pytest.param({"bright_neutral_ratio": 0.50, "stripe_ratio": 0.061}, id="stripe-near"),
+        pytest.param({"bright_neutral_ratio": 0.50, "stripe_ratio": 0.06}, id="stripe-exact"),
+    ],
+)
+def test_blocked_near_a_threshold_has_zero_confidence(overrides: dict[str, float]) -> None:
+    result = classify_cell(evidence_for(**overrides))
+    assert result == CellClass(kind="blocked", channel=None, confidence=0.0)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"channel_ratio": 0.421}, id="channel-near"),
+        pytest.param({"channel_ratio": 0.42}, id="channel-exact"),
+        pytest.param({"edge_channel_ratio": 0.21}, id="edge-near"),
+        pytest.param({"edge_channel_ratio": 0.20}, id="edge-exact"),
+    ],
+)
+def test_placed_near_a_threshold_has_zero_confidence(overrides: dict[str, float]) -> None:
+    result = classify_cell(evidence_for(channel_distances=(1.0, 40.0), **overrides))
+    assert result == CellClass(kind="placed", channel=0, confidence=0.0)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"channel_ratio": 0.09}, id="channel-near"),
+        pytest.param({"centered_channel_ratio": 0.21}, id="centered-near"),
+        pytest.param({"edge_channel_ratio": 0.11}, id="edge-near"),
+    ],
+)
+def test_fixed_near_a_threshold_has_zero_confidence(overrides: dict[str, float]) -> None:
+    fields = {
+        "channel_ratio": 0.15,
+        "centered_channel_ratio": 0.50,
+        "edge_channel_ratio": 0.05,
+        "channel_distances": (1.0, 40.0),
+    }
+    fields.update(overrides)
+    result = classify_cell(evidence_for(**fields))
+    assert result == CellClass(kind="fixed", channel=0, confidence=0.0)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"stripe_ratio": 0.05}, id="stripe-near"),
+        pytest.param({"bright_neutral_ratio": 0.29}, id="bright-near"),
+        pytest.param({"channel_ratio": 0.05}, id="channel-near"),
+        pytest.param({"centered_channel_ratio": 0.18}, id="centered-near"),
+        pytest.param({"edge_channel_ratio": 0.10}, id="edge-near"),
+    ],
+)
+def test_empty_near_a_classification_threshold_has_zero_confidence(
+    overrides: dict[str, float],
+) -> None:
+    fields: dict[str, object] = {
+        "bright_neutral_ratio": 0.0,
+        "channel_ratio": 0.0,
+        "centered_channel_ratio": 0.0,
+        "edge_channel_ratio": 0.0,
+        "stripe_ratio": 0.0,
+        "channel_distances": (),
+    }
+    fields.update(overrides)
+    result = classify_cell(evidence_for(**fields))
+    assert result == CellClass(kind="empty", channel=None, confidence=0.0)
+
+
+def test_clear_empty_is_confident() -> None:
+    result = classify_cell(
+        evidence_for(
+            bright_neutral_ratio=0.0,
+            channel_ratio=0.0,
+            centered_channel_ratio=0.0,
+            edge_channel_ratio=0.0,
+            stripe_ratio=0.0,
+            channel_distances=(),
+        )
+    )
+    assert result == CellClass(kind="empty", channel=None, confidence=1.0)
+
+
+# ---------------------------------------------------------------------------
+# cell input validation
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((8, 8), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((8, 8, 4), dtype=np.uint8), id="four-channel"),
+        pytest.param(np.zeros((8, 8, 3), dtype=np.float32), id="float"),
+        pytest.param(np.zeros((8, 8, 3, 1), dtype=np.uint8), id="four-dim"),
+        pytest.param(None, id="not-an-array"),
+        pytest.param([[0, 0, 0]], id="nested-list"),
+    ],
+)
+def test_cell_evidence_rejects_unsupported_images(image: object) -> None:
+    with pytest.raises(ValueError):
+        cell_evidence(image, [10.0])  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("shape", [(7, 8, 3), (8, 7, 3), (7, 7, 3)])
+def test_cell_evidence_rejects_small_cells(shape: tuple[int, int, int]) -> None:
+    with pytest.raises(ValueError):
+        cell_evidence(np.zeros(shape, dtype=np.uint8), [10.0])
+
+
+def test_cell_evidence_accepts_the_minimum_cell_side() -> None:
+    evidence = cell_evidence(np.zeros((8, 8, 3), dtype=np.uint8), [10.0])
+    assert evidence.channel_distances == (math.inf,)
+
+
+@pytest.mark.parametrize(
+    "hues",
+    [
+        pytest.param([], id="empty"),
+        pytest.param([0.0, 40.0, 80.0, 120.0, 160.0], id="five"),
+        pytest.param([float("nan")], id="nan"),
+        pytest.param([float("inf")], id="inf"),
+        pytest.param([-float("inf")], id="negative-inf"),
+        pytest.param([10.0, 11.5], id="too-close"),
+        pytest.param([179.0, 0.5], id="too-close-across-the-wrap"),
+        pytest.param([10.0, 10.0], id="duplicate"),
+        pytest.param([10.0, 20.0, 30.0, 40.0, 50.0], id="more-than-four"),
+        pytest.param(10.0, id="not-a-sequence"),
+        pytest.param("10", id="string"),
+        pytest.param(["10"], id="numeric-string"),
+        pytest.param(["a", "b"], id="non-numeric"),
+        pytest.param(None, id="none"),
+        pytest.param(np.array(10.0), id="zero-dim-array"),
+    ],
+)
+def test_cell_evidence_rejects_invalid_channel_hues(hues: object) -> None:
+    with pytest.raises(ValueError):
+        cell_evidence(dark_cell(8), hues)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"bright_neutral_ratio": 1.2}, id="bright-above-one"),
+        pytest.param({"channel_ratio": -0.01}, id="channel-negative"),
+        pytest.param({"centered_channel_ratio": float("nan")}, id="centered-nan"),
+        pytest.param({"edge_channel_ratio": float("inf")}, id="edge-inf"),
+        pytest.param({"stripe_ratio": -0.5}, id="stripe-negative"),
+        pytest.param({"stripe_ratio": float("nan")}, id="stripe-nan"),
+    ],
+)
+def test_classify_cell_rejects_invalid_ratios(overrides: dict[str, float]) -> None:
+    with pytest.raises(ValueError):
+        classify_cell(evidence_for(**overrides))
+
+
+@pytest.mark.parametrize(
+    "distances",
+    [
+        pytest.param((-1.0,), id="negative"),
+        pytest.param((-float("inf"),), id="negative-inf"),
+        pytest.param((float("nan"),), id="nan"),
+        pytest.param((1.0, float("nan")), id="nan-runner-up"),
+        pytest.param(("1.0",), id="string"),
+        pytest.param((1.0, "2.0"), id="string-runner-up"),
+        pytest.param(None, id="none"),
+        pytest.param(3.0, id="not-a-sequence"),
+        pytest.param(np.array(1.0), id="zero-dim-array"),
+    ],
+)
+def test_classify_cell_rejects_invalid_channel_distances(distances: object) -> None:
+    with pytest.raises(ValueError):
+        classify_cell(evidence_for(channel_distances=distances))
+
+
+def test_classify_cell_rejects_other_objects() -> None:
+    with pytest.raises(ValueError):
+        classify_cell("not evidence")  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# frozen, plain return values
+
+
+def test_cell_evidence_is_frozen_and_detached_from_the_image() -> None:
+    image = centered_block_cell()
+    snapshot = image.copy()
+    hues = [CELL_HUE, 10.0]
+    evidence = cell_evidence(image, hues)
+
+    assert np.array_equal(image, snapshot)
+    assert hues == [CELL_HUE, 10.0]
+    assert [field.name for field in dataclasses.fields(CellEvidence)] == [
+        "bright_neutral_ratio",
+        "channel_ratio",
+        "centered_channel_ratio",
+        "edge_channel_ratio",
+        "stripe_ratio",
+        "channel_distances",
+    ]
+    for field in dataclasses.fields(CellEvidence):
+        value = getattr(evidence, field.name)
+        assert not isinstance(value, np.ndarray)
+        if field.name == "channel_distances":
+            assert type(value) is tuple
+            assert all(type(distance) is float for distance in value)
+        else:
+            assert type(value) is float
+
+    assert CellEvidence.__dataclass_params__.frozen is True
+    for field in dataclasses.fields(CellEvidence):
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            setattr(evidence, field.name, getattr(evidence, field.name))
+
+
+def test_cell_class_is_frozen_and_holds_plain_values() -> None:
+    placed = classify_cell(evidence_for(channel_distances=(1.0, 40.0)))
+    empty = classify_cell(
+        evidence_for(
+            bright_neutral_ratio=0.0,
+            channel_ratio=0.0,
+            centered_channel_ratio=0.0,
+            edge_channel_ratio=0.0,
+            stripe_ratio=0.0,
+            channel_distances=(),
+        )
+    )
+
+    assert [field.name for field in dataclasses.fields(CellClass)] == [
+        "kind",
+        "channel",
+        "confidence",
+    ]
+    assert type(placed.kind) is str
+    assert type(placed.channel) is int
+    assert type(placed.confidence) is float
+    assert empty.channel is None
+    assert type(empty.confidence) is float
+
+    assert CellClass.__dataclass_params__.frozen is True
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        placed.kind = "empty"
