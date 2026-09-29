@@ -72,12 +72,18 @@ def test_formal_result_recognized_contract_and_extra_fields() -> None:
     result = CircuitRecognitionResult.model_validate(recognized_payload())
     assert result.puzzle is not None
     assert result.puzzle.rows == result.puzzle.columns == 2
+    assert result.catalog is None
 
-    for field in ("solution", "catalog", "future"):
+    for field in ("solution", "future"):
         with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
             CircuitRecognitionResult.model_validate(
                 {**recognized_payload(), field: {}}
             )
+
+    with pytest.raises(ValidationError):
+        CircuitRecognitionResult.model_validate(
+            {**recognized_payload(), "catalog": {"code": "V40020", "future": True}}
+        )
 
 
 @pytest.mark.parametrize(

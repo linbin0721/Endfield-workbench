@@ -16,6 +16,7 @@ from typing import Literal
 import cv2
 import numpy as np
 
+from app.catalog.circuit_rules import normalize_circuit_code
 from app.puzzles.circuit.vision import BoardGeometry, SymbolLayout
 
 
@@ -36,8 +37,6 @@ _ROMAN_VALUES = {
     "IX": 9,
     "X": 10,
 }
-_DASHES = "-\u058a\u05be\u1400\u1806\u2010\u2011\u2012\u2013\u2014\u2015\u2212\u2e3a\u2e3b\ufe58\ufe63\uff0d"
-_TRIANGLES = "△▲▵▴Δ∆"
 
 
 @dataclass(frozen=True)
@@ -251,18 +250,6 @@ def extract_symbol_targets(
         notation=notation,
         minimum_confidence=float(min(confidences)),
     )
-
-
-def normalize_circuit_code(text: str) -> str | None:
-    """Normalize only the two circuit code grammars and their decorations."""
-    if not isinstance(text, str):
-        return None
-    token = _normalized_text(text)
-    match = re.fullmatch(
-        rf"[{re.escape(_TRIANGLES)}]?[{re.escape(_DASHES)}]?(V[0-9]{{5}}|WL[0-9]{{4}})",
-        token,
-    )
-    return match.group(1) if match is not None else None
 
 
 def _ocr_boxes(ocr: object, image: np.ndarray) -> object:

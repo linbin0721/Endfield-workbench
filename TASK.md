@@ -327,10 +327,20 @@
 
 #### DSH 回执
 
-- 实际改动：待回执。
-- 验证结果：待回执。
-- 未完成项 / 风险 / 待决策事项：待回执。
-- 建议写入长期记忆：待回执。
+- 实际改动：
+  - 新增 `api/app/catalog/circuit_models.py`：定义无 entry 级状态的 `CircuitCatalogEntry`、按观察数派生 `provisional/verified` 的 `CircuitCatalogCandidate`，以及带 `image_digest_mismatch`、命中指纹/候选状态和候选列表的强类型 `CircuitCatalogMatch`；模型禁止额外字段并校验题号、指纹、置信度和互斥状态。`CircuitRecognitionResult.catalog` 改为该模型的可空字段，worker 默认仍只输出 `null`。
+  - 新增 `api/app/catalog/circuit_rules.py`：题号唯一实现只规范化带可选三角形/单个横线装饰的 `V#####`、`WL####`；OCR、离线分析和正式结果模型改从纯规则模块导入，`ocr.py` 保留导入级向后兼容。指纹先重建 `CircuitPuzzle`，排序棋盘集合，逐块枚举四次旋转取最小形状并保留多重集，再穷举最多 24 个全局通道重编号，选择最小规范 JSON 后计算 SHA-256。
+  - 新增 `api/app/catalog/circuit_store.py`：只创建 `circuit_catalog_entry/candidate/observation` 和专用索引，复用现有数据库配置与 `CatalogUnavailable`。冻结的观察对象校验规范题号、图片摘要、题面和指纹；事务建立并锁定题号行，摘要同指纹返回 `duplicate`，摘要指纹漂移返回 `digest_mismatch` 且不改历史，新摘要才写观察并增加候选计数。候选按已确认、观察数、首次时间、稳定 ID 排序；初始化 schema 加锁以避免首批并发竞态，意外模型/编程错误不会统一伪装成数据库不可用。
+  - 新增 `api/app/catalog/circuit_service.py`：无题号时不访问目录，非完整结果只查询候选；完整结果在 API 进程重新构造题面、执行有界求解并显式调用独立校验器，通过后才记录。完整截图始终保留本次题面；同号不同指纹按正常变体分别确认；摘要漂移不冒认命中；目录未配置或连接故障只标记 `available=false`，其他意外异常继续上抛给后续 finalize guard。
+  - 新增 `api/tests/circuit_catalog_fakes.py`、`test_circuit_catalog.py` 和 `test_circuit_catalog_store.py`。覆盖题号语法、所有指纹等价与反例、模型约束、线程安全内存状态机、首次/重复/二次确认、同号多变体、摘要漂移、无题号、非完整查询、目录缺失/故障、无解/超时/校验失败不写，以及真实 PostgreSQL 三表、稳定排序和 10 路同摘要并发；PG fixture 对运行前后的 `balloon_catalog_*` 表名、行数和内容摘要做相等检查，且只清空电路三表。
+- 验证结果：
+  - 新增目录单元测试及相关识别/OCR/分析定向命令：195 passed、4 skipped；4 项跳过均为未在该命令设置 `CATALOG_TEST_DSN` 的真实 PostgreSQL 用例。
+  - 全部源石电路测试：579 passed、4 skipped。
+  - 后端全量：652 passed、14 skipped、1 个既有 Starlette/httpx 弃用警告。
+  - 使用临时 `postgres:17-alpine` 容器和私有 Docker 网络（未发布宿主端口）运行 `test_circuit_catalog_store.py`：4 passed；10 路并发仅一次 `recorded`，其余为 `duplicate`，摘要漂移保留原指纹，同号变体排序正确，气球表快照未变化。临时容器和网络均已删除，未连接生产数据库。
+  - `git diff --check` 通过；未读取 `set/`，未修改 `main.py`、任务队列、中间件、Settings、OpenAPI、前端、Compose 或生产服务。
+- 未完成项 / 风险 / 待决策事项：C1 只提供独立目录规则、模型、存储和服务，尚未建立应用生命周期实例、HTTP 路由、任务 finalize 接线或公开契约，这些属于 C2。新表已在临时 PostgreSQL 验证，但生产数据库仍未创建或写入任何 `circuit_catalog_*` 对象；发布阶段应按既定 E 批次先备份再由新 API 初始化。目录候选保存首次通过校验的题面表示；后续等价截图即使拼块顺序、方向或全局通道编号不同，也只增加同一指纹的观察数而不会覆盖首次题面。
+- 建议写入长期记忆：源石电路目录的三个不可逆兼容边界值得长期保留：(1) 同一题号不同指纹是正常变体，永远没有 entry 级 `disputed`；(2) 图片摘要首次绑定的指纹不可改写，识别器升级造成漂移只能报告 `digest_mismatch`；(3) 指纹只忽略拼块顺序/初始旋转和全局通道重命名，目标、固定格、通道归属及镜像差异必须保留。
 
 #### Codex 验收
 

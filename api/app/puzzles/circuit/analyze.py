@@ -15,6 +15,7 @@ from typing import Literal
 import numpy as np
 from pydantic import ValidationError
 
+from app.catalog.circuit_rules import normalize_circuit_code
 from app.puzzles.circuit.model import (
     RULE_VERSION,
     CircuitCell,
@@ -27,7 +28,6 @@ from app.puzzles.circuit.model import (
 from app.puzzles.circuit.ocr import (
     SymbolTargets,
     extract_symbol_targets,
-    normalize_circuit_code,
     read_circuit_question_code,
 )
 from app.puzzles.circuit.solve import solve_circuit

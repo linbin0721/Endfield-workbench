@@ -13,8 +13,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.catalog.circuit_models import CircuitCatalogMatch
+from app.catalog.circuit_rules import normalize_circuit_code
 from app.puzzles.circuit.model import CircuitPuzzle
-from app.puzzles.circuit.ocr import normalize_circuit_code
 
 
 RecognitionOutcome = Literal[
@@ -47,6 +48,7 @@ class CircuitRecognitionResult(BaseModel):
     notation: RecognitionNotation | None = None
     question_code: str | None = None
     question_code_confidence: float | None = None
+    catalog: CircuitCatalogMatch | None = None
     issues: list[str] = Field(default_factory=list)
 
     @field_validator("question_code_confidence", mode="before")
