@@ -6,12 +6,18 @@ import numpy as np
 import pytest
 
 from app.puzzles.circuit import analyze as analyze_module
-from app.puzzles.circuit.analyze import BarImageAnalysis, analyze_bar_image
+from app.puzzles.circuit.analyze import (
+    BarImageAnalysis,
+    DecodedImageAnalysis,
+    analyze_bar_image,
+    analyze_decoded_image,
+)
 from app.puzzles.circuit.model import (
     CircuitPlacement,
     CircuitSolution,
     CircuitSolveResult,
 )
+from app.puzzles.circuit.ocr import QuestionCodeReading, SymbolTargets
 from app.puzzles.circuit.verify import validate_solution
 from app.puzzles.circuit.vision import (
     BarTargets,
@@ -20,6 +26,7 @@ from app.puzzles.circuit.vision import (
     CellClass,
     InventoryPiece,
     InventoryState,
+    SymbolLayout,
 )
 
 
@@ -404,3 +411,306 @@ def test_bar_image_analysis_is_frozen_and_enforces_result_invariants(
         BarImageAnalysis(outcome="incomplete", puzzle=recognized.puzzle)
     with pytest.raises(ValueError, match="tuple of strings"):
         BarImageAnalysis(outcome="incomplete", issues=["bad"])  # type: ignore[arg-type]
+
+
+SYMBOL_LAYOUT = SymbolLayout(
+    geometry=GEOMETRY,
+    channel_hues=HUES,
+    glyphs=(),
+    residual_ratio=0.0,
+)
+SYMBOL_TARGETS = SymbolTargets(
+    channel_hues=HUES,
+    row_targets=((2, 0),),
+    column_targets=((1, 1),),
+    notation="digits",
+    minimum_confidence=0.99,
+)
+NO_CODE = QuestionCodeReading(None, None, False, False)
+
+
+def patch_symbol_pipeline(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    cells: BoardCellMap | None = EMPTY_CELLS,
+    inventory: InventoryState | None = INVENTORY,
+    targets: SymbolTargets | None = SYMBOL_TARGETS,
+    code: QuestionCodeReading = NO_CODE,
+) -> None:
+    monkeypatch.setattr(analyze_module, "locate_symbol_board", lambda image: SYMBOL_LAYOUT)
+    monkeypatch.setattr(
+        analyze_module,
+        "extract_board_cells",
+        lambda image, board, channel_hues: cells,
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "extract_inventory",
+        lambda image, board, channel_hues: inventory,
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "extract_symbol_targets",
+        lambda image, source_layout, ocr: targets,
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "read_circuit_question_code",
+        lambda image, board, ocr: code,
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "extract_bar_stacks",
+        lambda image: pytest.fail("a symbol board must not enter the bar path"),
+    )
+
+
+def run_decoded() -> DecodedImageAnalysis:
+    return analyze_decoded_image(
+        IMAGE, object(), time_limit_seconds=1.0, max_nodes=10_000
+    )
+
+
+def test_decoded_symbol_result_builds_and_solves_with_optional_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_symbol_pipeline(
+        monkeypatch,
+        code=QuestionCodeReading("V40020", 0.98, True, False),
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "recognized"
+    assert result.notation == "digits"
+    assert result.question_code == "V40020"
+    assert result.question_code_confidence == 0.98
+    assert result.puzzle is not None and result.solution is not None
+    validate_solution(result.puzzle, result.solution)
+
+
+def test_decoded_symbol_completion_does_not_read_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_symbol_pipeline(
+        monkeypatch,
+        cells=PLACED_CELLS,
+        inventory=EMPTY_INVENTORY,
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "extract_symbol_targets",
+        lambda image, source_layout, ocr: pytest.fail(
+            "completion must not run constraint OCR"
+        ),
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "already_completed"
+    assert result.notation is None
+    assert result.puzzle is result.solution is None
+
+
+@pytest.mark.parametrize(
+    ("stage", "value", "issue"),
+    [
+        ("cells", None, "cell classification"),
+        ("inventory", None, "inventory recognition"),
+        ("targets", None, "symbol targets"),
+    ],
+)
+def test_decoded_symbol_incomplete_stages_do_not_return_partial_statement(
+    monkeypatch: pytest.MonkeyPatch, stage: str, value: None, issue: str
+) -> None:
+    arguments = {
+        "cells": EMPTY_CELLS,
+        "inventory": INVENTORY,
+        "targets": SYMBOL_TARGETS,
+    }
+    arguments[stage] = value
+    patch_symbol_pipeline(
+        monkeypatch,
+        cells=arguments["cells"],  # type: ignore[arg-type]
+        inventory=arguments["inventory"],  # type: ignore[arg-type]
+        targets=arguments["targets"],  # type: ignore[arg-type]
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "incomplete"
+    assert issue in result.issues[0]
+    assert result.puzzle is result.solution is None
+
+
+def test_decoded_image_falls_back_to_bar_path_and_marks_notation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_visual_pipeline(monkeypatch)
+    monkeypatch.setattr(analyze_module, "locate_symbol_board", lambda image: None)
+    monkeypatch.setattr(
+        analyze_module,
+        "read_circuit_question_code",
+        lambda image, board, ocr: NO_CODE,
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "recognized"
+    assert result.notation == "bars"
+    assert result.puzzle is not None and result.solution is not None
+
+
+def test_decoded_no_board_can_still_return_a_question_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_visual_pipeline(monkeypatch, geometry=None)
+    monkeypatch.setattr(analyze_module, "locate_symbol_board", lambda image: None)
+    monkeypatch.setattr(
+        analyze_module,
+        "read_circuit_question_code",
+        lambda image, board, ocr: QuestionCodeReading(
+            "WL0020", 0.97, True, False
+        ),
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "no_board"
+    assert result.notation is None
+    assert result.question_code == "WL0020"
+    assert result.puzzle is result.solution is None
+
+
+@pytest.mark.parametrize(
+    ("reading", "issue"),
+    [
+        (QuestionCodeReading(None, None, True, False), "too low"),
+        (QuestionCodeReading(None, None, True, True), "ambiguous"),
+    ],
+)
+def test_question_code_failure_adds_issue_without_downgrading_statement(
+    monkeypatch: pytest.MonkeyPatch, reading: QuestionCodeReading, issue: str
+) -> None:
+    patch_symbol_pipeline(monkeypatch, code=reading)
+
+    result = run_decoded()
+
+    assert result.outcome == "recognized"
+    assert result.puzzle is not None and result.solution is not None
+    assert any(issue in item for item in result.issues)
+
+
+def test_symbol_domain_rejection_uses_the_shared_final_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_symbol_pipeline(
+        monkeypatch,
+        targets=dataclasses.replace(
+            SYMBOL_TARGETS,
+            row_targets=((1, 0),),
+            column_targets=((1, 0),),
+        ),
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "incomplete"
+    assert "domain model rejected" in result.issues[0]
+
+
+@pytest.mark.parametrize("outcome", ["unsatisfiable", "time", "work"])
+def test_symbol_solver_failure_uses_the_shared_final_gate(
+    monkeypatch: pytest.MonkeyPatch, outcome: str
+) -> None:
+    patch_symbol_pipeline(monkeypatch)
+    solve_result = (
+        CircuitSolveResult(outcome="unsatisfiable")
+        if outcome == "unsatisfiable"
+        else CircuitSolveResult(outcome="timeout", limit_reason=outcome)
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "solve_circuit",
+        lambda puzzle, seconds, nodes: solve_result,
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "incomplete"
+    assert outcome in result.issues[0]
+
+
+def test_symbol_independent_validation_failure_uses_the_shared_final_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_symbol_pipeline(monkeypatch)
+    solution = CircuitSolution(
+        placements=[CircuitPlacement(piece_index=0, row=0, column=0, rotation=0)]
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "solve_circuit",
+        lambda puzzle, seconds, nodes: CircuitSolveResult(
+            outcome="solved", solution=solution
+        ),
+    )
+    monkeypatch.setattr(
+        analyze_module,
+        "validate_solution",
+        lambda puzzle, candidate: (_ for _ in ()).throw(ValueError("forged")),
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "incomplete"
+    assert "independent solution validation failed" in result.issues[0]
+
+
+def test_decoded_image_analysis_is_frozen_and_enforces_invariants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_symbol_pipeline(monkeypatch)
+    result = run_decoded()
+    assert DecodedImageAnalysis.__dataclass_params__.frozen is True
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.notation = "bars"  # type: ignore[misc]
+    with pytest.raises(ValueError, match="unknown decoded image notation"):
+        DecodedImageAnalysis(outcome="incomplete", notation="other")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="cannot have confidence"):
+        DecodedImageAnalysis(
+            outcome="incomplete", question_code_confidence=0.99
+        )
+    with pytest.raises(ValueError, match="finite"):
+        DecodedImageAnalysis(outcome="incomplete", question_code="V40020")
+    with pytest.raises(ValueError, match="must have notation"):
+        DecodedImageAnalysis(
+            outcome="recognized",
+            puzzle=result.puzzle,
+            solution=result.solution,
+        )
+    with pytest.raises(ValueError, match="cannot have notation"):
+        DecodedImageAnalysis(outcome="no_board", notation="bars")
+
+
+@pytest.mark.parametrize(
+    ("code", "confidence", "message"),
+    [
+        ("△-V40020", 0.99, "canonical"),
+        ("WL002", 0.99, "canonical"),
+        ("V40020", None, "finite"),
+        ("V40020", True, "finite"),
+        ("V40020", float("inf"), "finite"),
+        ("V40020", -0.1, "finite"),
+        ("V40020", 1.1, "finite"),
+    ],
+)
+def test_decoded_image_analysis_rejects_invalid_question_code_fields(
+    code: str, confidence: object, message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        DecodedImageAnalysis(  # type: ignore[arg-type]
+            outcome="incomplete",
+            question_code=code,
+            question_code_confidence=confidence,
+        )
