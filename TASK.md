@@ -381,9 +381,9 @@
 - 结论：C2 已验收。源石电路识别、求解和题号目录三个后端端点及前端生成类型已就绪；能力发现仍按设计保持关闭，继续 D1/D2 页面与全链路实现。
 - 提交 / 推送：`0e42594`（`feat: expose circuit puzzle APIs`）已推送到 `origin/main`；本验收记录随后推送。
 
-##### 当前批次 D1：三路由骨架与气球页面迁移
+##### 批次 D1：三路由骨架与气球页面迁移（已验收）
 
-- 状态：进行中
+- 状态：已验收
 - 目标：用 React Router 建立 `/`、`/balloon`、`/circuit` 三个可深链页面，并把现有浮空回收流程无行为变化地迁到 `/balloon`，为 D2 隔离出电路页面。
 - 范围：新增 React Router 依赖和首页、共享布局、气球页、电路占位页；调整 `App.tsx`、`main.tsx`、样式与 `web/vercel.json` 的 SPA 回退。允许更新前端结构说明；不得修改 API 客户端行为、气球识别/目录/求解组件、生成类型、后端、capability、部署服务或生产静态目录。
 - 限制 / 约束：精确页面与清理语义见 `docs/circuit-design.md` 的“D1 冻结契约”。迁移必须保留现有气球两入口、示例、上传裁剪、目录候选、任务轮询/取消、切换清理和答案显示；离开 `/balloon` 必须触发现有卸载取消。`/circuit` 本批只显示明确的开发中状态，不调用电路 API，也不伪装可用。
@@ -407,9 +407,9 @@
 
 #### Codex 验收
 
-- 独立检查：待验收。
-- 结论：待验收。
-- 提交 / 推送：待验收。
+- 独立检查：将 `HEAD` 的原 `App.tsx` 与迁移后的 `BalloonPage.tsx` 逐行比较，差异仅为组件名、页面标题与由共享布局接管的外壳，气球业务状态、副作用、轮询及卸载取消逻辑保持原样。独立执行 `npm ci --include=dev`（100 packages、0 vulnerabilities）、TypeScript/Vite 生产构建（54 modules）和 `git diff --check`；用 Edge 154 + Playwright 对 `/`、`/balloon`、`/circuit`、未知路径进行直接访问与 reload，复查标题、active/`aria-current`、首页跳转、气球两个入口、404、键盘焦点及 1440×900/390×844 横向溢出，全部通过。
+- 结论：D1 已验收。三路由、共享布局、SPA 回退和气球页迁移符合冻结契约；源石电路仍明确显示开发中且不调用电路 API。未部署生产，继续 D2 完整页面与能力开启。
+- 提交 / 推送：`7a01e7a`（`feat: add puzzle page routing`）已推送到 `origin/main`。
 
 ##### 后续批次
 
