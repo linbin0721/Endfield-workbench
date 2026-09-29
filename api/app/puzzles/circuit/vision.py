@@ -1591,6 +1591,37 @@ class BarTargets:
 
 
 @dataclass(frozen=True)
+class ConstraintGlyph:
+    """One colour constraint glyph next to a confirmed symbol board.
+
+    The rectangle uses screenshot coordinates and encloses every saturated
+    component merged into the logical glyph.  All fields are detached Python
+    values; the OCR stage may crop the source image later from these bounds.
+    """
+
+    axis: Literal["row", "column"]
+    line_index: int
+    channel: int
+    left: float
+    top: float
+    right: float
+    bottom: float
+    center_x: float
+    center_y: float
+    hue: float
+
+
+@dataclass(frozen=True)
+class SymbolLayout:
+    """Unique board geometry and its still undecoded constraint glyphs."""
+
+    geometry: BoardGeometry
+    channel_hues: tuple[float, ...]
+    glyphs: tuple[ConstraintGlyph, ...]
+    residual_ratio: float
+
+
+@dataclass(frozen=True)
 class _AxisFit:
     """One axis: the fitted pitch and the centre of its first line."""
 
@@ -1898,34 +1929,43 @@ def _line_count(anchors: Sequence[float], fit: _AxisFit) -> int:
     return last + 1
 
 
-def _board_pair_candidate(
-    image: np.ndarray, horizontal: BarEnsemble, vertical: BarEnsemble
+def _board_axes_candidate(
+    image: np.ndarray,
+    *,
+    horizontal_step: float,
+    horizontal_baseline: float,
+    horizontal_anchors: Sequence[float],
+    vertical_step: float,
+    vertical_baseline: float,
+    vertical_anchors: Sequence[float],
 ) -> _BoardCandidate | None:
-    """Fit one board rectangle from one horizontal/vertical ensemble pair.
+    """Fit one board rectangle from generic top and left axis evidence.
 
-    ``None`` means this pair cannot be a board: the two ensemble pitches differ
+    ``None`` means this pair cannot be a board: the two provisional pitches differ
     by more than ``BOARD_STEP_TOLERANCE``, no common pitch starts both cell
     grids just outside their baselines, the first observed line is not the
     first line of the board, the rectangle is smaller than two lines, fewer
     than two rows and two columns carry evidence, or the ring just outside the
     rectangle carries so much evidence that the rectangle is not maximal.
     """
-    scale = max(horizontal.step, vertical.step)
-    if abs(horizontal.step - vertical.step) / scale > BOARD_STEP_TOLERANCE:
+    if not horizontal_anchors or not vertical_anchors:
         return None
-    provisional = float(statistics.median([horizontal.step, vertical.step]))
+    scale = max(horizontal_step, vertical_step)
+    if scale <= 0.0 or abs(horizontal_step - vertical_step) / scale > BOARD_STEP_TOLERANCE:
+        return None
+    provisional = float(statistics.median([horizontal_step, vertical_step]))
     fits = _fit_board(
-        [stack.anchor for stack in horizontal.stacks],
-        vertical.baseline,
-        [stack.anchor for stack in vertical.stacks],
-        horizontal.baseline,
+        horizontal_anchors,
+        vertical_baseline,
+        vertical_anchors,
+        horizontal_baseline,
         provisional,
     )
     if fits is None:
         return None
     columns_fit, rows_fit = fits
-    columns = _line_count([stack.anchor for stack in horizontal.stacks], columns_fit)
-    rows = _line_count([stack.anchor for stack in vertical.stacks], rows_fit)
+    columns = _line_count(horizontal_anchors, columns_fit)
+    rows = _line_count(vertical_anchors, rows_fit)
     if not BOARD_MIN_LINES <= rows <= BOARD_MAX_LINES:
         return None
     if not BOARD_MIN_LINES <= columns <= BOARD_MAX_LINES:
@@ -1993,6 +2033,21 @@ def _board_pair_candidate(
     )
 
 
+def _board_pair_candidate(
+    image: np.ndarray, horizontal: BarEnsemble, vertical: BarEnsemble
+) -> _BoardCandidate | None:
+    """Fit one board rectangle from one horizontal/vertical bar pair."""
+    return _board_axes_candidate(
+        image,
+        horizontal_step=float(horizontal.step),
+        horizontal_baseline=float(horizontal.baseline),
+        horizontal_anchors=tuple(float(stack.anchor) for stack in horizontal.stacks),
+        vertical_step=float(vertical.step),
+        vertical_baseline=float(vertical.baseline),
+        vertical_anchors=tuple(float(stack.anchor) for stack in vertical.stacks),
+    )
+
+
 def _distinct_candidates(candidates: Sequence[_BoardCandidate]) -> list[_BoardCandidate]:
     """Collapse near identical rectangles and rank them by score.
 
@@ -2030,6 +2085,40 @@ def _distinct_candidates(candidates: Sequence[_BoardCandidate]) -> list[_BoardCa
             continue
         merged.append(candidate)
     return merged
+
+
+def _unique_board_geometry(
+    candidates: Sequence[_BoardCandidate],
+) -> BoardGeometry | None:
+    """Apply the common uniqueness gate and materialize one geometry."""
+    ranked = _distinct_candidates(candidates)
+    if not ranked:
+        return None
+    best = ranked[0]
+    margin = best.score - ranked[1].score if len(ranked) > 1 else best.score
+    if margin < BOARD_MIN_SCORE_MARGIN:
+        return None
+
+    pitch = best.pitch
+    column_centers = tuple(
+        float(best.first_center_x + index * pitch) for index in range(best.columns)
+    )
+    row_centers = tuple(
+        float(best.first_center_y + index * pitch) for index in range(best.rows)
+    )
+    return BoardGeometry(
+        left=float(best.first_center_x - 0.5 * pitch),
+        top=float(best.first_center_y - 0.5 * pitch),
+        right=float(best.first_center_x + (best.columns - 0.5) * pitch),
+        bottom=float(best.first_center_y + (best.rows - 0.5) * pitch),
+        step=float(pitch),
+        rows=int(best.rows),
+        columns=int(best.columns),
+        row_centers=row_centers,
+        column_centers=column_centers,
+        evidence_ratio=float(best.evidence_ratio),
+        score_margin=float(margin),
+    )
 
 
 def locate_bar_board(
@@ -2072,33 +2161,564 @@ def locate_bar_board(
             candidate = _board_pair_candidate(image, horizontal, vertical)
             if candidate is not None:
                 candidates.append(candidate)
-    ranked = _distinct_candidates(candidates)
-    if not ranked:
+    return _unique_board_geometry(candidates)
+
+
+# ---------------------------------------------------------------------------
+# compact symbol board location (B2a)
+
+SYMBOL_HEIGHT_MIN = 0.14
+SYMBOL_HEIGHT_MAX = 0.30
+SYMBOL_WIDTH_MAX = 0.52
+SYMBOL_EDGE_SPREAD = 0.40
+SYMBOL_SIDE_GAP_MAX = 0.45
+SYMBOL_CENTER_TOLERANCE = 0.34
+SYMBOL_MAPPING_MARGIN = 0.10
+SYMBOL_OFFSET_TOLERANCE = 0.08
+SYMBOL_STEP_MERGE_RATIO = 0.015
+SYMBOL_IMAGE_MARGIN_MIN = 0.35
+SYMBOL_ASPECT_MIN = 0.08
+SYMBOL_ASPECT_MAX = 1.80
+SYMBOL_FILL_MIN = 0.12
+SYMBOL_COMPONENT_MIN_HEIGHT = 3
+SYMBOL_AXIS_CANDIDATE_LIMIT = 12
+SYMBOL_PAIR_CANDIDATE_LIMIT = 6
+SYMBOL_HUE_PAIR_DISTANCE = 10.0
+SYMBOL_EXPECTED_HEIGHT = (0.20, 0.21)
+
+
+@dataclass(frozen=True)
+class _SymbolAxisCandidate:
+    """One common glyph edge and provisional integer pitch; never returned."""
+
+    orientation: Literal["horizontal", "vertical"]
+    baseline: float
+    step: float
+    anchors: tuple[float, ...]
+    line_count: int
+    observation_count: int
+    residual_ratio: float
+    height_error: float
+
+
+def _compact_symbol_components(
+    components: Sequence[Component],
+) -> tuple[Component, ...]:
+    """Drop obvious bars, strips and sparse noise before lattice enumeration."""
+    compact: list[Component] = []
+    for component in components:
+        if component.height < SYMBOL_COMPONENT_MIN_HEIGHT:
+            continue
+        aspect = component.width / component.height
+        fill = component.area / float(component.width * component.height)
+        if not SYMBOL_ASPECT_MIN <= aspect <= SYMBOL_ASPECT_MAX:
+            continue
+        if fill < SYMBOL_FILL_MIN:
+            continue
+        compact.append(component)
+    return tuple(compact)
+
+
+def _symbol_saturated_components(
+    image: np.ndarray, coarse_components: Sequence[Component]
+) -> tuple[Component, ...]:
+    """Extract saturated components without joining touching colour channels.
+
+    OpenCV's ordinary connected components treats two touching saturated
+    colours as one blob.  At small render scales four adjacent constraint
+    glyphs can therefore lose their individual hue and geometry.  Assigning
+    every saturated pixel to one circular 20-degree hue bucket before the
+    connected-component pass keeps distinct game channels separate; fragments
+    of one antialiased glyph are joined again by the logical glyph merger.
+    """
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    whole_saturation = hsv[:, :, 1]
+    whole_value = hsv[:, :, 2]
+    whole_mask = (
+        (whole_saturation >= MIN_SATURATION) & (whole_value >= MIN_VALUE)
+    ).astype(np.uint8)
+    coarse_count, coarse_labels, coarse_stats, _ = cv2.connectedComponentsWithStats(
+        whole_mask, connectivity=8
+    )
+    if coarse_count - 1 != len(coarse_components):
+        return ()  # the shared extractor and this refinement must describe one mask
+
+    components: list[Component] = []
+    for coarse_label in range(1, coarse_count):
+        coarse_x = int(coarse_stats[coarse_label, cv2.CC_STAT_LEFT])
+        coarse_y = int(coarse_stats[coarse_label, cv2.CC_STAT_TOP])
+        coarse_width = int(coarse_stats[coarse_label, cv2.CC_STAT_WIDTH])
+        coarse_height = int(coarse_stats[coarse_label, cv2.CC_STAT_HEIGHT])
+        crop = hsv[
+            coarse_y : coarse_y + coarse_height,
+            coarse_x : coarse_x + coarse_width,
+        ]
+        hue_plane = crop[:, :, 0]
+        saturation_plane = crop[:, :, 1]
+        value_plane = crop[:, :, 2]
+        source_member = (
+            coarse_labels[
+                coarse_y : coarse_y + coarse_height,
+                coarse_x : coarse_x + coarse_width,
+            ]
+            == coarse_label
+        )
+        buckets = ((hue_plane.astype(np.int16) + 10) // 20) % 9
+        for bucket in range(9):
+            mask = (source_member & (buckets == bucket)).astype(np.uint8)
+            label_count, labels, stats, centroids = cv2.connectedComponentsWithStats(
+                mask, connectivity=8
+            )
+            for label in range(1, label_count):
+                local_x = int(stats[label, cv2.CC_STAT_LEFT])
+                local_y = int(stats[label, cv2.CC_STAT_TOP])
+                width = int(stats[label, cv2.CC_STAT_WIDTH])
+                height = int(stats[label, cv2.CC_STAT_HEIGHT])
+                area = int(stats[label, cv2.CC_STAT_AREA])
+                window = (
+                    slice(local_y, local_y + height),
+                    slice(local_x, local_x + width),
+                )
+                member = labels[window] == label
+                hues = hue_plane[window][member].astype(np.float64)
+                angles = np.radians(hues * 2.0)
+                sin_sum = float(np.sin(angles).sum())
+                cos_sum = float(np.cos(angles).sum())
+                components.append(
+                    Component(
+                        x=coarse_x + local_x,
+                        y=coarse_y + local_y,
+                        width=width,
+                        height=height,
+                        area=area,
+                        center_x=float(coarse_x + centroids[label][0]),
+                        center_y=float(coarse_y + centroids[label][1]),
+                        hue=math.degrees(math.atan2(sin_sum, cos_sum)) / 2.0 % HUE_PERIOD,
+                        saturation=float(np.median(saturation_plane[window][member])),
+                        value=float(np.median(value_plane[window][member])),
+                    )
+                )
+    components.sort(
+        key=lambda component: (component.y, component.x, component.center_y, component.center_x)
+    )
+    return tuple(components)
+
+
+def _symbol_edge(component: Component, orientation: str) -> float:
+    return float(
+        component.y + component.height
+        if orientation == "horizontal"
+        else component.x + component.width
+    )
+
+
+def _symbol_anchor(component: Component, orientation: str) -> float:
+    return float(component.center_x if orientation == "horizontal" else component.center_y)
+
+
+def _symbol_edge_groups(
+    components: Sequence[Component], orientation: Literal["horizontal", "vertical"]
+) -> tuple[tuple[int, ...], ...]:
+    """Group components whose bottom or right glyph edge is shared.
+
+    The tolerance is measured in component height, which is the only scale
+    available before a board pitch has been proposed.  Rebuilding every seed
+    group and deduplicating its member indices avoids order dependent chaining.
+    """
+    groups: set[tuple[int, ...]] = set()
+    for seed_index, seed in enumerate(components):
+        seed_edge = _symbol_edge(seed, orientation)
+        members = tuple(
+            index
+            for index, component in enumerate(components)
+            if abs(_symbol_edge(component, orientation) - seed_edge)
+            <= SYMBOL_EDGE_SPREAD * max(1.0, min(seed.height, component.height))
+        )
+        if len(members) >= 2 and seed_index in members:
+            groups.add(members)
+    return tuple(sorted(groups, key=lambda group: (len(group), group)))
+
+
+def _symbol_axis_candidates(
+    components: Sequence[Component], orientation: Literal["horizontal", "vertical"]
+) -> tuple[_SymbolAxisCandidate, ...]:
+    """Enumerate compact glyph lattices from anchor differences / 1..9."""
+    candidates: list[_SymbolAxisCandidate] = []
+    for group in _symbol_edge_groups(components, orientation):
+        group_components = [components[index] for index in group]
+        proposed: list[float] = []
+        for first_index, first in enumerate(group_components):
+            for second in group_components[first_index + 1 :]:
+                # Display offsets between different channels are not board
+                # pitches.  A pitch proposal must come from two observations
+                # that the existing hue clustering can place in one channel;
+                # all channels still contribute after a pitch is proposed.
+                if _circular_hue_distance(first.hue, second.hue) > SYMBOL_HUE_PAIR_DISTANCE:
+                    continue
+                distance = abs(
+                    _symbol_anchor(second, orientation)
+                    - _symbol_anchor(first, orientation)
+                )
+                if distance <= 0.0:
+                    continue
+                proposed.extend(distance / gap for gap in range(1, BOARD_MAX_LINES))
+        distinct_steps: list[float] = []
+        for step in sorted(proposed):
+            if distinct_steps and abs(step - distinct_steps[-1]) <= 0.005 * step:
+                continue
+            distinct_steps.append(step)
+        for step in distinct_steps:
+            eligible = [
+                component
+                for component in group_components
+                if SYMBOL_HEIGHT_MIN <= component.height / step <= SYMBOL_HEIGHT_MAX
+                and component.width / step <= SYMBOL_WIDTH_MAX
+            ]
+            if len(eligible) < 2:
+                continue
+            anchors = tuple(sorted(_symbol_anchor(component, orientation) for component in eligible))
+            # Components of one split glyph may share a line.  A candidate
+            # still needs observations separated by most of a board pitch.
+            if anchors[-1] - anchors[0] < 0.60 * step:
+                continue
+            _concentration, phase = _axis_concentration(anchors, step)
+            phase_origin = phase * step
+            line_indices = tuple(
+                round((anchor - phase_origin) / step) for anchor in anchors
+            )
+            unique_lines = len(set(line_indices))
+            if not BOARD_MIN_LINES <= unique_lines <= BOARD_MAX_LINES:
+                continue
+            if max(line_indices) - min(line_indices) >= BOARD_MAX_LINES:
+                continue
+            residual = math.fsum(
+                abs(anchor - (phase_origin + line * step)) / step
+                for anchor, line in zip(anchors, line_indices)
+            ) / len(anchors)
+            if residual > SYMBOL_CENTER_TOLERANCE:
+                continue
+            logical_anchors = tuple(
+                float(statistics.mean(
+                    anchor
+                    for anchor, line in zip(anchors, line_indices)
+                    if line == logical_line
+                ))
+                for logical_line in sorted(set(line_indices))
+            )
+            expected_low, expected_high = SYMBOL_EXPECTED_HEIGHT
+            height_error = math.fsum(
+                max(
+                    expected_low - component.height / step,
+                    component.height / step - expected_high,
+                    0.0,
+                )
+                for component in eligible
+            ) / len(eligible)
+            baseline = float(statistics.median(_symbol_edge(item, orientation) for item in eligible))
+            if any(
+                abs(_symbol_edge(item, orientation) - baseline)
+                > SYMBOL_EDGE_SPREAD * max(1.0, item.height)
+                for item in eligible
+            ):
+                continue
+            candidate = _SymbolAxisCandidate(
+                orientation=orientation,
+                baseline=baseline,
+                step=float(step),
+                anchors=logical_anchors,
+                line_count=int(unique_lines),
+                observation_count=int(len(anchors)),
+                residual_ratio=float(residual),
+                height_error=float(height_error),
+            )
+            candidates.append(candidate)
+
+    def rank(item: _SymbolAxisCandidate) -> tuple[float, ...]:
+        return (
+            float(item.observation_count),
+            -item.height_error,
+            float(item.line_count),
+            -item.residual_ratio,
+            -item.step,
+        )
+
+    ranked = sorted(
+        candidates,
+        key=lambda item: (
+            tuple(-value for value in rank(item)),
+            item.baseline,
+            item.step,
+            item.anchors,
+        ),
+    )
+    merged: list[_SymbolAxisCandidate] = []
+    for candidate in ranked:
+        duplicate = next(
+            (
+                existing
+                for existing in merged
+                if abs(existing.baseline - candidate.baseline)
+                <= SYMBOL_EDGE_SPREAD
+                * max(1.0, 0.21 * min(existing.step, candidate.step))
+                and abs(existing.step - candidate.step)
+                <= SYMBOL_STEP_MERGE_RATIO * max(existing.step, candidate.step)
+            ),
+            None,
+        )
+        if duplicate is not None:
+            continue
+        merged.append(candidate)
+        if len(merged) >= SYMBOL_AXIS_CANDIDATE_LIMIT:
+            break
+    return tuple(merged)
+
+
+def _nearest_symbol_line(
+    position: float, centers: Sequence[float], step: float
+) -> tuple[int, float] | None:
+    distances = sorted(
+        ((abs(position - float(center)), index) for index, center in enumerate(centers)),
+        key=lambda item: (item[0], item[1]),
+    )
+    if not distances or distances[0][0] > SYMBOL_CENTER_TOLERANCE * step:
         return None
-    best = ranked[0]
-    margin = best.score - ranked[1].score if len(ranked) > 1 else best.score
-    if margin < BOARD_MIN_SCORE_MARGIN:
+    if len(distances) > 1 and distances[1][0] - distances[0][0] < SYMBOL_MAPPING_MARGIN * step:
+        return None
+    return int(distances[0][1]), float((position - float(centers[distances[0][1]])) / step)
+
+
+def _symbol_components_for_geometry(
+    components: Sequence[Component], geometry: BoardGeometry
+) -> tuple[tuple[Component, Literal["row", "column"], int, float], ...] | None:
+    """Keep only compact glyph components adjacent to the confirmed board."""
+    step = float(geometry.step)
+    selected: list[tuple[Component, Literal["row", "column"], int, float]] = []
+    for component in components:
+        if not (
+            SYMBOL_HEIGHT_MIN <= component.height / step <= SYMBOL_HEIGHT_MAX
+            and component.width / step <= SYMBOL_WIDTH_MAX
+        ):
+            continue
+        top_gap = float(geometry.top) - float(component.y + component.height)
+        left_gap = float(geometry.left) - float(component.x + component.width)
+        options: list[tuple[float, Literal["row", "column"], int, float]] = []
+        if 0.0 <= top_gap <= SYMBOL_SIDE_GAP_MAX * step:
+            mapped = _nearest_symbol_line(component.center_x, geometry.column_centers, step)
+            if mapped is not None:
+                options.append((top_gap / step, "column", mapped[0], mapped[1]))
+            else:
+                extrapolated = round(
+                    (component.center_x - float(geometry.column_centers[0])) / step
+                )
+                residual = abs(
+                    component.center_x
+                    - (float(geometry.column_centers[0]) + extrapolated * step)
+                )
+                if residual <= SYMBOL_CENTER_TOLERANCE * step and not (
+                    0 <= extrapolated < geometry.columns
+                ):
+                    return None
+        if 0.0 <= left_gap <= SYMBOL_SIDE_GAP_MAX * step:
+            mapped = _nearest_symbol_line(component.center_y, geometry.row_centers, step)
+            if mapped is not None:
+                options.append((left_gap / step, "row", mapped[0], mapped[1]))
+            else:
+                extrapolated = round(
+                    (component.center_y - float(geometry.row_centers[0])) / step
+                )
+                residual = abs(
+                    component.center_y
+                    - (float(geometry.row_centers[0]) + extrapolated * step)
+                )
+                if residual <= SYMBOL_CENTER_TOLERANCE * step and not (
+                    0 <= extrapolated < geometry.rows
+                ):
+                    return None
+        if len(options) > 1 and abs(options[0][0] - options[1][0]) < SYMBOL_MAPPING_MARGIN:
+            return None
+        if options:
+            _, axis, line, offset = min(options, key=lambda item: (item[0], item[1], item[2]))
+            selected.append((component, axis, line, offset))
+    return tuple(selected)
+
+
+def _merged_symbol_glyphs(
+    entries: Sequence[tuple[Component, Literal["row", "column"], int, float]],
+    step: float,
+) -> tuple[tuple[float, ...], tuple[ConstraintGlyph, ...], float] | None:
+    """Cluster hues, enforce stable display offsets and merge split glyphs."""
+    if not entries:
+        return None
+    clusters = cluster_hues([entry[0].hue for entry in entries])
+    if clusters is None or not clusters.centers:
+        return None
+    grouped: dict[tuple[str, int, int], list[tuple[Component, float]]] = {}
+    axes_by_channel: dict[int, set[str]] = {
+        channel: set() for channel in range(len(clusters.centers))
+    }
+    for position, (component, axis, line, offset) in enumerate(entries):
+        channel = int(clusters.assignments[position])
+        grouped.setdefault((axis, line, channel), []).append((component, offset))
+        axes_by_channel[channel].add(axis)
+    if any(axes != {"row", "column"} for axes in axes_by_channel.values()):
         return None
 
-    pitch = best.pitch
-    column_centers = tuple(
-        float(best.first_center_x + index * pitch) for index in range(best.columns)
+    merged: list[tuple[ConstraintGlyph, float]] = []
+    offsets: dict[tuple[int, str], list[float]] = {}
+    for (axis, line, channel), members in grouped.items():
+        left = min(component.x for component, _ in members)
+        top = min(component.y for component, _ in members)
+        right = max(component.x + component.width for component, _ in members)
+        bottom = max(component.y + component.height for component, _ in members)
+        axis_span = (right - left) if axis == "column" else (bottom - top)
+        if axis_span > 0.70 * step:
+            return None
+        area = sum(component.area for component, _ in members)
+        center_x = math.fsum(component.center_x * component.area for component, _ in members) / area
+        center_y = math.fsum(component.center_y * component.area for component, _ in members) / area
+        hue_sin = math.fsum(
+            math.sin(math.radians(component.hue * 2.0)) * component.area
+            for component, _ in members
+        )
+        hue_cos = math.fsum(
+            math.cos(math.radians(component.hue * 2.0)) * component.area
+            for component, _ in members
+        )
+        hue = math.degrees(math.atan2(hue_sin, hue_cos)) / 2.0 % HUE_PERIOD
+        offset = float(statistics.median(value for _, value in members))
+        offsets.setdefault((channel, axis), []).append(offset)
+        merged.append(
+            (
+                ConstraintGlyph(
+                    axis=axis,
+                    line_index=int(line),
+                    channel=int(channel),
+                    left=float(left),
+                    top=float(top),
+                    right=float(right),
+                    bottom=float(bottom),
+                    center_x=float(center_x),
+                    center_y=float(center_y),
+                    hue=float(hue),
+                ),
+                offset,
+            )
+        )
+
+    medians = {key: float(statistics.median(values)) for key, values in offsets.items()}
+    residuals: list[float] = []
+    for glyph, offset in merged:
+        deviation = abs(offset - medians[(glyph.channel, glyph.axis)])
+        if deviation > SYMBOL_OFFSET_TOLERANCE:
+            return None
+        residuals.append(deviation)
+    axis_order = {"row": 0, "column": 1}
+    glyphs = tuple(
+        glyph
+        for glyph, _ in sorted(
+            merged,
+            key=lambda item: (
+                axis_order[item[0].axis],
+                item[0].line_index,
+                item[0].channel,
+                item[0].top,
+                item[0].left,
+            ),
+        )
     )
-    row_centers = tuple(
-        float(best.first_center_y + index * pitch) for index in range(best.rows)
+    residual = math.fsum(residuals) / len(residuals) if residuals else 0.0
+    return tuple(float(value) for value in clusters.centers), glyphs, float(residual)
+
+
+def locate_symbol_board(image: np.ndarray) -> SymbolLayout | None:
+    """Locate a board from compact coloured constraint glyphs without OCR.
+
+    Saturated components are used only as immutable observations.  Candidate
+    pitches come from anchor differences divided by the possible one-to-nine
+    line gaps.  Every pair then passes through the same board cell support,
+    outside-ring and unique-score gates as :func:`locate_bar_board`.
+    """
+    _validated_board_image(image, "locate_symbol_board")
+    components = _compact_symbol_components(
+        _symbol_saturated_components(image, saturated_components(image))
     )
-    return BoardGeometry(
-        left=float(best.first_center_x - 0.5 * pitch),
-        top=float(best.first_center_y - 0.5 * pitch),
-        right=float(best.first_center_x + (best.columns - 0.5) * pitch),
-        bottom=float(best.first_center_y + (best.rows - 0.5) * pitch),
-        step=float(pitch),
-        rows=int(best.rows),
-        columns=int(best.columns),
-        row_centers=row_centers,
-        column_centers=column_centers,
-        evidence_ratio=float(best.evidence_ratio),
-        score_margin=float(margin),
+    horizontal = _symbol_axis_candidates(components, "horizontal")
+    vertical = _symbol_axis_candidates(components, "vertical")
+    pairs: list[tuple[tuple[float, ...], _SymbolAxisCandidate, _SymbolAxisCandidate]] = []
+    for top in horizontal:
+        for left in vertical:
+            scale = max(top.step, left.step)
+            step_delta = abs(top.step - left.step) / scale
+            if step_delta > BOARD_STEP_TOLERANCE:
+                continue
+            pair_rank = (
+                float(top.observation_count + left.observation_count),
+                -float(top.height_error + left.height_error),
+                float(min(top.line_count, left.line_count)),
+                float(top.line_count + left.line_count),
+                -float(top.residual_ratio + left.residual_ratio),
+                -float(step_delta),
+            )
+            pairs.append((pair_rank, top, left))
+    pairs.sort(
+        key=lambda item: (
+            tuple(-value for value in item[0]),
+            item[1].baseline,
+            item[2].baseline,
+            item[1].step,
+            item[2].step,
+        )
+    )
+    distinct_pairs: list[
+        tuple[tuple[float, ...], _SymbolAxisCandidate, _SymbolAxisCandidate]
+    ] = []
+    for item in pairs:
+        _, top, left = item
+        if any(
+            abs(top.baseline - kept_top.baseline)
+            <= SYMBOL_EDGE_SPREAD * 0.21 * min(top.step, kept_top.step)
+            and abs(left.baseline - kept_left.baseline)
+            <= SYMBOL_EDGE_SPREAD * 0.21 * min(left.step, kept_left.step)
+            for _, kept_top, kept_left in distinct_pairs
+        ):
+            continue
+        distinct_pairs.append(item)
+        if len(distinct_pairs) >= SYMBOL_PAIR_CANDIDATE_LIMIT:
+            break
+    candidates: list[_BoardCandidate] = []
+    for _, top, left in distinct_pairs:
+        candidate = _board_axes_candidate(
+            image,
+            horizontal_step=top.step,
+            horizontal_baseline=top.baseline,
+            horizontal_anchors=top.anchors,
+            vertical_step=left.step,
+            vertical_baseline=left.baseline,
+            vertical_anchors=left.anchors,
+        )
+        if candidate is not None:
+            candidates.append(candidate)
+    geometry = _unique_board_geometry(candidates)
+    if geometry is None:
+        return None
+    image_height, image_width = image.shape[:2]
+    if (
+        image_width - geometry.right < SYMBOL_IMAGE_MARGIN_MIN * geometry.step
+        or image_height - geometry.bottom < SYMBOL_IMAGE_MARGIN_MIN * geometry.step
+    ):
+        return None
+    selected = _symbol_components_for_geometry(components, geometry)
+    if selected is None:
+        return None
+    decoded = _merged_symbol_glyphs(selected, geometry.step)
+    if decoded is None:
+        return None
+    channel_hues, glyphs, residual = decoded
+    return SymbolLayout(
+        geometry=geometry,
+        channel_hues=channel_hues,
+        glyphs=glyphs,
+        residual_ratio=float(residual),
     )
 
 

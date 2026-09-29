@@ -26,9 +26,11 @@ from app.puzzles.circuit.vision import (
     CellEvidence,
     ChannelClusters,
     Component,
+    ConstraintGlyph,
     InventoryPiece,
     InventoryState,
     PieceShape,
+    SymbolLayout,
     cell_evidence,
     classify_cell,
     cluster_hues,
@@ -40,6 +42,7 @@ from app.puzzles.circuit.vision import (
     fit_axis_lattice,
     group_bar_ensembles,
     locate_bar_board,
+    locate_symbol_board,
     reconstruct_piece,
     saturated_components,
     square_lattices,
@@ -2451,6 +2454,352 @@ def test_board_results_are_frozen_plain_values_and_do_not_alias_pixels() -> None
         geometry.rows = 3
     with pytest.raises(dataclasses.FrozenInstanceError):
         targets.residual_ratio = 1.0
+
+
+# ---------------------------------------------------------------------------
+# compact symbol board geometry (B2a; still no OCR)
+
+
+def symbol_offsets(channels: tuple[int, ...]) -> tuple[float, ...]:
+    if len(channels) == 1:
+        return (0.0,)
+    if len(channels) == 2:
+        return (-0.20, 0.20)
+    extent = 0.28 if len(channels) == 3 else 0.33
+    spacing = 2.0 * extent / (len(channels) - 1)
+    return tuple(-extent + index * spacing for index in range(len(channels)))
+
+
+def draw_symbol_component(
+    image: np.ndarray,
+    *,
+    center_x: float,
+    center_y: float,
+    step: float,
+    hue: int,
+    split: bool = False,
+) -> None:
+    """Draw a compact synthetic glyph, optionally as two disconnected strokes."""
+    height = max(2, int(round(0.20 * step)))
+    width = max(1, int(round(0.10 * step)))
+    if not split:
+        paste(
+            image,
+            int(round(center_x - width / 2)),
+            int(round(center_y - height / 2)),
+            solid(hue, width=width, height=height),
+        )
+        return
+    stroke = max(1, int(round(0.035 * step)))
+    gap = max(1, int(round(0.025 * step)))
+    for direction in (-1, 1):
+        stroke_x = center_x + direction * (stroke + gap) / 2.0
+        paste(
+            image,
+            int(round(stroke_x - stroke / 2)),
+            int(round(center_y - height / 2)),
+            solid(hue, width=stroke, height=height),
+        )
+
+
+def symbol_scene(
+    rows: int = 4,
+    columns: int = 5,
+    *,
+    step: float = 60.0,
+    origin: tuple[float, float] = (240.0, 210.0),
+    channels: tuple[int, ...] = (40,),
+    missing_rows: tuple[int, ...] = (),
+    missing_columns: tuple[int, ...] = (),
+    split_keys: tuple[tuple[str, int, int], ...] = (),
+    offsets: tuple[float, ...] | None = None,
+) -> np.ndarray:
+    """Board texture plus compact top/left glyphs; no character is encoded."""
+    width = int(math.ceil(origin[0] + (columns + 1.5) * step))
+    height = int(math.ceil(origin[1] + (rows + 1.5) * step))
+    image = blank(width, height)
+    draw_board_cells(image, rows, columns, step=step, origin=origin)
+    channel_offsets = symbol_offsets(channels) if offsets is None else offsets
+    top_center_y = origin[1] - 0.30 * step
+    left_center_x = origin[0] - 0.25 * step
+    for column in range(columns):
+        if column in missing_columns:
+            continue
+        for channel, (hue, offset) in enumerate(zip(channels, channel_offsets)):
+            draw_symbol_component(
+                image,
+                center_x=origin[0] + (column + 0.5 + offset) * step,
+                center_y=top_center_y,
+                step=step,
+                hue=hue,
+                split=("column", column, channel) in split_keys,
+            )
+    for row in range(rows):
+        if row in missing_rows:
+            continue
+        for channel, (hue, offset) in enumerate(zip(channels, channel_offsets)):
+            draw_symbol_component(
+                image,
+                center_x=left_center_x,
+                center_y=origin[1] + (row + 0.5 + offset) * step,
+                step=step,
+                hue=hue,
+                split=("row", row, channel) in split_keys,
+            )
+    return image
+
+
+@pytest.mark.parametrize(
+    ("rows", "columns", "step", "origin"),
+    [
+        pytest.param(2, 2, 30.0, (120.0, 105.0), id="half-minimum"),
+        pytest.param(4, 5, 60.0, (240.0, 210.0), id="unit"),
+        pytest.param(4, 5, 60.0, (277.0, 239.0), id="translated"),
+        pytest.param(3, 7, 120.0, (480.0, 420.0), id="double-rectangular"),
+        pytest.param(10, 10, 42.0, (210.0, 189.0), id="maximum"),
+    ],
+)
+def test_locate_symbol_board_is_scale_translation_and_shape_invariant(
+    rows: int, columns: int, step: float, origin: tuple[float, float]
+) -> None:
+    layout = locate_symbol_board(symbol_scene(rows, columns, step=step, origin=origin))
+
+    assert layout is not None
+    assert (layout.geometry.rows, layout.geometry.columns) == (rows, columns)
+    assert layout.geometry.step == pytest.approx(step, rel=0.04)
+    assert layout.geometry.left == pytest.approx(origin[0], abs=0.10 * step)
+    assert layout.geometry.top == pytest.approx(origin[1], abs=0.10 * step)
+    assert len(layout.glyphs) == rows + columns
+
+
+def test_locate_symbol_board_extends_to_trailing_zero_lines() -> None:
+    image = symbol_scene(
+        rows=5,
+        columns=6,
+        missing_rows=(3, 4),
+        missing_columns=(4, 5),
+    )
+    layout = locate_symbol_board(image)
+
+    assert layout is not None
+    assert (layout.geometry.rows, layout.geometry.columns) == (5, 6)
+    assert [(glyph.axis, glyph.line_index) for glyph in layout.glyphs] == [
+        *(('row', index) for index in range(3)),
+        *(('column', index) for index in range(4)),
+    ]
+
+
+def test_locate_symbol_board_keeps_four_channels_at_non_integer_step_with_tail_zeroes() -> None:
+    channels = (10, 55, 100, 145)
+    image = symbol_scene(
+        rows=6,
+        columns=4,
+        step=105.5,
+        origin=(430.5, 370.25),
+        channels=channels,
+        missing_rows=(4, 5),
+        missing_columns=(3,),
+    )
+
+    layout = locate_symbol_board(image)
+
+    assert layout is not None
+    assert (layout.geometry.rows, layout.geometry.columns) == (6, 4)
+    assert layout.geometry.step == pytest.approx(105.5, rel=0.04)
+    assert layout.channel_hues == pytest.approx(channels, abs=1.0)
+    assert len(layout.glyphs) == (4 + 3) * len(channels)
+    assert {(glyph.axis, glyph.line_index) for glyph in layout.glyphs} == {
+        *(("row", index) for index in range(4)),
+        *(("column", index) for index in range(3)),
+    }
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        pytest.param((40,), id="one"),
+        pytest.param((40, 100), id="two"),
+        pytest.param((20, 70, 125), id="three"),
+        pytest.param((10, 55, 100, 145), id="four"),
+    ],
+)
+def test_locate_symbol_board_clusters_one_to_four_offset_channels(
+    channels: tuple[int, ...]
+) -> None:
+    layout = locate_symbol_board(symbol_scene(channels=channels))
+
+    assert layout is not None
+    assert layout.channel_hues == pytest.approx(channels, abs=1.0)
+    assert {glyph.channel for glyph in layout.glyphs} == set(range(len(channels)))
+    assert all(
+        {glyph.axis for glyph in layout.glyphs if glyph.channel == channel}
+        == {"row", "column"}
+        for channel in range(len(channels))
+    )
+    assert layout.residual_ratio < 0.03
+
+
+def test_locate_symbol_board_merges_split_digit_or_roman_components() -> None:
+    layout = locate_symbol_board(
+        symbol_scene(split_keys=(("column", 1, 0), ("row", 2, 0)))
+    )
+
+    assert layout is not None
+    assert len(layout.glyphs) == layout.geometry.rows + layout.geometry.columns
+    top = next(
+        glyph
+        for glyph in layout.glyphs
+        if glyph.axis == "column" and glyph.line_index == 1
+    )
+    left = next(
+        glyph for glyph in layout.glyphs if glyph.axis == "row" and glyph.line_index == 2
+    )
+    assert top.right - top.left > 0.08 * layout.geometry.step
+    assert left.right - left.left > 0.08 * layout.geometry.step
+
+
+def test_locate_symbol_board_rejects_graphic_count_bars() -> None:
+    image = blank(900, 700)
+    draw_bar_board(
+        image,
+        (2, 1, 3, 2),
+        (1, 3, 2, 2),
+        step=60.0,
+        origin=(240.0, 210.0),
+    )
+    assert locate_symbol_board(image) is None
+
+
+def test_locate_symbol_board_ignores_compact_ui_outliers() -> None:
+    image = symbol_scene()
+    # Same scale, but neither adjacent to the board nor backed by a second grid.
+    for index in range(4):
+        draw_symbol_component(
+            image,
+            center_x=80.0 + index * 60.0,
+            center_y=30.0,
+            step=60.0,
+            hue=145,
+        )
+    layout = locate_symbol_board(image)
+
+    assert layout is not None
+    assert layout.channel_hues == pytest.approx((40.0,), abs=1.0)
+    assert len(layout.glyphs) == 9
+
+
+def test_locate_symbol_board_rejects_axis_step_mismatch() -> None:
+    image = symbol_scene()
+    # Erase the true left glyph strip and draw a 13% smaller vertical pitch.
+    image[:, :235] = 0
+    for row in range(4):
+        draw_symbol_component(
+            image,
+            center_x=225.0,
+            center_y=210.0 + (row + 0.5) * 52.0,
+            step=60.0,
+            hue=40,
+        )
+    assert locate_symbol_board(image) is None
+
+
+def test_locate_symbol_board_requires_each_channel_on_both_axes() -> None:
+    image = symbol_scene(channels=(40, 100))
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # Remove channel 100 only from the complete left glyph strip.
+    left = hsv[:, :240]
+    mask = (left[:, :, 0] >= 95) & (left[:, :, 0] <= 105) & (left[:, :, 1] >= 90)
+    left[mask] = 0
+    image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    assert locate_symbol_board(image) is None
+
+
+def test_locate_symbol_board_rejects_unstable_channel_offsets() -> None:
+    image = symbol_scene(offsets=(-0.24, 0.24), channels=(40, 100))
+    # Move two channel-40 glyphs to the opposite side while keeping a unique
+    # nearest line. Geometry remains visible but the display offset is not stable.
+    image[195:215, 245:285] = 0
+    draw_symbol_component(
+        image,
+        center_x=240.0 + (0.5 + 0.24) * 60.0,
+        center_y=192.0,
+        step=60.0,
+        hue=40,
+    )
+    assert locate_symbol_board(image) is None
+
+
+def test_locate_symbol_board_rejects_two_equal_supported_grids() -> None:
+    first = symbol_scene(rows=3, columns=3, step=50.0, origin=(150.0, 140.0))
+    image = blank(1100, 850)
+    image[: first.shape[0], : first.shape[1]] = first
+    second = symbol_scene(rows=3, columns=3, step=50.0, origin=(700.0, 560.0))
+    mask = np.any(second != 0, axis=2)
+    image[: second.shape[0], : second.shape[1]][mask] = second[mask]
+
+    assert locate_symbol_board(image) is None
+
+
+def test_locate_symbol_board_rejects_a_clipped_grid() -> None:
+    image = symbol_scene(rows=5, columns=5)
+    # Keep the glyph evidence but truncate over half of the cell rectangle.
+    clipped = image[: int(210 + 2.2 * 60), :]
+    assert locate_symbol_board(clipped) is None
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((8, 8), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((8, 8, 4), dtype=np.uint8), id="four-channel"),
+        pytest.param(np.zeros((8, 8, 3), dtype=np.float32), id="float"),
+        pytest.param("not an image", id="string"),
+    ],
+)
+def test_locate_symbol_board_rejects_unsupported_images(image: object) -> None:
+    with pytest.raises(ValueError, match="locate_symbol_board"):
+        locate_symbol_board(image)  # type: ignore[arg-type]
+
+
+def test_symbol_results_are_frozen_plain_sorted_and_detached() -> None:
+    image = symbol_scene(missing_rows=(3,), missing_columns=(4,))
+    layout = locate_symbol_board(image)
+    assert layout is not None
+    before = layout
+    image[:] = 0
+
+    assert locate_symbol_board(image) is None
+    assert before == layout
+    assert SymbolLayout.__dataclass_params__.frozen is True
+    assert ConstraintGlyph.__dataclass_params__.frozen is True
+    assert [field.name for field in dataclasses.fields(ConstraintGlyph)] == [
+        "axis", "line_index", "channel", "left", "top", "right", "bottom",
+        "center_x", "center_y", "hue",
+    ]
+    assert [field.name for field in dataclasses.fields(SymbolLayout)] == [
+        "geometry", "channel_hues", "glyphs", "residual_ratio",
+    ]
+    assert type(layout.channel_hues) is tuple
+    assert type(layout.glyphs) is tuple
+    assert all(type(glyph.axis) is str for glyph in layout.glyphs)
+    assert all(type(glyph.line_index) is int for glyph in layout.glyphs)
+    assert all(
+        type(value) is float
+        for glyph in layout.glyphs
+        for value in (
+            glyph.left, glyph.top, glyph.right, glyph.bottom,
+            glyph.center_x, glyph.center_y, glyph.hue,
+        )
+    )
+    assert [(glyph.axis, glyph.line_index, glyph.channel) for glyph in layout.glyphs] == sorted(
+        ((glyph.axis, glyph.line_index, glyph.channel) for glyph in layout.glyphs),
+        key=lambda item: ({"row": 0, "column": 1}[item[0]], item[1], item[2]),
+    )
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        layout.residual_ratio = 1.0
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        layout.glyphs[0].channel = 3
 
 
 # ---------------------------------------------------------------------------
