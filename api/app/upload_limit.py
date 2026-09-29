@@ -9,6 +9,12 @@ from typing import Any
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_MULTIPART_BYTES = MAX_IMAGE_BYTES + 64 * 1024
 MAX_UPLOAD_SECONDS = 30.0
+RECOGNITION_UPLOAD_PATHS = frozenset(
+    {
+        "/api/v1/puzzles/balloon/recognize",
+        "/api/v1/puzzles/circuit/recognize",
+    }
+)
 
 
 class LimitedRecognitionUpload:
@@ -17,7 +23,11 @@ class LimitedRecognitionUpload:
         self._slots = asyncio.Semaphore(max_uploads)
 
     async def __call__(self, scope: dict, receive: Any, send: Any) -> None:
-        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"] != "/api/v1/puzzles/balloon/recognize":
+        if (
+            scope["type"] != "http"
+            or scope["method"] != "POST"
+            or scope["path"] not in RECOGNITION_UPLOAD_PATHS
+        ):
             await self.app(scope, receive, send)
             return
         if self._slots.locked():

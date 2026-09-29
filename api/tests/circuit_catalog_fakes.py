@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any
@@ -18,6 +19,20 @@ from app.catalog.store import CatalogUnavailable
 from app.puzzles.circuit.model import CircuitPuzzle
 
 
+def fake_circuit_recognition_job(
+    image: bytes,
+    timeout_seconds: float,
+    solve_time_limit_seconds: float,
+    solve_max_nodes: int,
+) -> dict:
+    """Spawn-safe OCR stand-in that also exposes the received service limits."""
+    payload = json.loads(image.decode("utf-8"))
+    payload.setdefault("issues", []).append(
+        f"limits={timeout_seconds:g},{solve_time_limit_seconds:g},{solve_max_nodes}"
+    )
+    return payload
+
+
 class MemoryCircuitCatalogStore:
     def __init__(self) -> None:
         self._lock = Lock()
@@ -25,6 +40,7 @@ class MemoryCircuitCatalogStore:
         self._digests: dict[tuple[str, str], str] = {}
         self.records = 0
         self.lookups = 0
+        self.closes = 0
 
     def record(
         self, observation: CircuitObservation
@@ -69,7 +85,7 @@ class MemoryCircuitCatalogStore:
             return self._view(code) if code in self._entries else None
 
     def close(self) -> None:
-        return None
+        self.closes += 1
 
     def _view(self, code: str) -> CircuitCatalogEntry:
         entry = self._entries[code]

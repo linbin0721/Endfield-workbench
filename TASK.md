@@ -361,10 +361,18 @@
 
 #### DSH 回执
 
-- 实际改动：待回执。
-- 验证结果：待回执。
-- 未完成项 / 风险 / 待决策事项：待回执。
-- 建议写入长期记忆：待回执。
+- 实际改动：
+  - `api/app/main.py` 新增强类型 `CircuitRecognitionTaskView` / `CircuitSolveTaskView`，在保留原 `create_app(settings, catalog)` 调用兼容的前提下注入独立 `CircuitCatalogService`；未注入时从现有 Settings 建立懒连接 store，lifespan 结束分别关闭两个目录服务。具体 circuit 路由均注册在通用占位前：识别复用单图片/12 MiB/multipart 错误契约，把图片摘要留在 API 进程，并以四个冻结参数提交 spawn-safe job、用 finalize 做目录复核；求解只传服务端时间和节点限制；同步目录查询覆盖 V/WL 规范化、422/404/503 和多正常变体返回。
+  - `api/app/upload_limit.py` 用一个固定路径集合精确保护 balloon/circuit 两个 recognize POST，两者共享同一个 `max_uploads` 信号量；GET、后缀路径和通用未知谜题不进入请求体缓冲。
+  - 新增 `api/tests/test_circuit_api.py`，并调整 API、识别上传和目录 fake 测试：模块顶层 fake worker 实际经过 spawn 进程，回显并断言四个服务限制；覆盖 API 进程 finalize 写内存目录、实际小题求解及独立校验、非法 JSON、目录变体和 422/404/503、路由优先级、两个目录服务关闭、OpenAPI response ref；两个精确上传路径各自覆盖大小/繁忙/超时，且验证共享槽位和非精确路径放行。`PUZZLES["circuit"]` 未修改，仍为三个 unavailable 空能力字段。
+  - 更新 `api/README.md` 说明三个 C2 路由、任务轮询和电路目录正常变体语义，并明确 capability 尚未开放且没有发布；由 `api/export_openapi.py` 重新生成 `contracts/openapi.json`，再由 `npm run generate:api` 生成 `web/src/generated/api.ts`，没有手改生成文件。
+- 验证结果：
+  - C2/API/上传定向：27 passed、6 skipped（跳过均为 VPS 未提供的旧气球图片用例）；全部源石电路：590 passed、4 skipped（4 项为未设置 `CATALOG_TEST_DSN` 的电路 PostgreSQL 存储用例）。
+  - 最终后端全量：666 passed、14 skipped、1 个既有 Starlette/httpx 弃用警告；跳过来自未设置 `CATALOG_TEST_DSN` 的两套目录存储用例及缺少的旧气球图片，不涉及 C2 合成/API 测试。
+  - `npm run generate:api` 成功；`npm run build` 成功（TypeScript 与 Vite 生产构建，37 modules transformed）；`git diff --check` 通过。
+  - 未读取 `set/`，未连接 PostgreSQL 或生产服务；未修改 circuit 领域/视觉/OCR/目录语义、Settings、TaskManager、PUZZLES、手写前端、Compose、Nginx 或部署配置。
+- 未完成项 / 风险 / 待决策事项：C2 仅建立后端与公开契约，能力接口仍按冻结边界保持 unavailable；手写前端消费、深链页面和 capability 开启属于 D1/D2。真实 PostgreSQL、真实源石电路截图与生产链路本批没有执行，分别留待 E 批备份后的发布验证和既定私有回归。任务查询仍是通用 `TaskView`，具体 POST 创建响应已通过两个强类型 view 收窄；前端轮询需要按调用来源使用相应结果类型。
+- 建议写入长期记忆：无新增建议；“电路 capability 只在 D2 全链路完成后开启”及独立目录语义已在设计和现有长期记录中固定。
 
 #### Codex 验收
 

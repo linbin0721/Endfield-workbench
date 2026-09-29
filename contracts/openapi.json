@@ -191,6 +191,152 @@
         }
       }
     },
+    "/api/v1/puzzles/circuit/recognize": {
+      "post": {
+        "summary": "Recognize Circuit",
+        "operationId": "recognize_circuit_api_v1_puzzles_circuit_recognize_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "image"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitRecognitionTaskView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/puzzles/circuit/catalog/{code}": {
+      "get": {
+        "summary": "Circuit Catalog Route",
+        "operationId": "circuit_catalog_route_api_v1_puzzles_circuit_catalog__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitCatalogEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/puzzles/{puzzle_id}/recognize": {
       "post": {
         "summary": "Recognize",
@@ -326,6 +472,64 @@
           },
           "501": {
             "description": "Not Implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/puzzles/circuit/solve": {
+      "post": {
+        "summary": "Solve Circuit Route",
+        "operationId": "solve_circuit_route_api_v1_puzzles_circuit_solve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircuitPuzzle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitSolveTaskView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -1096,6 +1300,690 @@
           "column"
         ],
         "title": "Cell"
+      },
+      "CircuitCatalogCandidate": {
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Fingerprint"
+          },
+          "puzzle": {
+            "$ref": "#/components/schemas/CircuitPuzzle"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "provisional",
+              "verified"
+            ],
+            "title": "Status"
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Observations"
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "First Seen"
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fingerprint",
+          "puzzle",
+          "status",
+          "observations",
+          "first_seen",
+          "last_seen"
+        ],
+        "title": "CircuitCatalogCandidate"
+      },
+      "CircuitCatalogEntry": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^(?:V[0-9]{5}|WL[0-9]{4})$",
+            "title": "Code"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitCatalogCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "updated_at"
+        ],
+        "title": "CircuitCatalogEntry"
+      },
+      "CircuitCatalogMatch": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(?:V[0-9]{5}|WL[0-9]{4})$",
+            "title": "Code"
+          },
+          "code_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Confidence"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete",
+            "default": false
+          },
+          "recorded": {
+            "type": "boolean",
+            "title": "Recorded",
+            "default": false
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "default": false
+          },
+          "image_digest_mismatch": {
+            "type": "boolean",
+            "title": "Image Digest Mismatch",
+            "default": false
+          },
+          "matched_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Fingerprint"
+          },
+          "matched_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "provisional",
+                  "verified"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Status"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitCatalogCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CircuitCatalogMatch",
+        "description": "How the current circuit recognition relates to stored variants."
+      },
+      "CircuitCell": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Row"
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Column"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "row",
+          "column"
+        ],
+        "title": "CircuitCell",
+        "description": "Zero-based board coordinate shared by blocked, fixed and piece cells."
+      },
+      "CircuitChannel": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Index"
+          },
+          "row_targets": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Row Targets"
+          },
+          "column_targets": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Column Targets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "index",
+          "row_targets",
+          "column_targets"
+        ],
+        "title": "CircuitChannel",
+        "description": "One color channel with its per-row and per-column coverage counts."
+      },
+      "CircuitFixedCell": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Row"
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Column"
+          },
+          "channel": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Channel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "row",
+          "column",
+          "channel"
+        ],
+        "title": "CircuitFixedCell",
+        "description": "Already covered cell that belongs to one color channel."
+      },
+      "CircuitPiece": {
+        "properties": {
+          "channel": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Channel"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitCell"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Cells"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel",
+          "cells"
+        ],
+        "title": "CircuitPiece",
+        "description": "Inventory piece in normalized local coordinates; rotations are implicit."
+      },
+      "CircuitPlacement": {
+        "properties": {
+          "piece_index": {
+            "type": "integer",
+            "maximum": 31.0,
+            "minimum": 0.0,
+            "title": "Piece Index"
+          },
+          "row": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 0.0,
+            "title": "Row"
+          },
+          "column": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 0.0,
+            "title": "Column"
+          },
+          "rotation": {
+            "type": "integer",
+            "title": "Rotation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "piece_index",
+          "row",
+          "column",
+          "rotation"
+        ],
+        "title": "CircuitPlacement",
+        "description": "One piece anchored by the top-left corner of its rotated bounding box."
+      },
+      "CircuitPuzzle": {
+        "properties": {
+          "rule_version": {
+            "type": "string",
+            "const": "line-count-v1",
+            "title": "Rule Version"
+          },
+          "rows": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Rows"
+          },
+          "columns": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Columns"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitChannel"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Channels"
+          },
+          "blocked_cells": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitCell"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Blocked Cells"
+          },
+          "fixed_cells": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitFixedCell"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Fixed Cells"
+          },
+          "pieces": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitPiece"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Pieces"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rule_version",
+          "rows",
+          "columns",
+          "channels",
+          "pieces"
+        ],
+        "title": "CircuitPuzzle",
+        "description": "A complete ``line-count-v1`` statement."
+      },
+      "CircuitRecognitionResult": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "recognized",
+              "incomplete",
+              "no_board",
+              "already_completed",
+              "timeout",
+              "invalid_image",
+              "failed"
+            ],
+            "title": "Outcome"
+          },
+          "puzzle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitPuzzle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "bars",
+                  "digits",
+                  "roman",
+                  "mixed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notation"
+          },
+          "question_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Code"
+          },
+          "question_code_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Code Confidence"
+          },
+          "catalog": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitCatalogMatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "CircuitRecognitionResult",
+        "description": "Serializable result returned across the recognition process boundary."
+      },
+      "CircuitRecognitionTaskView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "cancellation_requested": {
+            "type": "boolean",
+            "title": "Cancellation Requested",
+            "default": false
+          },
+          "computation_stopped": {
+            "type": "boolean",
+            "title": "Computation Stopped",
+            "default": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitRecognitionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "CircuitRecognitionTaskView"
+      },
+      "CircuitSolution": {
+        "properties": {
+          "placements": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitPlacement"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Placements"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CircuitSolution",
+        "description": "Only the placements; the covered board is derived from the puzzle."
+      },
+      "CircuitSolveResult": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "solved",
+              "unsatisfiable",
+              "timeout"
+            ],
+            "title": "Outcome"
+          },
+          "rule_version": {
+            "type": "string",
+            "const": "line-count-v1",
+            "title": "Rule Version",
+            "default": "line-count-v1"
+          },
+          "solution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitSolution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "time",
+                  "work"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "CircuitSolveResult"
+      },
+      "CircuitSolveTaskView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "cancellation_requested": {
+            "type": "boolean",
+            "title": "Cancellation Requested",
+            "default": false
+          },
+          "computation_stopped": {
+            "type": "boolean",
+            "title": "Computation Stopped",
+            "default": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitSolveResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "CircuitSolveTaskView"
       },
       "ErrorDetail": {
         "properties": {

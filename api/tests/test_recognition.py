@@ -13,7 +13,12 @@ import pytest
 from app.config import Settings
 from app.main import create_app
 from app.puzzles.balloon.recognize import recognize_balloon_job
-from app.upload_limit import LimitedRecognitionUpload, MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES
+from app.upload_limit import (
+    LimitedRecognitionUpload,
+    MAX_IMAGE_BYTES,
+    MAX_MULTIPART_BYTES,
+    RECOGNITION_UPLOAD_PATHS,
+)
 
 
 SAMPLES = Path(os.environ.get("BALLOON_TEST_SAMPLES_DIR", Path(__file__).resolve().parents[2] / "samples" / "private"))
@@ -227,7 +232,59 @@ def test_recognition_timeout_releases_worker_slot() -> None:
         assert _done(client, second.json()["id"])["result"]["outcome"] == "timeout"
 
 
-def test_slow_upload_has_bounded_slot_and_deadline(monkeypatch) -> None:
+def test_upload_paths_share_one_bounded_slot() -> None:
+    async def exercise() -> None:
+        async def inner(_, receive, send):
+            await receive()
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        balloon_scope = {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/puzzles/balloon/recognize",
+        }
+        circuit_scope = {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/puzzles/circuit/recognize",
+        }
+        for occupied_scope, busy_scope in (
+            (balloon_scope, circuit_scope),
+            (circuit_scope, balloon_scope),
+        ):
+            gate = LimitedRecognitionUpload(inner, max_uploads=1)
+            waiting = asyncio.Event()
+            first_messages = []
+
+            async def first_send(message):
+                first_messages.append(message)
+
+            async def slow_receive():
+                await waiting.wait()
+                return {"type": "http.request", "body": b"a", "more_body": False}
+
+            first = asyncio.create_task(
+                gate(occupied_scope, slow_receive, first_send)
+            )
+            await asyncio.sleep(.01)
+            busy_messages = []
+
+            async def busy_send(message):
+                busy_messages.append(message)
+
+            await gate(busy_scope, slow_receive, busy_send)
+            assert busy_messages[0]["status"] == 429
+            assert (b"retry-after", b"5") in busy_messages[0]["headers"]
+            waiting.set()
+            await first
+            assert first_messages[0]["status"] == 204
+
+    asyncio.run(exercise())
+
+
+@pytest.mark.parametrize("path", sorted(RECOGNITION_UPLOAD_PATHS))
+def test_each_upload_path_enforces_size_and_timeout(path: str, monkeypatch) -> None:
     async def exercise() -> None:
         async def inner(_, receive, send):
             await receive()
@@ -235,38 +292,60 @@ def test_slow_upload_has_bounded_slot_and_deadline(monkeypatch) -> None:
             await send({"type": "http.response.body", "body": b""})
 
         gate = LimitedRecognitionUpload(inner, max_uploads=1)
-        scope = {"type": "http", "method": "POST", "path": "/api/v1/puzzles/balloon/recognize"}
-        waiting = asyncio.Event()
-        first_messages = []
+        scope = {"type": "http", "method": "POST", "path": path}
 
-        async def first_send(message):
-            first_messages.append(message)
+        oversized = []
 
-        async def slow_receive():
-            await waiting.wait()
-            return {"type": "http.request", "body": b"a", "more_body": False}
+        async def oversized_receive():
+            return {"type": "http.request", "body": b"xxx", "more_body": False}
 
-        first = asyncio.create_task(gate(scope, slow_receive, first_send))
-        await asyncio.sleep(.01)
-        busy_messages = []
+        async def oversized_send(message):
+            oversized.append(message)
 
-        async def busy_send(message):
-            busy_messages.append(message)
+        monkeypatch.setattr("app.upload_limit.MAX_MULTIPART_BYTES", 2)
+        await gate(scope, oversized_receive, oversized_send)
+        assert oversized[0]["status"] == 413
 
-        await gate(scope, slow_receive, busy_send)
-        assert busy_messages[0]["status"] == 429
-        assert (b"retry-after", b"5") in busy_messages[0]["headers"]
-        waiting.set()
-        await first
-        assert first_messages[0]["status"] == 204
-
-        monkeypatch.setattr("app.upload_limit.MAX_UPLOAD_SECONDS", .01)
-        timed_messages = []
+        timed = []
 
         async def timed_send(message):
-            timed_messages.append(message)
+            timed.append(message)
 
+        monkeypatch.setattr("app.upload_limit.MAX_UPLOAD_SECONDS", .01)
         await gate(scope, asyncio.Event().wait, timed_send)
-        assert timed_messages[0]["status"] == 408
+        assert timed[0]["status"] == 408
+
+    asyncio.run(exercise())
+
+
+def test_upload_limit_ignores_nonexact_paths_and_methods(monkeypatch) -> None:
+    async def exercise() -> None:
+        seen = []
+
+        async def inner(_, receive, send):
+            message = await receive()
+            seen.append(message["body"])
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        gate = LimitedRecognitionUpload(inner, max_uploads=1)
+        monkeypatch.setattr("app.upload_limit.MAX_MULTIPART_BYTES", 2)
+        scopes = [
+            {"type": "http", "method": "GET", "path": "/api/v1/puzzles/circuit/recognize"},
+            {"type": "http", "method": "POST", "path": "/api/v1/puzzles/circuit/recognize/extra"},
+            {"type": "http", "method": "POST", "path": "/api/v1/puzzles/unknown/recognize"},
+        ]
+        for scope in scopes:
+            messages = []
+
+            async def receive():
+                return {"type": "http.request", "body": b"xxx", "more_body": False}
+
+            async def send(message):
+                messages.append(message)
+
+            await gate(scope, receive, send)
+            assert messages[0]["status"] == 204
+        assert seen == [b"xxx", b"xxx", b"xxx"]
 
     asyncio.run(exercise())

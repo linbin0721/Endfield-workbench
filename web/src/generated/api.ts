@@ -72,6 +72,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/puzzles/circuit/recognize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recognize Circuit */
+        post: operations["recognize_circuit_api_v1_puzzles_circuit_recognize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/puzzles/circuit/catalog/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Circuit Catalog Route */
+        get: operations["circuit_catalog_route_api_v1_puzzles_circuit_catalog__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/puzzles/{puzzle_id}/recognize": {
         parameters: {
             query?: never;
@@ -100,6 +134,23 @@ export interface paths {
         put?: never;
         /** Solve Balloon Route */
         post: operations["solve_balloon_route_api_v1_puzzles_balloon_solve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/puzzles/circuit/solve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Solve Circuit Route */
+        post: operations["solve_circuit_route_api_v1_puzzles_circuit_solve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -359,6 +410,269 @@ export interface components {
             /** Column */
             column: number;
         };
+        /** CircuitCatalogCandidate */
+        CircuitCatalogCandidate: {
+            /** Fingerprint */
+            fingerprint: string;
+            puzzle: components["schemas"]["CircuitPuzzle"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "provisional" | "verified";
+            /** Observations */
+            observations: number;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+        };
+        /** CircuitCatalogEntry */
+        CircuitCatalogEntry: {
+            /** Code */
+            code: string;
+            /** Candidates */
+            candidates?: components["schemas"]["CircuitCatalogCandidate"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CircuitCatalogMatch
+         * @description How the current circuit recognition relates to stored variants.
+         */
+        CircuitCatalogMatch: {
+            /**
+             * Available
+             * @default true
+             */
+            available: boolean;
+            /** Code */
+            code: string;
+            /** Code Confidence */
+            code_confidence?: number | null;
+            /**
+             * Complete
+             * @default false
+             */
+            complete: boolean;
+            /**
+             * Recorded
+             * @default false
+             */
+            recorded: boolean;
+            /**
+             * Duplicate
+             * @default false
+             */
+            duplicate: boolean;
+            /**
+             * Image Digest Mismatch
+             * @default false
+             */
+            image_digest_mismatch: boolean;
+            /** Matched Fingerprint */
+            matched_fingerprint?: string | null;
+            /** Matched Status */
+            matched_status?: ("provisional" | "verified") | null;
+            /** Candidates */
+            candidates?: components["schemas"]["CircuitCatalogCandidate"][];
+            /** Issues */
+            issues?: string[];
+        };
+        /**
+         * CircuitCell
+         * @description Zero-based board coordinate shared by blocked, fixed and piece cells.
+         */
+        CircuitCell: {
+            /** Row */
+            row: number;
+            /** Column */
+            column: number;
+        };
+        /**
+         * CircuitChannel
+         * @description One color channel with its per-row and per-column coverage counts.
+         */
+        CircuitChannel: {
+            /** Index */
+            index: number;
+            /** Row Targets */
+            row_targets: number[];
+            /** Column Targets */
+            column_targets: number[];
+        };
+        /**
+         * CircuitFixedCell
+         * @description Already covered cell that belongs to one color channel.
+         */
+        CircuitFixedCell: {
+            /** Row */
+            row: number;
+            /** Column */
+            column: number;
+            /** Channel */
+            channel: number;
+        };
+        /**
+         * CircuitPiece
+         * @description Inventory piece in normalized local coordinates; rotations are implicit.
+         */
+        CircuitPiece: {
+            /** Channel */
+            channel: number;
+            /** Cells */
+            cells: components["schemas"]["CircuitCell"][];
+        };
+        /**
+         * CircuitPlacement
+         * @description One piece anchored by the top-left corner of its rotated bounding box.
+         */
+        CircuitPlacement: {
+            /** Piece Index */
+            piece_index: number;
+            /** Row */
+            row: number;
+            /** Column */
+            column: number;
+            /** Rotation */
+            rotation: number;
+        };
+        /**
+         * CircuitPuzzle
+         * @description A complete ``line-count-v1`` statement.
+         */
+        CircuitPuzzle: {
+            /**
+             * Rule Version
+             * @constant
+             */
+            rule_version: "line-count-v1";
+            /** Rows */
+            rows: number;
+            /** Columns */
+            columns: number;
+            /** Channels */
+            channels: components["schemas"]["CircuitChannel"][];
+            /** Blocked Cells */
+            blocked_cells?: components["schemas"]["CircuitCell"][];
+            /** Fixed Cells */
+            fixed_cells?: components["schemas"]["CircuitFixedCell"][];
+            /** Pieces */
+            pieces: components["schemas"]["CircuitPiece"][];
+        };
+        /**
+         * CircuitRecognitionResult
+         * @description Serializable result returned across the recognition process boundary.
+         */
+        CircuitRecognitionResult: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "recognized" | "incomplete" | "no_board" | "already_completed" | "timeout" | "invalid_image" | "failed";
+            puzzle?: components["schemas"]["CircuitPuzzle"] | null;
+            /** Notation */
+            notation?: ("bars" | "digits" | "roman" | "mixed") | null;
+            /** Question Code */
+            question_code?: string | null;
+            /** Question Code Confidence */
+            question_code_confidence?: number | null;
+            catalog?: components["schemas"]["CircuitCatalogMatch"] | null;
+            /** Issues */
+            issues?: string[];
+        };
+        /** CircuitRecognitionTaskView */
+        CircuitRecognitionTaskView: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Cancellation Requested
+             * @default false
+             */
+            cancellation_requested: boolean;
+            /**
+             * Computation Stopped
+             * @default false
+             */
+            computation_stopped: boolean;
+            result?: components["schemas"]["CircuitRecognitionResult"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+        };
+        /**
+         * CircuitSolution
+         * @description Only the placements; the covered board is derived from the puzzle.
+         */
+        CircuitSolution: {
+            /** Placements */
+            placements?: components["schemas"]["CircuitPlacement"][];
+        };
+        /** CircuitSolveResult */
+        CircuitSolveResult: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "solved" | "unsatisfiable" | "timeout";
+            /**
+             * Rule Version
+             * @default line-count-v1
+             * @constant
+             */
+            rule_version: "line-count-v1";
+            solution?: components["schemas"]["CircuitSolution"] | null;
+            /** Limit Reason */
+            limit_reason?: ("time" | "work") | null;
+        };
+        /** CircuitSolveTaskView */
+        CircuitSolveTaskView: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Cancellation Requested
+             * @default false
+             */
+            cancellation_requested: boolean;
+            /**
+             * Computation Stopped
+             * @default false
+             */
+            computation_stopped: boolean;
+            result?: components["schemas"]["CircuitSolveResult"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+        };
         /** ErrorDetail */
         ErrorDetail: {
             /** Code */
@@ -613,6 +927,127 @@ export interface operations {
             };
         };
     };
+    recognize_circuit_api_v1_puzzles_circuit_recognize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    image: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircuitRecognitionTaskView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Timeout */
+            408: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    circuit_catalog_route_api_v1_puzzles_circuit_catalog__code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircuitCatalogEntry"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     recognize_api_v1_puzzles__puzzle_id__recognize_post: {
         parameters: {
             query?: never;
@@ -729,6 +1164,57 @@ export interface operations {
             };
             /** @description Not Implemented */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    solve_circuit_route_api_v1_puzzles_circuit_solve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CircuitPuzzle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircuitSolveTaskView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

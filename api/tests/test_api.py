@@ -19,13 +19,15 @@ def test_health_capabilities_and_unavailable_engines() -> None:
         assert by_id["balloon"]["supported_rule_versions"] == ["center-torque-v1"]
         assert not by_id["circuit"]["recognition_available"] and not by_id["circuit"]["solving_available"]
         assert by_id["circuit"]["supported_rule_versions"] == []
-        recognition = client.post("/api/v1/puzzles/circuit/recognize", files={"image": ("x.png", b"not-read", "image/png")})
-        assert recognition.status_code == 501
-        assert recognition.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        # Concrete circuit routes are callable for C2 integration while the
+        # public capability remains disabled until the D2 frontend is ready.
+        recognition = client.post("/api/v1/puzzles/circuit/recognize")
+        assert recognition.status_code == 422
+        assert recognition.json()["error"]["code"] == "INVALID_REQUEST"
         solving = client.post("/api/v1/puzzles/circuit/solve", json={})
-        assert solving.status_code == 501
-        assert solving.json()["error"]["code"] == "NOT_IMPLEMENTED"
-        assert client.post("/api/v1/puzzles/circuit/solve", content=b"invalid").status_code == 501
+        assert solving.status_code == 422
+        assert solving.json()["error"]["code"] == "INVALID_REQUEST"
+        assert client.post("/api/v1/puzzles/circuit/solve", content=b"invalid").status_code == 422
         assert client.post("/api/v1/puzzles/unknown/recognize").status_code == 404
         assert client.get("/api/v1/tasks/missing").json() == {"error": {"code": "NOT_FOUND", "message": "资源不存在"}}
         assert client.get("/api/v1/unknown").json()["error"]["code"] == "NOT_FOUND"
