@@ -260,9 +260,9 @@
 - 结论：B2a 已验收。当前输出足以给 B2b 提供稳定的棋盘、通道和小字形裁剪边界；尚未读取字符值、低饱和空标记或题号，也未形成数字/罗马模式的领域题面。
 - 提交 / 推送：`43150ce`（`feat: locate circuit symbol boards`）已推送到 `origin/main`；本验收记录随后推送。
 
-###### 当前委派 B2b：约束 OCR、题号与已解码图像闭环
+###### B2b：约束 OCR、题号与已解码图像闭环（已验收）
 
-- 状态：已委派，待 DSH 回执与 Codex 验收
+- 状态：已验收
 - 目标：读取 B2a 提供的小字形边界，严格归一化数字/罗马/空标记目标，识别可选源石电路题号，并将条形与符号两种已经解码的 BGR 图片统一编排为经过领域、求解和独立校验的离线结果。
 - 范围：新增 `api/app/puzzles/circuit/ocr.py` 及对应测试；允许在 `analyze.py` 中提取条形/符号共用的完成态、领域构造、求解与校验 helper，并新增 `DecodedImageAnalysis`、`analyze_decoded_image` 及测试。不得读取图片字节、处理 EXIF、实例化 RapidOCR、启动子进程、定义正式 JSON/Pydantic 识别响应，也不得修改数据库、API、前端、部署、B2a 几何阈值或领域规则。
 - 限制 / 约束：接口及具体接受集合见 `docs/circuit-design.md` 的 B2b 冻结说明。OCR 必须作为单实例参数注入；约束字形只做 `0.05 × step` 紧裁剪和一次批量 `text_rec`，不得按文件名或单图坐标特判。缺字形只在唯一 `SymbolLayout` 的完整行列和通道范围内归零。题号低置信或冲突只留空并报告，不得阻断完整题面。模式选择先尝试符号布局，未命中才走条形；两条路径必须复用同一完成态与最终校验语义。
@@ -272,16 +272,21 @@
 
 #### DSH 回执
 
-- 实际改动：待填写。
-- 验证结果：待填写。
-- 未完成项 / 风险 / 待决策事项：待填写。
-- 建议写入长期记忆：待填写。
+- 实际改动：
+  - 新增 `api/app/puzzles/circuit/ocr.py` 的 frozen `ConstraintToken`、`SymbolTargets`、`QuestionCodeReading` 与四个冻结接口。约束值先做 NFKC、Unicode 空白和 variation selector 归一化，只接受置信度不低于 0.90 的规范十进制、`I..X` 和 `∅/Ø`；不把 `O`、非法罗马或夹杂文字猜成值。`extract_symbol_targets` 严格检查 `row/column` 轴、唯一键和等长 OCR 结果，对全部 `0.05 × step` 紧裁剪只调用一次批量 `text_rec`，按轴使用正确上限，在已确认的完整布局内补零并校验每通道行列和。
+  - 题号只接受装饰三角形（含 OCR 常见 `Δ/∆`）、单个连字符和 Unicode 空白包围的 `V` 五位数字或 `WL` 四位数字；先 OCR 棋盘左侧相对区域，失败后把全图最长边限制到 1800 再回退。低置信证据和多个不同高置信编号分别保留为未识别与歧义，不执行字母数字猜改；题号结果及最终离线结果还会拒绝非规范 code 和非有限或超出 `0..1` 的置信度，`recognized/no_board` 分别强制 notation 存在/为空。
+  - 重构 `analyze.py`，把格子/库存完成态判断及领域构造、求解、独立校验提为条形和符号共用 helper；保留原 `BarImageAnalysis` 行为，新增 frozen `DecodedImageAnalysis` 与 `analyze_decoded_image`。编排先尝试符号布局，未命中才走条形；完成态不读取约束，题号失败只增加 issue，题号可随不完整或未找到棋盘的结果单独返回。OCR 只接收调用方注入的实例，没有导入或实例化 RapidOCR，也没有加入字节解码、EXIF、子进程、API、数据库或前端代码。
+  - 新增 `api/tests/test_circuit_ocr.py` 并扩充 `test_circuit_analyze.py`，覆盖严格 token/题号语法、1～4 通道、内部与尾部补零、digits/roman/mixed、批量次数、结果缺失和重复键、边缘裁剪、相对区域与 1800 全图回退、低置信/冲突，以及两种显示路径的四种结果与共用领域/求解/校验门槛。
+- 验证结果：容器定向运行 `test_circuit_ocr.py test_circuit_analyze.py test_circuit_vision.py test_circuit.py` 为 `498 passed in 5.31s`；后端全量为 `572 passed、9 skipped、1` 个既有 Starlette/httpx 弃用警告，用时 36.60 秒；`git diff --check` 通过。未读取 `set/`，没有把私有样本、裁剪或报告加入仓库。
+- 未完成项 / 风险 / 待决策事项：本批只以合成图片和注入式假 OCR 验证接口；真实数字版、21 张条形输入、18 张完成图及题号相对区域命中率仍需 Codex 用私有样本独立验收。`DecodedImageAnalysis` 仍是离线 dataclass，图片字节/EXIF/像素限制、一次性 OCR 子进程和正式 JSON/Pydantic 结果属于 B2c。
+- 建议写入长期记忆：无；严格 OCR 接受集合、单次批量约束和两种显示共用最终门槛已经写入设计与本任务回执。
 
 #### Codex 验收
 
-- 独立检查：待验收。
-- 结论：待验收。
-- 提交 / 推送：待验收。
+- 独立检查：逐项复核严格 token 集、一次批量裁剪、缺键补零、题号区域与全图回退、结果不变量及条形/符号共用最终门槛。返工补齐 `Δ/∆` 三角 OCR、未知 glyph axis 拒绝、规范题号和有限 `0..1` 置信度检查，以及 `recognized` 必须带 notation、`no_board` 不得带 notation 的约束。模块没有实例化 RapidOCR，也没有引入字节解码、EXIF、子进程、数据库、API 或前端依赖。
+- 验证结果：独立定向复跑 `498 passed`；后端全量 `572 passed、9 skipped、1` 个既有 Starlette/httpx 弃用警告。私有 40 图中 21 张条形输入全部 `recognized/bars`，18 张完成图全部 `already_completed/bars`，唯一数字版为 `recognized/digits`，失败 0；所有 recognized 解答再次通过独立校验。数字版得到行 `(4,5,5,4,0)`、列 `(4,4,4,4,2)` 和题号 `V40020`（约 0.993），其完整题面与同题条形版逐字段一致。40 图可靠读取题号 36 张，其余保持可选空值且无误报；含 OCR 总耗时 min/mean/max 约 1.51/2.17/4.44 秒。
+- 结论：B2b 已验收。已解码 BGR 图片的 bars/digits/roman/mixed 编排、可选题号及最终求解校验闭环完成；字节/EXIF 边界、一次性 OCR 子进程和正式结果 JSON 留给 B2c。
+- 提交 / 推送：`68b0ab8`（`feat: decode circuit screenshot constraints`）已推送到 `origin/main`；本验收记录随后推送。
 
 ##### B2 后续子批
 
