@@ -35,7 +35,7 @@ export type CircuitDisplayPalette = {
   usedFallback: boolean;
 };
 
-const FALLBACK_HUES = [174, 34, 278, 218] as const;
+const FALLBACK_HUES = [174, 77, 278, 218] as const;
 const asRecord = (value: unknown): RecordValue | null =>
   value !== null && typeof value === "object" && !Array.isArray(value) ? value as RecordValue : null;
 
