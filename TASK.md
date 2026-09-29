@@ -199,9 +199,9 @@
 - 结论：B1b3b 已验收。该层现在能独立恢复完整库存，但尚未把目标、格子和库存组装为领域题面，也不负责完成态判定；继续执行 B1b3c。
 - 提交 / 推送：`afe6cc9`（`feat: extract circuit inventory pieces`）已推送到 `origin/main`；本验收记录随后推送。
 
-###### 当前委派 B1b3c：条形题面离线闭环
+###### B1b3c：条形题面离线闭环（已验收）
 
-- 状态：进行中
+- 状态：已验收
 - 目标：新增无 OCR、数据库、FastAPI 依赖的 `analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis`，把既有条形视觉层组装成经过领域校验、求解和独立复核的题面，或保守返回不完整/已完成。
 - 范围：新增 `api/app/puzzles/circuit/analyze.py` 与 `api/tests/test_circuit_analyze.py`；允许为完成画面在 `vision.py`/视觉测试中增加 `extract_bar_channel_hues(geometry, ensembles)`，只返回棋盘相邻横纵短条共有的唯一通道色相。不得实现数字/罗马数字、题号 OCR、图片解码 worker、目录、API、前端或部署，不得改变既有视觉阈值和领域语义。
 - 限制 / 约束：`BarImageAnalysis` 为 frozen dataclass，结果只允许 `recognized/incomplete/no_board/already_completed`，包含可选 `CircuitPuzzle`、可选 `CircuitSolution` 和 `tuple[str, ...] issues`；只有 `recognized` 同时携带题面和解答。普通未完成图必须没有 `placed` 格；完整空库存且至少有一个 `placed` 格才是 `already_completed`，有库存拼块又有 `placed` 格视为中途状态，空库存但无 `placed` 格也视为不完整。完成态可在目标数组缺失时成立，但颜色只能来自与已确认棋盘相邻、两轴均出现且唯一聚类的短条，不能从配对截图继承或补猜目标。
@@ -211,16 +211,17 @@
 
 #### DSH 回执
 
-- 实际改动：待填写。
-- 验证结果：待填写。
-- 未完成项 / 风险 / 待决策事项：待填写。
-- 建议写入长期记忆：待填写。
+- 实际改动：在 `vision.py` 增加 `extract_bar_channel_hues`，复用已冻结的格距、邻接和中心容差，只接受唯一的棋盘相邻横纵集合，并要求聚类后的每个通道在两轴均有合法中心锚点；新增 `analyze.py` 的 frozen `BarImageAnalysis` 与条形离线编排，按顺序完成通道、格子、库存、目标、领域模型、求解和独立校验，保守区分四种结果且不暴露部分题面。补充视觉 helper 与离线编排合成测试，没有修改 OCR、API、目录、前端或部署。
+- 验证结果：使用测试镜像只读挂载当前 `api/`，运行 `python -m pytest -q -p no:cacheprovider tests/test_circuit_analyze.py tests/test_circuit_vision.py tests/test_circuit.py`，结果 `383 passed in 4.29s`。覆盖四种结果、目标缺失完成态、中途态、空库存无放置、各视觉层不完整、障碍/固定格映射、领域拒绝、无解、time/work 限额、独立校验失败、非法 limits、结果不变量，以及通道色相的两轴证据、唯一邻接、锚点越界和输入校验。
+- 未完成项 / 风险 / 待决策事项：本回执只完成合成定向验证；39 张条形私有样本、数字式负例和后端全量测试仍由 Codex 独立验收。完成态色相按冻结契约要求每个通道在横纵两轴均保留短条证据，真实完成高亮若吞掉某通道在整条轴上的全部短条会保守返回不完整。
+- 建议写入长期记忆：无；本批只实现已冻结的离线编排和完成态通道身份约束。
 
 #### Codex 验收
 
-- 独立检查：待验收。
-- 结论：待验收。
-- 提交 / 推送：待验收。
+- 独立检查：逐行复核通道色相 helper、四种结果分支、领域对象映射、求解限制与独立校验失败路径。`extract_bar_channel_hues` 不读取条数，只接受格距相容且棋盘相邻的唯一横纵集合，每个聚类通道必须在两轴出现且锚点落入既有中心容差；编排器只捕获 Pydantic 领域拒绝和显式独立校验失败，没有宽泛吞掉视觉编程异常。普通识别结果不含 `placed` 格，完成态不依赖可解码目标且必须同时有完整空库存与跨格放置证据。
+- 验证结果：独立定向复跑 `383 passed in 4.51s`；后端全量 `457 passed、9 skipped、1` 个既有 Starlette/httpx 弃用警告。私有审计中 21/21 张未完成条形输入均为 `recognized`，题面经 `CircuitPuzzle.model_validate` 重建且解答再次通过 `validate_solution`；18/18 张完成图均为 `already_completed` 且不携带题面/解答；数字式 `V40020` 为 `no_board`。完整识别与求解单图约 0.51～0.84 秒，失败 0；审计脚本和输出未提交。
+- 结论：B1b3c 已验收。条形模式的离线视觉、领域构造、有界求解和独立校验现已闭环；该模块仍不负责图片解码、题号/数字/罗马数字 OCR、进程监督或公开 API，继续执行 B2。
+- 提交 / 推送：`579b280`（`feat: analyze circuit bar screenshots`）已推送到 `origin/main`；本验收记录随后推送。
 
 ##### B1b3 后续子批
 
