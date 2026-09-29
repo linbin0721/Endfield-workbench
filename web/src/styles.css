@@ -85,21 +85,20 @@
 .circuit-preview.compact{padding:10px;gap:10px}.circuit-preview.compact .circuit-preview-body{grid-template-columns:minmax(150px,.8fr) minmax(180px,1.2fr)}.circuit-preview.compact .circuit-target{font-size:.72rem}.circuit-preview.compact .circuit-cell{font-size:.55rem}
 
 .circuit-guide{margin:16px 0 0}.circuit-guide-stage{display:grid;grid-template-columns:minmax(90px,.5fr) minmax(230px,1.45fr) minmax(105px,.62fr);gap:clamp(8px,2vw,18px);align-items:center;border:1px solid #344a58;border-radius:12px;padding:clamp(12px,2vw,20px);background:radial-gradient(circle at 50% 40%,#193140,#0c141a 70%);min-width:0}
-.circuit-guide-code-region,.circuit-guide-board-region,.circuit-guide-inventory{min-width:0}
-.circuit-guide-code-region{display:flex;align-items:center;justify-content:center;padding:8px}
+.circuit-guide-region{position:relative;min-width:0;border-width:2px;border-style:solid;border-radius:7px;background:#101b23}
+.circuit-guide-region.guide-board{border-color:#4fd1b5;background:#4fd1b50b}.circuit-guide-region.guide-inventory{border-color:#f0a24a;background:#f0a24a0b}.circuit-guide-region.guide-code{border-color:#c07bf0;background:#c07bf00b}
+.circuit-guide-region>.guide-marker{top:4px;left:4px;border-radius:5px;z-index:1}
+.circuit-guide-code-region{display:flex;min-height:72px;align-items:center;justify-content:center;padding:25px 8px 8px}
 .circuit-guide-code-region code{display:block;color:#f1dcff;font-size:clamp(.65rem,1.4vw,.86rem);font-weight:800;white-space:nowrap}
-.circuit-guide-column-targets{display:grid;gap:3px;margin:0 0 6px 46px;font-size:.62rem;color:#c7d7df}.circuit-guide-column-targets span{display:flex;align-items:center;gap:5px;white-space:nowrap}
-.circuit-guide-swatch{display:block;width:.58rem;height:.58rem;border:1px solid var(--circuit-color-highlight);border-radius:50%;background:var(--circuit-color);box-shadow:inset 0 0 0 1px #0005}
-.circuit-guide-board-row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px;align-items:stretch}.circuit-guide-row-targets{display:grid;grid-template-columns:1fr 1fr;gap:2px}.circuit-guide-row-targets span{display:flex;align-items:center;justify-content:center;text-align:center;border-radius:4px;background:#20313d;color:#c6d5de;font-size:.53rem;line-height:1.35}
-.circuit-guide-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;border:1px solid #546774;border-radius:6px;padding:4px;background:#0b141a}.circuit-guide-board .circuit-cell{font-size:.56rem}
-.circuit-guide-inventory{display:grid;gap:8px}.circuit-guide-piece{display:flex;min-height:42px;align-items:center;justify-content:center;border:1px solid #314652;border-radius:7px;padding:8px;background:#111c24}
+.circuit-guide-board-region{padding:27px 8px 8px}.circuit-guide-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;border:1px solid #546774;border-radius:6px;padding:4px;background:#0b141a}.circuit-guide-board .circuit-cell{font-size:.56rem}
+.circuit-guide-inventory{display:grid;gap:8px;padding:27px 8px 8px}.circuit-guide-piece{display:flex;min-height:46px;align-items:center;justify-content:center;border:1px solid #314652;border-radius:7px;padding:5px;background:#111c24}.circuit-guide-piece-svg{display:block;width:100%;height:38px;overflow:visible}
 
 .circuit-candidates fieldset{display:grid;gap:11px;border:1px solid #344a58;border-radius:11px;margin:12px 0 0;padding:12px}.circuit-candidates legend{padding:0 5px;color:#c0d0da;font-size:.86rem}.circuit-candidates fieldset>p{margin:0}
 .circuit-candidate{display:grid;gap:9px;min-width:0;border:1px solid #304552;border-radius:11px;padding:11px;background:#142029;cursor:pointer}.circuit-candidate:hover{border-color:#507080}.circuit-candidate.selected{border-color:#6cd2cd;background:#172d34;box-shadow:inset 0 0 0 1px #6cd2cd44}
 .circuit-candidate-heading{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}.circuit-candidate-heading input{min-height:auto;margin:0}.circuit-candidate-heading strong{font-size:.87rem}.circuit-candidate-status{border-radius:999px;padding:2px 7px;font-size:.68rem;font-weight:800}.circuit-candidate-status.provisional{color:#ecd8aa;background:#49391f}.circuit-candidate-status.verified{color:#b7efe8;background:#1d4b47}.circuit-candidate .candidate-tag{margin-left:0}
 
 @media(max-width:700px){.circuit-preview-body,.circuit-preview.compact .circuit-preview-body{grid-template-columns:1fr}.circuit-guide-stage{grid-template-columns:minmax(68px,.42fr) minmax(190px,1.4fr);align-items:center}.circuit-guide-inventory{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:440px){.circuit-guide-stage{grid-template-columns:minmax(62px,.4fr) minmax(176px,1.4fr);gap:7px;padding:9px}.circuit-guide-code-region{padding:3px}.circuit-guide-column-targets{margin-left:38px}.circuit-guide-board-row{grid-template-columns:34px minmax(0,1fr);gap:4px}.circuit-guide-inventory{grid-column:1/-1}.circuit-guide-piece{min-height:38px;padding:6px}.circuit-preview{padding:10px}.circuit-target{gap:5px 8px}.circuit-piece-list{grid-template-columns:1fr 1fr}.circuit-piece{flex-wrap:wrap}.circuit-cell{border-radius:3px}.circuit-candidate{padding:9px}}
+@media(max-width:440px){.circuit-guide-stage{grid-template-columns:minmax(62px,.4fr) minmax(176px,1.4fr);gap:7px;padding:9px}.circuit-guide-code-region{padding:24px 3px 6px}.circuit-guide-board-region{padding:25px 6px 6px}.circuit-guide-inventory{grid-column:1/-1;padding:25px 6px 6px}.circuit-guide-piece{min-height:42px;padding:4px}.circuit-guide-piece-svg{height:34px}.circuit-preview{padding:10px}.circuit-target{gap:5px 8px}.circuit-piece-list{grid-template-columns:1fr 1fr}.circuit-piece{flex-wrap:wrap}.circuit-cell{border-radius:3px}.circuit-candidate{padding:9px}}
 .circuit-recognition-meta{display:grid;gap:10px;margin-top:14px}.circuit-recognition-meta .notice p{margin:0}.circuit-recognition-meta .notice p+p{margin-top:6px}.circuit-recognition-meta ul,.circuit-choice ul{margin:8px 0 0;padding-left:22px}.circuit-choice{margin-top:14px}
 
 /* Source Circuit presentation colors are runtime hue variables with channel patterns. */
@@ -117,8 +116,6 @@
 .circuit-obstacle-mark:after{transform:rotate(-45deg)}
 .circuit-piece-shape i.filled{border:1px solid var(--circuit-color-highlight);background-color:var(--circuit-color)}
 .circuit-piece{flex-wrap:wrap}.circuit-piece .circuit-color-token{font-size:.68rem}.circuit-piece small{margin-left:auto}
-.circuit-guide-row-targets span{position:relative;border:1px solid var(--circuit-color);background:var(--circuit-color-soft)}
-.circuit-guide-row-targets span>i{display:block;width:.58rem;height:.58rem;margin:2px auto;border-radius:50%;background:var(--circuit-color)}
 .circuit-solution{display:grid;gap:14px}.circuit-solution .success-line{margin:0;max-width:700px;line-height:1.65}
 .circuit-answer-svg{display:block;width:min(100%,680px);height:auto;max-height:72vh;margin:0 auto;overflow:visible;filter:drop-shadow(0 18px 30px #0005)}
 .circuit-svg-frame{fill:#0a131a;stroke:#637582;stroke-width:.055}

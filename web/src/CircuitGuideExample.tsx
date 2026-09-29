@@ -1,5 +1,12 @@
-import { circuitColorStyle, circuitFallbackDisplayColor } from "./circuitDisplay";
-import { CircuitPieceShape } from "./CircuitPuzzlePreview";
+import { useId } from "react";
+import {
+  circuitColorStyle,
+  circuitFallbackDisplayColor,
+  circuitPieceBoundarySegments,
+  circuitPieceFill,
+  type CircuitDisplayColor,
+  type CircuitDisplayPoint,
+} from "./circuitDisplay";
 
 type Props = { mode: "screenshot" | "code" };
 
@@ -17,6 +24,34 @@ const GUIDE_PIECES = [
 ];
 const GUIDE_COLORS = [circuitFallbackDisplayColor(0), circuitFallbackDisplayColor(1)];
 
+function CircuitGuidePiece({ cells, color }: {
+  cells: readonly CircuitDisplayPoint[];
+  color: CircuitDisplayColor;
+}) {
+  const id = useId().replace(/:/g, "");
+  const fill = circuitPieceFill(cells);
+  const outline = circuitPieceBoundarySegments(cells).map((segment) =>
+    `M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}`).join("");
+  const padding = 0.14;
+  return <svg className="circuit-guide-piece-svg"
+    viewBox={`${fill.bounds.x1 - padding} ${fill.bounds.y1 - padding} ${fill.bounds.x2 - fill.bounds.x1 + padding * 2} ${fill.bounds.y2 - fill.bounds.y1 + padding * 2}`}
+    aria-hidden="true">
+    <defs>
+      <linearGradient id={`${id}-fill`} gradientUnits="userSpaceOnUse"
+        x1={fill.bounds.x1} y1={fill.bounds.y1} x2={fill.bounds.x2} y2={fill.bounds.y2}>
+        <stop offset="0" stopColor={color.highlight} />
+        <stop offset="0.24" stopColor={color.fill} />
+        <stop offset="1" stopColor={color.softFill} />
+      </linearGradient>
+    </defs>
+    <path d={fill.pathData} fill={`url(#${id}-fill)`} data-circuit-guide-piece-fill="" />
+    <path d={outline} fill="none" stroke={color.edge} strokeWidth="0.095"
+      strokeLinejoin="round" strokeLinecap="round" />
+    <path d={outline} fill="none" stroke={color.highlight} strokeWidth="0.025"
+      strokeLinejoin="round" strokeLinecap="round" opacity="0.72" />
+  </svg>;
+}
+
 export default function CircuitGuideExample({ mode }: Props) {
   const titleId = `circuit-guide-${mode}-title`;
   const screenshot = mode === "screenshot";
@@ -26,42 +61,31 @@ export default function CircuitGuideExample({ mode }: Props) {
       <span className="badge">自制示意图</span>
     </div>
     <p className="muted">{screenshot
-      ? "截图必须包含完整棋盘、上方和左侧的全部约束，以及右侧全部库存形状；左侧题号可选。"
-      : "题号位于棋盘左侧。按题号查询无需上传截图，只需输入题号。"}</p>
+      ? "截图需完整包含 1 号棋盘和 2 号全部库存；3 号题号可选。"
+      : "1 号是棋盘，2 号是库存，3 号是棋盘左侧题号；按题号查询只需输入 3 号，无需上传截图。"}</p>
     <figure className="circuit-guide" aria-label="未解题源石电路示意画面">
       <div className="circuit-guide-stage">
-        <div className="circuit-guide-code-region">
+        <div className="circuit-guide-code-region circuit-guide-region guide-code">
+          <b className="guide-marker" aria-hidden="true">3</b>
           <code>△-V40020</code>
         </div>
-        <div className="circuit-guide-board-region">
-          <div className="circuit-guide-column-targets">
-            <span style={circuitColorStyle(GUIDE_COLORS[0])}>
-              <i className="circuit-guide-swatch" aria-hidden="true" />3·0·1·0
-            </span>
-            <span style={circuitColorStyle(GUIDE_COLORS[1])}>
-              <i className="circuit-guide-swatch" aria-hidden="true" />1·2·0·1
-            </span>
-          </div>
-          <div className="circuit-guide-board-row">
-            <div className="circuit-guide-row-targets">
-              <span style={circuitColorStyle(GUIDE_COLORS[0])}><i aria-hidden="true" />3<br />0<br />1<br />0</span>
-              <span style={circuitColorStyle(GUIDE_COLORS[1])}><i aria-hidden="true" />0<br />1<br />2<br />1</span>
-            </div>
-            <div className="circuit-guide-board">
-              {GUIDE_CELLS.map((channel, index) => {
-                const color = channel != null && channel >= 0 ? GUIDE_COLORS[channel] : null;
-                return <span key={index} className={`circuit-cell ${channel === -1 ? "blocked" : color ? "fixed" : "empty"}`}
-                  style={color ? circuitColorStyle(color) : undefined} data-circuit-pattern={color?.channel}>
-                  {channel === -1 ? <i className="circuit-obstacle-mark" aria-hidden="true" />
-                    : color ? <i className="circuit-fixed-mark" aria-hidden="true" /> : null}
-                </span>;
-              })}
-            </div>
+        <div className="circuit-guide-board-region circuit-guide-region guide-board">
+          <b className="guide-marker" aria-hidden="true">1</b>
+          <div className="circuit-guide-board">
+            {GUIDE_CELLS.map((channel, index) => {
+              const color = channel != null && channel >= 0 ? GUIDE_COLORS[channel] : null;
+              return <span key={index} className={`circuit-cell ${channel === -1 ? "blocked" : color ? "fixed" : "empty"}`}
+                style={color ? circuitColorStyle(color) : undefined} data-circuit-pattern={color?.channel}>
+                {channel === -1 ? <i className="circuit-obstacle-mark" aria-hidden="true" />
+                  : color ? <i className="circuit-fixed-mark" aria-hidden="true" /> : null}
+              </span>;
+            })}
           </div>
         </div>
-        <div className="circuit-guide-inventory">
+        <div className="circuit-guide-inventory circuit-guide-region guide-inventory">
+          <b className="guide-marker" aria-hidden="true">2</b>
           {GUIDE_PIECES.map((piece, index) => <div className="circuit-guide-piece" key={index}>
-            <CircuitPieceShape cells={piece.cells} color={GUIDE_COLORS[piece.channel]} />
+            <CircuitGuidePiece cells={piece.cells} color={GUIDE_COLORS[piece.channel]} />
           </div>)}
         </div>
       </div>
