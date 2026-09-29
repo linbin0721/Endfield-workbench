@@ -393,10 +393,17 @@
 
 #### DSH 回执
 
-- 实际改动：待回执。
-- 验证结果：待回执。
-- 未完成项 / 风险 / 待决策事项：待回执。
-- 建议写入长期记忆：待回执。
+- 实际改动：
+  - 通过 npm 正常加入 `react-router-dom` 7 及锁文件；`main.tsx` 在应用根使用无 `basename` 的 `BrowserRouter`，`App.tsx` 只声明共享布局下的 `/`、`/balloon`、`/circuit` 与 `*` 四条路由。
+  - 新增 `SiteLayout`、`HomePage`、`CircuitPage` 与 `NotFoundPage`：共享品牌首页链接、三个可键盘操作的 `NavLink` 和通用非官方页脚；首页把浮空回收标为可用、源石电路标为开发中；电路页只有状态与返回链接，未导入 API 客户端；未知路径显示明确 404。各页同步设置对应浏览器标题。
+  - 将原 `App.tsx` 的气球页面完整迁入 `BalloonPage.tsx`，只移除共享 layout 接管的 `.page`、header、main、footer 外壳并增加页面标题；用脚本和基线逐字对比确认全部业务状态、副作用、轮询、取消、切换、目录和结果逻辑未变化，原有卸载 cleanup 会在离开 `/balloon` 时执行。
+  - `web/vercel.json` 保留构建与输出设置并增加全路径回退 `/index.html`；样式只补共享导航、首页卡片、开发中/404 页面、链接焦点与窄屏换行；README 更新当前前端路由和源石电路尚未开放的准确说明。
+- 验证结果：
+  - `npm ci --include=dev` 通过（100 packages、0 vulnerabilities）；`npm run build` 通过（TypeScript 与 Vite，54 modules transformed）；`git diff --check` 通过；`vercel.json` 是有效 JSON。
+  - 用本机 Vite preview 和 Playwright 连接现有 `lscr.io/linuxserver/msedge` 镜像中的临时 headless Edge 154 完成真实浏览器检查：`/`、`/balloon`、`/circuit`、未知路径均可直接打开并 reload；四页标题、三个路由 active `aria-current="page"`、404 无误；首页卡片与共享导航可导航；`/balloon` 初始两个流程均收起，截图和题号按钮分别只展开对应流程；`/circuit` 无输入、答案或 API 流程。
+  - 1440×900 与 390×844 下逐页检查 `document.documentElement.scrollWidth <= innerWidth`，并在气球两个展开状态复查，均无横向溢出；键盘 Tab 首个链接的计算样式为 2px solid outline。另生成未入库的桌面/窄屏截图做视觉检查，导航在 390px 正常换行，首页卡片与气球页内容未互相覆盖。
+- 未完成项 / 风险 / 待决策事项：D1 按边界没有实现或开放源石电路业务；它仍由 D2 完成。指定的本机 Playwright Chromium 二进制因宿主机缺少 `libcups.so.2`、`libcairo.so.2`、`libpango-1.0.so.0` 无法启动；未修改宿主依赖，改用已有 Edge 容器完成等价 Chromium 内核审计。未部署生产，也未修改 VPS Nginx。
+- 建议写入长期记忆：无；三路由与 SPA 回退属于当前前端结构，已由源码和设计文档明确，不需要再复制为长期记忆。
 
 #### Codex 验收
 
