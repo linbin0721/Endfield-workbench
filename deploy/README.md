@@ -113,13 +113,13 @@ ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbenc
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
 
-For the 2026-09-29 release, roll the static site and API image back without changing the database:
+For the EW-007 release (`4056d5e`), roll the static site and API image back to the preceding EW-006 release without changing the backward-compatible database column:
 
 ```sh
-ln -s /var/www/endfield-workbench/releases/56256c9 /var/www/endfield-workbench/current.rollback
+ln -s /var/www/endfield-workbench/releases/90b762f /var/www/endfield-workbench/current.rollback
 mv -Tf /var/www/endfield-workbench/current.rollback /var/www/endfield-workbench/current
 
-docker tag endfield-workbench-api:rollback-33cd350-20260929T052718Z endfield-workbench-api:latest
+docker tag endfield-workbench-api:rollback-90b762f-20260929T085002Z endfield-workbench-api:latest
 cd /root/project/EndfieldWorkbench/deploy
 docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps --force-recreate api
 ```

@@ -1,12 +1,12 @@
 # 项目当前状态
 
-最后核验：2026-09-29 07:45 UTC。
+最后核验：2026-09-29 08:59 UTC。
 
 ## 当前阶段
 
 - “浮空回收”和“源石电路”均已公开部署。两者都支持截图识别、自动求解和按题号查询；网页入口分别为 `/balloon` 与 `/circuit`。
-- 当前生产源码提交为 `90b762f2231a205e27d8b6a7c6380d0130c499a5`，EW-006 A～E 已验收。
-- EW-007 批次 A 已验收，识别真实色相、目录色板、旧表迁移和 API 契约已完成；当前批次 B 处理前端颜色流转与完成棋盘，生产服务仍保持 EW-006 release，尚未包含这次视觉重构。
+- 当前生产源码提交为 `4056d5e7c8c53e0e1c5e5c408435b81c92107d60`，EW-007 两个实现批次均已验收并发布。
+- 源石电路截图识别会保留真实色相；截图、题号目录与 legacy 候选都能把正确色板带到答案。答案以接近游戏完成状态的彩色棋盘呈现，不显示通道/拼块编号、坐标、旋转或约束清单。
 - 源石电路私有训练集现有 37 张，测试集 3 张；当前支持短条、数字和罗马数字约束、1～4 通道、障碍、固定格及可旋转库存拼块。
 
 ## 生产部署
@@ -14,9 +14,9 @@
 | 项目 | 当前值 |
 | --- | --- |
 | 前端 | `https://endfield.linbin.org/` |
-| 前端 release | `/var/www/endfield-workbench/releases/90b762f`；`current` 指向该目录 |
+| 前端 release | `/var/www/endfield-workbench/releases/4056d5e`；`current` 指向该目录 |
 | API | `https://api.linbin.org/endfield` |
-| API 容器 | `endfield-workbench-api-1`，镜像 `sha256:bb9cf0ec…`，健康，单 Uvicorn worker，异常重启次数 0 |
+| API 容器 | `endfield-workbench-api-1`，镜像 `sha256:0dc5433b…`，健康，单 Uvicorn worker，异常重启次数 0 |
 | PostgreSQL | `endfield-workbench-db-1`，PostgreSQL 17，健康，异常重启次数 0，卷 `endfield-workbench_catalog_data` |
 | 端口 | API 为 `127.0.0.1:18000` → 容器 `8000`；PostgreSQL `5432` 仅在 Compose 网络内开放 |
 | 反向代理 | VPS 共享 Nginx；HTTP 自动跳转 HTTPS；本次发布未修改配置 |
@@ -24,23 +24,23 @@
 | CORS | 仅允许 `https://endfield.linbin.org` |
 | 前端 API 地址 | `VITE_API_BASE_URL=https://api.linbin.org/endfield` |
 | 气球目录 | 15 个 entry、15 个 candidate、16 个 observation；14 个 `provisional`、1 个 `verified` |
-| 电路目录 | 1 个 entry、1 个 candidate、1 个 observation；`V40020` 为 `provisional` |
-| 发布前备份 | `deploy/backups/catalog-20260929T052718Z.dump`，已通过 `pg_restore --list` |
+| 电路目录 | 1 个 entry、1 个 candidate、1 个 observation；`V40020` 为 `provisional`，候选已有 1 通道展示色板 |
+| 发布前备份 | `deploy/backups/circuit-before-ew007-20260929T085002Z.dump`，已通过 `pg_restore --list` |
 
 ## 当前验证状态
 
-- 后端全量连接临时 PostgreSQL 17：674 passed、6 skipped、1 个既有弃用警告；跳过项均依赖 VPS 缺失的旧 `samples/private/` 气球图片。OpenAPI 与前端生成类型可重复，生产前端构建 60 modules。
-- 40 张源石电路私有原图回归为 21 `recognized/bars`、18 `already_completed/bars`、1 `recognized/digits`，失败 0，题号命中 36/40；所有完整题面重新求解并独立校验，数字/短条 `V40020` 一致。
-- 公网真实源石电路截图识别、求解与 `V40020` 题号查询成功；公网浮空回收 191530 识别为 5×5 `WL-A2014`、库存 6×1 + 3×1，并求解成功。两类公网解答都再次通过独立校验器。
-- API 与数据库分别主动重启后容器恢复健康，六张目录表保持气球 15/15/16、电路 1/1/1。数据库重启后的第一次目录请求返回一次 503，下一请求立即恢复。
-- 公网 10 路并发求解全部接受并完成：10 个 202、10 个 solved，无 429、5xx、传输或轮询错误，P95 端到端约 941 ms；健康采样全为 200。
-- Edge 154 中首页、`/balloon`、`/circuit` 深链和刷新正常；网页题号 `V40020` 自动绘制 25 格答案与 4 个拼块摆放。1440×900 和 390×844 无横向溢出，键盘焦点可见。
+- EW-007 后端全量连接临时 PostgreSQL 17：712 passed、5 skipped；独立复跑无数据库全量为 698 passed、19 skipped。跳过项来自未设置测试数据库及 VPS 缺失的旧 `samples/private/` 气球图片。OpenAPI/生成类型哈希稳定；生产前端构建 61 modules。
+- 40 张源石电路私有原图回归为 21 `recognized/bars`、1 `recognized/digits`、18 `already_completed`，失败 0；22 个完整题面均输出完整色板，输入与对应完成画面的同通道色差最大 5.45°，题号命中保持 36/40。
+- 公网数字版 `V40020` 真实截图识别为 77.04° 绿色并求解成功，结果再次通过独立校验器；legacy 目录候选已安全补色，API 重启后仍可查询。公网题号流程绘制 5×5 完成棋盘、4 个独立库存形状和 2 个障碍。
+- Edge 154 中 `/circuit` 深链和刷新正常；1440×900 与 390×844 无横向溢出，输入焦点为 2px 实线。答案区域没有 `C1`/`P1`、坐标、旋转或约束文字。
+- 公网 10 路并发目录查询均为 HTTP 200；API 主动重启后健康、目录色板与题号求解正常。
 - HTTPS 证书、HTTP 301、生产 Origin CORS、非允许 Origin 拒绝、Compose 配置、Nginx 配置和回环端口检查均通过。
-- 空闲快照：API CPU 0.21%、内存 92.08 MiB；PostgreSQL CPU 0.01%、内存 21.98 MiB。
+- 空闲快照：API CPU 0.22%、内存 51.72 MiB；PostgreSQL CPU 0.00%、内存 28.68 MiB。
 
 ## 已知限制
 
 - 源石电路测试集仅 3 张，其中 `WL0020` 与训练集存在题目级重叠，不能视为完全独立的最终评估集；数字模式真实样本仍只有 `V40020` 一题。
+- 40 张私有样本的题号 OCR 命中率为 36/40；其中训练图 `183630` 的 `WL0020` 仍未读出，但题面与颜色识别成功，可继续直接求解。
 - `samples/private/` 中的旧气球回归样本不在 VPS，相关 6 项测试无法在本机复验。
 - 任务与结果只保存在单个 API 进程内存中，服务重启后会消失。
 - PostgreSQL 主动重启后的首个目录请求可能短暂返回一次 503；下一请求会重建连接并恢复，截图识别和求解不受影响。
