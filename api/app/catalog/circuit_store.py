@@ -23,6 +23,10 @@ from app.catalog.circuit_rules import (
 )
 from app.catalog.store import CatalogUnavailable
 from app.puzzles.circuit.model import CircuitPuzzle
+from app.puzzles.circuit.presentation import (
+    CircuitDisplayColor,
+    palette_matches_channels,
+)
 
 
 CircuitRecordDisposition = Literal["recorded", "duplicate", "digest_mismatch"]
@@ -41,12 +45,15 @@ SCHEMA_STATEMENTS = (
         code text NOT NULL REFERENCES circuit_catalog_entry(code) ON DELETE CASCADE,
         fingerprint text NOT NULL CHECK (fingerprint ~ '^[0-9a-f]{64}$'),
         puzzle jsonb NOT NULL,
+        display_palette jsonb NOT NULL DEFAULT '[]'::jsonb,
         observations integer NOT NULL DEFAULT 1 CHECK (observations >= 1),
         first_seen timestamptz NOT NULL DEFAULT now(),
         last_seen timestamptz NOT NULL DEFAULT now(),
         UNIQUE (code, fingerprint)
     )
     """,
+    "ALTER TABLE circuit_catalog_candidate ADD COLUMN IF NOT EXISTS "
+    "display_palette jsonb NOT NULL DEFAULT '[]'::jsonb",
     """
     CREATE TABLE IF NOT EXISTS circuit_catalog_observation (
         id bigserial PRIMARY KEY,
@@ -67,6 +74,7 @@ class CircuitObservation:
     image_sha256: str
     fingerprint: str
     puzzle: dict[str, Any]
+    display_palette: tuple[CircuitDisplayColor, ...]
 
     def __post_init__(self) -> None:
         if normalize_circuit_code(self.code) != self.code:
@@ -79,6 +87,18 @@ class CircuitObservation:
         validated = CircuitPuzzle.model_validate(self.puzzle)
         if circuit_puzzle_fingerprint(validated) != self.fingerprint:
             raise ValueError("circuit observation fingerprint does not match its puzzle")
+        if (
+            not isinstance(self.display_palette, tuple)
+            or any(
+                not isinstance(color, CircuitDisplayColor)
+                for color in self.display_palette
+            )
+            or not palette_matches_channels(
+                self.display_palette,
+                range(len(validated.channels)),
+            )
+        ):
+            raise ValueError("circuit observation palette must match its puzzle")
 
 
 class CircuitCatalogStore(Protocol):
@@ -138,6 +158,14 @@ class PostgresCircuitCatalogStore:
                     if existing["fingerprint"] == observation.fingerprint
                     else "digest_mismatch"
                 )
+                if disposition == "duplicate" and self._backfill_palette(
+                    connection, observation
+                ):
+                    connection.execute(
+                        "UPDATE circuit_catalog_entry SET updated_at = now() "
+                        "WHERE code = %s",
+                        (observation.code,),
+                    )
                 entry = self._entry(connection, observation.code)
                 if entry is None:
                     raise CatalogUnavailable("源石电路题号目录记录无法读回")
@@ -154,14 +182,21 @@ class PostgresCircuitCatalogStore:
             )
             connection.execute(
                 "INSERT INTO circuit_catalog_candidate "
-                "(code, fingerprint, puzzle, observations) VALUES (%s, %s, %s, 1) "
+                "(code, fingerprint, puzzle, display_palette, observations) "
+                "VALUES (%s, %s, %s, %s, 1) "
                 "ON CONFLICT (code, fingerprint) DO UPDATE SET "
                 "observations = circuit_catalog_candidate.observations + 1, "
-                "last_seen = now()",
+                "last_seen = now(), "
+                "display_palette = CASE "
+                "WHEN circuit_catalog_candidate.display_palette = '[]'::jsonb "
+                "AND circuit_catalog_candidate.puzzle = EXCLUDED.puzzle "
+                "THEN EXCLUDED.display_palette "
+                "ELSE circuit_catalog_candidate.display_palette END",
                 (
                     observation.code,
                     observation.fingerprint,
                     Jsonb(observation.puzzle),
+                    Jsonb(_palette_payload(observation.display_palette)),
                 ),
             )
             connection.execute(
@@ -174,6 +209,23 @@ class PostgresCircuitCatalogStore:
             return entry, "recorded"
 
         return self._with_connection(work)
+
+    @staticmethod
+    def _backfill_palette(
+        connection: psycopg.Connection[Any], observation: CircuitObservation
+    ) -> bool:
+        cursor = connection.execute(
+            "UPDATE circuit_catalog_candidate SET display_palette = %s "
+            "WHERE code = %s AND fingerprint = %s "
+            "AND display_palette = '[]'::jsonb AND puzzle = %s",
+            (
+                Jsonb(_palette_payload(observation.display_palette)),
+                observation.code,
+                observation.fingerprint,
+                Jsonb(observation.puzzle),
+            ),
+        )
+        return cursor.rowcount > 0
 
     def get(self, code: str) -> CircuitCatalogEntry | None:
         return self._with_connection(lambda connection: self._entry(connection, code))
@@ -250,6 +302,7 @@ class PostgresCircuitCatalogStore:
             CircuitCatalogCandidate(
                 fingerprint=item["fingerprint"],
                 puzzle=CircuitPuzzle.model_validate(item["puzzle"]),
+                display_palette=item["display_palette"],
                 status=(
                     "verified" if int(item["observations"]) >= 2 else "provisional"
                 ),
@@ -258,7 +311,8 @@ class PostgresCircuitCatalogStore:
                 last_seen=_as_utc(item["last_seen"]),
             )
             for item in connection.execute(
-                "SELECT id, fingerprint, puzzle, observations, first_seen, last_seen "
+                "SELECT id, fingerprint, puzzle, display_palette, observations, "
+                "first_seen, last_seen "
                 "FROM circuit_catalog_candidate WHERE code = %s "
                 "ORDER BY (observations >= 2) DESC, observations DESC, "
                 "first_seen ASC, id ASC",
@@ -274,6 +328,12 @@ class PostgresCircuitCatalogStore:
 
 def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+def _palette_payload(
+    palette: tuple[CircuitDisplayColor, ...],
+) -> list[dict[str, int | float]]:
+    return [color.model_dump(mode="json") for color in palette]
 
 
 def circuit_catalog_store_from_settings(

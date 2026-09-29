@@ -150,6 +150,7 @@ def test_recognized_result_builds_solves_and_independently_validates(
     result = run_analysis()
 
     assert result.outcome == "recognized"
+    assert result.channel_hues == HUES
     assert result.puzzle is not None
     assert result.solution is not None
     assert result.issues == ()
@@ -483,10 +484,27 @@ def test_decoded_symbol_result_builds_and_solves_with_optional_code(
 
     assert result.outcome == "recognized"
     assert result.notation == "digits"
+    assert result.channel_hues == HUES
     assert result.question_code == "V40020"
     assert result.question_code_confidence == 0.98
     assert result.puzzle is not None and result.solution is not None
     validate_solution(result.puzzle, result.solution)
+
+
+@pytest.mark.parametrize("notation", ["digits", "roman", "mixed"])
+def test_decoded_symbol_paths_preserve_sorted_channel_hues(
+    monkeypatch: pytest.MonkeyPatch, notation: str
+) -> None:
+    patch_symbol_pipeline(
+        monkeypatch,
+        targets=dataclasses.replace(SYMBOL_TARGETS, notation=notation),  # type: ignore[arg-type]
+    )
+
+    result = run_decoded()
+
+    assert result.outcome == "recognized"
+    assert result.notation == notation
+    assert result.channel_hues == HUES
 
 
 def test_decoded_symbol_completion_does_not_read_targets(
@@ -558,6 +576,7 @@ def test_decoded_image_falls_back_to_bar_path_and_marks_notation(
 
     assert result.outcome == "recognized"
     assert result.notation == "bars"
+    assert result.channel_hues == HUES
     assert result.puzzle is not None and result.solution is not None
 
 
@@ -688,9 +707,20 @@ def test_decoded_image_analysis_is_frozen_and_enforces_invariants(
             outcome="recognized",
             puzzle=result.puzzle,
             solution=result.solution,
+            channel_hues=result.channel_hues,
         )
     with pytest.raises(ValueError, match="cannot have notation"):
         DecodedImageAnalysis(outcome="no_board", notation="bars")
+    with pytest.raises(ValueError, match="hues must match"):
+        DecodedImageAnalysis(
+            outcome="recognized",
+            notation="digits",
+            puzzle=result.puzzle,
+            solution=result.solution,
+            channel_hues=(),
+        )
+    with pytest.raises(ValueError, match="only recognized"):
+        DecodedImageAnalysis(outcome="incomplete", channel_hues=HUES)
 
 
 @pytest.mark.parametrize(
@@ -713,4 +743,21 @@ def test_decoded_image_analysis_rejects_invalid_question_code_fields(
             outcome="incomplete",
             question_code=code,
             question_code_confidence=confidence,
+        )
+
+
+@pytest.mark.parametrize("hue", [True, float("nan"), float("inf"), -0.1, 180.0])
+def test_decoded_image_analysis_rejects_invalid_internal_hues(
+    monkeypatch: pytest.MonkeyPatch, hue: object
+) -> None:
+    patch_symbol_pipeline(monkeypatch)
+    result = run_decoded()
+
+    with pytest.raises(ValueError, match="finite OpenCV hues"):
+        DecodedImageAnalysis(
+            outcome="recognized",
+            notation="digits",
+            puzzle=result.puzzle,
+            solution=result.solution,
+            channel_hues=(hue,),  # type: ignore[arg-type]
         )

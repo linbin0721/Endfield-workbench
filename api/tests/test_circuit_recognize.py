@@ -44,6 +44,7 @@ def recognized_payload() -> dict:
     return {
         "outcome": "recognized",
         "puzzle": PUZZLE,
+        "display_palette": [{"channel": 0, "hue_degrees": 80.0}],
         "notation": "digits",
         "question_code": "V40020",
         "question_code_confidence": 0.99,
@@ -263,6 +264,7 @@ def test_worker_constructs_one_ocr_and_drops_internal_solution(
                 recognized_payload()
             ).puzzle,
             solution=solution,
+            channel_hues=(40.0,),
         )
 
     monkeypatch.setattr(worker, "RapidOCR", FakeOCR)
@@ -282,7 +284,34 @@ def test_worker_constructs_one_ocr_and_drops_internal_solution(
     assert calls[1][2] is calls[0][2]
     assert calls[1][3:] == (2.5, 12345)
     assert payload["outcome"] == "recognized"
+    assert payload["display_palette"] == [
+        {"channel": 0, "hue_degrees": 80.0}
+    ]
     assert "solution" not in payload
+
+
+@pytest.mark.parametrize("notation", ["bars", "digits", "roman", "mixed"])
+def test_worker_converts_each_recognition_path_to_standard_hue_degrees(
+    notation: str,
+) -> None:
+    puzzle = CircuitRecognitionResult.model_validate(recognized_payload()).puzzle
+    assert puzzle is not None
+    analysis = DecodedImageAnalysis(
+        outcome="recognized",
+        notation=notation,  # type: ignore[arg-type]
+        puzzle=puzzle,
+        solution=CircuitSolution(
+            placements=[
+                CircuitPlacement(piece_index=0, row=0, column=0, rotation=0)
+            ]
+        ),
+        channel_hues=(179.75,),
+    )
+
+    result = worker.result_from_analysis(analysis)
+
+    assert result.display_palette[0].channel == 0
+    assert result.display_palette[0].hue_degrees == 359.5
 
 
 class FakeProcess:
@@ -343,6 +372,9 @@ def test_supervisor_passes_limits_bytes_and_single_thread_environment(
     result = run_supervisor()
 
     assert result["outcome"] == "recognized"
+    assert result["display_palette"] == [
+        {"channel": 0, "hue_degrees": 80.0}
+    ]
     command, kwargs = popen_calls[0]
     assert command[:3] == [
         recognize_module.sys.executable,

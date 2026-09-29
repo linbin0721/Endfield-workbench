@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from datetime import datetime, timezone
 from threading import Lock
@@ -59,6 +60,8 @@ class MemoryCircuitCatalogStore:
                     if prior == observation.fingerprint
                     else "digest_mismatch"
                 )
+                if disposition == "duplicate":
+                    self._backfill_palette(entry, observation)
                 return self._view(observation.code), disposition
 
             self._digests[digest_key] = observation.fingerprint
@@ -66,13 +69,16 @@ class MemoryCircuitCatalogStore:
             if candidate is None:
                 candidate = {
                     "fingerprint": observation.fingerprint,
-                    "puzzle": observation.puzzle,
+                    "puzzle": copy.deepcopy(observation.puzzle),
+                    "display_palette": list(observation.display_palette),
                     "observations": 0,
                     "first_seen": now,
                     "last_seen": now,
                     "id": len(entry["candidates"]) + 1,
                 }
                 entry["candidates"][observation.fingerprint] = candidate
+            else:
+                self._backfill_palette(entry, observation)
             candidate["observations"] += 1
             candidate["last_seen"] = now
             entry["updated_at"] = now
@@ -104,6 +110,7 @@ class MemoryCircuitCatalogStore:
                 CircuitCatalogCandidate(
                     fingerprint=item["fingerprint"],
                     puzzle=CircuitPuzzle.model_validate(item["puzzle"]),
+                    display_palette=item["display_palette"],
                     status=(
                         "verified"
                         if item["observations"] >= 2
@@ -117,6 +124,21 @@ class MemoryCircuitCatalogStore:
             ],
             updated_at=entry["updated_at"],
         )
+
+    @staticmethod
+    def _backfill_palette(
+        entry: dict[str, Any], observation: CircuitObservation
+    ) -> bool:
+        candidate = entry["candidates"].get(observation.fingerprint)
+        if (
+            candidate is None
+            or candidate["display_palette"]
+            or candidate["puzzle"] != observation.puzzle
+        ):
+            return False
+        candidate["display_palette"] = list(observation.display_palette)
+        entry["updated_at"] = _now()
+        return True
 
 
 class UnavailableCircuitCatalogStore:

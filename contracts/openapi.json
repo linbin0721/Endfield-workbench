@@ -1311,6 +1311,13 @@
           "puzzle": {
             "$ref": "#/components/schemas/CircuitPuzzle"
           },
+          "display_palette": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitDisplayColor"
+            },
+            "type": "array",
+            "title": "Display Palette"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -1527,6 +1534,30 @@
         "title": "CircuitChannel",
         "description": "One color channel with its per-row and per-column coverage counts."
       },
+      "CircuitDisplayColor": {
+        "properties": {
+          "channel": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Channel"
+          },
+          "hue_degrees": {
+            "type": "number",
+            "exclusiveMaximum": 360.0,
+            "minimum": 0.0,
+            "title": "Hue Degrees"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel",
+          "hue_degrees"
+        ],
+        "title": "CircuitDisplayColor",
+        "description": "One domain channel's display hue in standard 0..360 degree space."
+      },
       "CircuitFixedCell": {
         "properties": {
           "row": {
@@ -1707,6 +1738,13 @@
                 "type": "null"
               }
             ]
+          },
+          "display_palette": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitDisplayColor"
+            },
+            "type": "array",
+            "title": "Display Palette"
           },
           "notation": {
             "anyOf": [

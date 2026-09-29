@@ -415,6 +415,8 @@ export interface components {
             /** Fingerprint */
             fingerprint: string;
             puzzle: components["schemas"]["CircuitPuzzle"];
+            /** Display Palette */
+            display_palette?: components["schemas"]["CircuitDisplayColor"][];
             /**
              * Status
              * @enum {string}
@@ -511,6 +513,16 @@ export interface components {
             column_targets: number[];
         };
         /**
+         * CircuitDisplayColor
+         * @description One domain channel's display hue in standard 0..360 degree space.
+         */
+        CircuitDisplayColor: {
+            /** Channel */
+            channel: number;
+            /** Hue Degrees */
+            hue_degrees: number;
+        };
+        /**
          * CircuitFixedCell
          * @description Already covered cell that belongs to one color channel.
          */
@@ -580,6 +592,8 @@ export interface components {
              */
             outcome: "recognized" | "incomplete" | "no_board" | "already_completed" | "timeout" | "invalid_image" | "failed";
             puzzle?: components["schemas"]["CircuitPuzzle"] | null;
+            /** Display Palette */
+            display_palette?: components["schemas"]["CircuitDisplayColor"][];
             /** Notation */
             notation?: ("bars" | "digits" | "roman" | "mixed") | null;
             /** Question Code */

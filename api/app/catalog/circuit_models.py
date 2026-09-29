@@ -10,6 +10,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.puzzles.circuit.model import CircuitPuzzle
+from app.puzzles.circuit.presentation import (
+    CircuitDisplayColor,
+    palette_matches_channels,
+)
 
 
 CandidateStatus = Literal["provisional", "verified"]
@@ -21,6 +25,7 @@ class CircuitCatalogCandidate(BaseModel):
 
     fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     puzzle: CircuitPuzzle
+    display_palette: list[CircuitDisplayColor] = Field(default_factory=list)
     status: CircuitCatalogCandidateStatus
     observations: int = Field(ge=1)
     first_seen: datetime
@@ -33,6 +38,11 @@ class CircuitCatalogCandidate(BaseModel):
             raise ValueError("candidate status must match its observation count")
         if self.last_seen < self.first_seen:
             raise ValueError("candidate last_seen cannot precede first_seen")
+        if self.display_palette and not palette_matches_channels(
+            self.display_palette,
+            range(len(self.puzzle.channels)),
+        ):
+            raise ValueError("candidate palette must match puzzle channels")
         return self
 
 

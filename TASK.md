@@ -24,10 +24,17 @@
 
 #### DSH 回执
 
-- 实际改动：待回执。
-- 验证结果：待回执。
-- 未完成项 / 风险 / 待决策事项：待回执。
-- 建议写入长期记忆：待回执。
+- 实际改动：
+  - 新增独立的 `CircuitDisplayColor` 展示模型和通道连续性校验；`DecodedImageAnalysis` / `BarImageAnalysis` 只在完整识别时保留按通道排序的 OpenCV hue，worker 在正式 JSON 边界按 `(hue * 2) % 360` 生成标准角度。`CircuitRecognitionResult` 要求 recognized 色板完整且连续，其他 outcome 只能为空。
+  - `CircuitCatalogCandidate`、目录 service、`CircuitObservation`、内存 fake 和 PostgreSQL store 全链路保存 `display_palette`。候选表新增 `jsonb NOT NULL DEFAULT '[]'` 并以 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 幂等迁移；新候选保存首次色板，已有非空色板不覆盖。legacy 空色板仅在 incoming/stored puzzle JSON 相等时补入，duplicate 也执行同一检查，digest mismatch 和同指纹但 JSON 不同的表示均不补色。
+  - 扩展模型、分析、worker、service、内存 fake、HTTP/OpenAPI 和真实 PostgreSQL 回归，覆盖 bool/NaN/范围、重复或错序通道、四种 notation、JSON 往返、新写/重复/二次确认/多变体/digest mismatch、非空色板不可覆盖、精确 JSON 补色、等价不同 JSON 不补色及旧表带历史行迁移。重新导出 `contracts/openapi.json` 并由生成器更新 `web/src/generated/api.ts`；未修改手写前端、题面/求解/校验/指纹、部署或生产环境。
+- 验证结果：
+  - 展示模型、analyze、worker、目录 service/fake 与 API 定向：`170 passed`，仅 1 个既有 Starlette/httpx 弃用警告。
+  - 不映射宿主端口的临时 PostgreSQL 17 上真实 store 定向：`10 passed`；带同一临时 PostgreSQL 的后端全量：`712 passed, 5 skipped`，仅 1 个既有弃用警告。5 个跳过项是仓库既有的本地图片样本缺失用例，不包含 PostgreSQL 测试。临时容器 `ew007-postgres` 和网络 `ew007-test` 均已删除，并确认无残留。
+  - OpenAPI 连续导出两次、TypeScript 连续生成两次，哈希稳定：`contracts/openapi.json` 为 `0c721645f48583fe897a30473be1443d1dc897fe577d757eb07432eb120e2dae`，`web/src/generated/api.ts` 为 `28a66bcad64fb4dc55f553c1a722e8170cf57e48bcb19706339eee90e126e656`。生成契约包含 `CircuitDisplayColor` 以及 recognition/candidate 的强类型 `display_palette`。
+  - `npm run build` 通过（TypeScript + Vite，60 modules transformed）；`git diff --check` 通过；新增文件和生成契约权限均为 0644。
+- 未完成项 / 风险 / 待决策事项：按批次边界未读取私有 `set/`、未连接或迁移生产数据库、未部署；真实截图色相对应和生产 legacy `V40020` 补色留给 Codex 独立验收及两批完成后的发布步骤。后端契约和持久化链路没有已知未决实现项。
+- 建议写入长期记忆：无；展示色板不参与领域题面/指纹、非空色板不可覆盖及精确 JSON 才能安全补色均已由冻结设计文档记录。
 
 #### Codex 验收
 

@@ -22,6 +22,7 @@ from app.catalog.circuit_rules import (
 from app.catalog.circuit_service import CircuitCatalogService
 from app.catalog.circuit_store import CircuitObservation
 from app.puzzles.circuit.model import CircuitSolveResult
+from app.puzzles.circuit.presentation import CircuitDisplayColor
 from circuit_catalog_fakes import (
     ExplodingCircuitCatalogStore,
     MemoryCircuitCatalogStore,
@@ -53,9 +54,30 @@ VERTICAL_PUZZLE = {
     ],
 }
 
+PALETTE = [{"channel": 0, "hue_degrees": 80.0}]
+
 
 def digest(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+def direct_observation(
+    puzzle: dict,
+    image: str,
+    hues: tuple[float, ...] | None = None,
+) -> CircuitObservation:
+    if hues is None:
+        hues = tuple(80.0 + index * 100.0 for index in range(len(puzzle["channels"])))
+    return CircuitObservation(
+        code="V40020",
+        image_sha256=digest(image),
+        fingerprint=circuit_puzzle_fingerprint(puzzle),
+        puzzle=copy.deepcopy(puzzle),
+        display_palette=tuple(
+            CircuitDisplayColor(channel=index, hue_degrees=hue)
+            for index, hue in enumerate(hues)
+        ),
+    )
 
 
 def recognition(
@@ -66,12 +88,17 @@ def recognition(
 ) -> dict:
     payload = {
         "outcome": outcome,
+        "display_palette": [],
         "question_code": code,
         "question_code_confidence": 0.99 if code is not None else None,
         "issues": [],
     }
     if outcome == "recognized":
-        payload.update(puzzle=copy.deepcopy(puzzle), notation="digits")
+        payload.update(
+            puzzle=copy.deepcopy(puzzle),
+            notation="digits",
+            display_palette=copy.deepcopy(PALETTE),
+        )
     elif outcome not in {"no_board", "timeout", "invalid_image", "failed"}:
         payload["notation"] = "digits"
     return payload
@@ -288,11 +315,29 @@ def test_catalog_models_enforce_status_and_shape() -> None:
 def test_observation_rejects_noncanonical_codes_digests_and_fingerprints() -> None:
     fingerprint = circuit_puzzle_fingerprint(PUZZLE)
     with pytest.raises(ValueError, match="canonical"):
-        CircuitObservation("△-V40020", digest("x"), fingerprint, PUZZLE)
+        CircuitObservation(
+            "△-V40020",
+            digest("x"),
+            fingerprint,
+            PUZZLE,
+            (CircuitDisplayColor(channel=0, hue_degrees=80),),
+        )
     with pytest.raises(ValueError, match="digest"):
-        CircuitObservation("V40020", "not-a-digest", fingerprint, PUZZLE)
+        CircuitObservation(
+            "V40020",
+            "not-a-digest",
+            fingerprint,
+            PUZZLE,
+            (CircuitDisplayColor(channel=0, hue_degrees=80),),
+        )
     with pytest.raises(ValueError, match="fingerprint"):
-        CircuitObservation("V40020", digest("x"), "0" * 64, PUZZLE)
+        CircuitObservation(
+            "V40020",
+            digest("x"),
+            "0" * 64,
+            PUZZLE,
+            (CircuitDisplayColor(channel=0, hue_degrees=80),),
+        )
 
 
 def test_first_duplicate_and_second_observation_lifecycle() -> None:
@@ -303,6 +348,7 @@ def test_first_duplicate_and_second_observation_lifecycle() -> None:
     assert first["recorded"] is True
     assert first["matched_status"] == "provisional"
     assert first["candidates"][0]["observations"] == 1
+    assert first["candidates"][0]["display_palette"] == PALETTE
 
     duplicate = service.enrich_recognition(recognition(), digest("one"))["catalog"]
     assert duplicate["duplicate"] is True and duplicate["recorded"] is False
@@ -312,6 +358,89 @@ def test_first_duplicate_and_second_observation_lifecycle() -> None:
     assert verified["recorded"] is True
     assert verified["matched_status"] == "verified"
     assert verified["candidates"][0]["observations"] == 2
+    assert verified["candidates"][0]["display_palette"] == PALETTE
+
+
+def test_memory_store_never_overwrites_a_nonempty_palette() -> None:
+    store = MemoryCircuitCatalogStore()
+    first, _ = store.record(direct_observation(PUZZLE, "first", (80.0,)))
+    second, disposition = store.record(
+        direct_observation(PUZZLE, "second", (240.0,))
+    )
+
+    assert disposition == "recorded"
+    assert first.candidates[0].display_palette[0].hue_degrees == 80.0
+    assert second.candidates[0].display_palette[0].hue_degrees == 80.0
+    assert second.candidates[0].observations == 2
+
+
+def test_memory_store_preserves_each_normal_variants_own_palette() -> None:
+    store = MemoryCircuitCatalogStore()
+    store.record(direct_observation(PUZZLE, "first", (80.0,)))
+    entry, disposition = store.record(
+        direct_observation(VERTICAL_PUZZLE, "variant", (240.0,))
+    )
+
+    assert disposition == "recorded"
+    palettes = {
+        candidate.fingerprint: candidate.display_palette[0].hue_degrees
+        for candidate in entry.candidates
+    }
+    assert palettes == {
+        circuit_puzzle_fingerprint(PUZZLE): 80.0,
+        circuit_puzzle_fingerprint(VERTICAL_PUZZLE): 240.0,
+    }
+
+
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_memory_store_safely_backfills_an_exact_legacy_candidate(
+    duplicate: bool,
+) -> None:
+    store = MemoryCircuitCatalogStore()
+    store.record(direct_observation(PUZZLE, "first", (80.0,)))
+    fingerprint = circuit_puzzle_fingerprint(PUZZLE)
+    store._entries["V40020"]["candidates"][fingerprint]["display_palette"] = []
+
+    image = "first" if duplicate else "second"
+    entry, disposition = store.record(
+        direct_observation(PUZZLE, image, (240.0,))
+    )
+
+    assert disposition == ("duplicate" if duplicate else "recorded")
+    assert entry.candidates[0].display_palette[0].hue_degrees == 240.0
+    assert entry.candidates[0].observations == (1 if duplicate else 2)
+
+
+def test_memory_store_does_not_backfill_an_equivalent_different_json() -> None:
+    store = MemoryCircuitCatalogStore()
+    store.record(direct_observation(PUZZLE, "same", (80.0,)))
+    fingerprint = circuit_puzzle_fingerprint(PUZZLE)
+    store._entries["V40020"]["candidates"][fingerprint]["display_palette"] = []
+    reordered = copy.deepcopy(PUZZLE)
+    reordered["pieces"][0]["cells"].reverse()
+    assert circuit_puzzle_fingerprint(reordered) == fingerprint
+    assert reordered != PUZZLE
+
+    entry, disposition = store.record(
+        direct_observation(reordered, "same", (240.0,))
+    )
+
+    assert disposition == "duplicate"
+    assert entry.candidates[0].display_palette == []
+
+
+def test_memory_store_digest_mismatch_never_backfills_palette() -> None:
+    store = MemoryCircuitCatalogStore()
+    store.record(direct_observation(PUZZLE, "same", (80.0,)))
+    fingerprint = circuit_puzzle_fingerprint(PUZZLE)
+    store._entries["V40020"]["candidates"][fingerprint]["display_palette"] = []
+
+    entry, disposition = store.record(
+        direct_observation(VERTICAL_PUZZLE, "same", (240.0,))
+    )
+
+    assert disposition == "digest_mismatch"
+    assert entry.candidates[0].display_palette == []
 
 
 def test_same_code_variants_are_normal_and_confirm_independently() -> None:

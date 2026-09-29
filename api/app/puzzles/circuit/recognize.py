@@ -16,6 +16,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.catalog.circuit_models import CircuitCatalogMatch
 from app.catalog.circuit_rules import normalize_circuit_code
 from app.puzzles.circuit.model import CircuitPuzzle
+from app.puzzles.circuit.presentation import (
+    CircuitDisplayColor,
+    palette_matches_channels,
+)
 
 
 RecognitionOutcome = Literal[
@@ -45,6 +49,7 @@ class CircuitRecognitionResult(BaseModel):
 
     outcome: RecognitionOutcome
     puzzle: CircuitPuzzle | None = None
+    display_palette: list[CircuitDisplayColor] = Field(default_factory=list)
     notation: RecognitionNotation | None = None
     question_code: str | None = None
     question_code_confidence: float | None = None
@@ -67,8 +72,17 @@ class CircuitRecognitionResult(BaseModel):
                 raise ValueError("a recognized result must carry a puzzle")
             if self.notation is None:
                 raise ValueError("a recognized result must carry notation")
-        elif self.puzzle is not None:
-            raise ValueError("only a recognized result may carry a puzzle")
+            if not palette_matches_channels(
+                self.display_palette,
+                range(len(self.puzzle.channels)),
+            ):
+                raise ValueError(
+                    "a recognized result palette must match puzzle channels"
+                )
+        elif self.puzzle is not None or self.display_palette:
+            raise ValueError(
+                "only a recognized result may carry a puzzle or display palette"
+            )
 
         if self.outcome == "no_board" and self.notation is not None:
             raise ValueError("a no_board result cannot carry notation")

@@ -16,6 +16,7 @@ from rapidocr_onnxruntime import RapidOCR
 
 from app.puzzles.circuit.analyze import DecodedImageAnalysis, analyze_decoded_image
 from app.puzzles.circuit.recognize import CircuitRecognitionResult
+from app.puzzles.circuit.presentation import CircuitDisplayColor
 
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -92,6 +93,13 @@ def result_from_analysis(analysis: DecodedImageAnalysis) -> CircuitRecognitionRe
     return CircuitRecognitionResult(
         outcome=analysis.outcome,
         puzzle=analysis.puzzle,
+        display_palette=[
+            CircuitDisplayColor(
+                channel=channel,
+                hue_degrees=(float(hue) * 2.0) % 360.0,
+            )
+            for channel, hue in enumerate(analysis.channel_hues)
+        ],
         notation=analysis.notation,
         question_code=analysis.question_code,
         question_code_confidence=analysis.question_code_confidence,

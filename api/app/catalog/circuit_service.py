@@ -129,6 +129,7 @@ class CircuitCatalogService:
                 image_sha256=image_sha256,
                 fingerprint=fingerprint,
                 puzzle=puzzle.model_dump(),
+                display_palette=tuple(result.display_palette),
             )
         )
         match.complete = True

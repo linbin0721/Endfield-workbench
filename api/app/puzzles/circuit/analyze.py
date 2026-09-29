@@ -59,11 +59,17 @@ class BarImageAnalysis:
     outcome: AnalysisOutcome
     puzzle: CircuitPuzzle | None = None
     solution: CircuitSolution | None = None
+    channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
-            self.outcome, self.puzzle, self.solution, self.issues, "bar image"
+            self.outcome,
+            self.puzzle,
+            self.solution,
+            self.channel_hues,
+            self.issues,
+            "bar image",
         )
 
 
@@ -77,11 +83,17 @@ class DecodedImageAnalysis:
     question_code_confidence: float | None = None
     puzzle: CircuitPuzzle | None = None
     solution: CircuitSolution | None = None
+    channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
-            self.outcome, self.puzzle, self.solution, self.issues, "decoded image"
+            self.outcome,
+            self.puzzle,
+            self.solution,
+            self.channel_hues,
+            self.issues,
+            "decoded image",
         )
         if self.notation not in {None, "bars", "digits", "roman", "mixed"}:
             raise ValueError(f"unknown decoded image notation {self.notation!r}")
@@ -109,11 +121,17 @@ class _CoreAnalysis:
     outcome: AnalysisOutcome
     puzzle: CircuitPuzzle | None = None
     solution: CircuitSolution | None = None
+    channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
-            self.outcome, self.puzzle, self.solution, self.issues, "core"
+            self.outcome,
+            self.puzzle,
+            self.solution,
+            self.channel_hues,
+            self.issues,
+            "core",
         )
 
 
@@ -127,6 +145,7 @@ def _validate_analysis_fields(
     outcome: str,
     puzzle: CircuitPuzzle | None,
     solution: CircuitSolution | None,
+    channel_hues: tuple[float, ...],
     issues: tuple[str, ...],
     label: str,
 ) -> None:
@@ -136,13 +155,29 @@ def _validate_analysis_fields(
         not isinstance(issue, str) for issue in issues
     ):
         raise ValueError("issues must be a tuple of strings")
+    if not isinstance(channel_hues, tuple) or any(
+        isinstance(hue, bool)
+        or not isinstance(hue, numbers.Real)
+        or not math.isfinite(float(hue))
+        or not 0.0 <= float(hue) < 180.0
+        for hue in channel_hues
+    ):
+        raise ValueError("channel hues must be a tuple of finite OpenCV hues")
     if outcome == "recognized":
         if not isinstance(puzzle, CircuitPuzzle) or not isinstance(
             solution, CircuitSolution
         ):
             raise ValueError("recognized analysis must carry a puzzle and solution")
-    elif puzzle is not None or solution is not None:
-        raise ValueError("only recognized analysis may carry a puzzle or solution")
+        expected = [channel.index for channel in puzzle.channels]
+        if len(channel_hues) != len(expected) or list(range(len(channel_hues))) != expected:
+            raise ValueError("recognized analysis hues must match puzzle channels")
+        if any(
+            float(channel_hues[index]) >= float(channel_hues[index + 1])
+            for index in range(len(channel_hues) - 1)
+        ):
+            raise ValueError("recognized analysis hues must be strictly ascending")
+    elif puzzle is not None or solution is not None or channel_hues:
+        raise ValueError("only recognized analysis may carry a puzzle, solution or hues")
 
 
 def _incomplete(issue: str) -> _CoreAnalysis:
@@ -265,7 +300,12 @@ def _build_and_solve(
         validate_solution(puzzle, solution)
     except ValueError as error:
         return _incomplete(f"independent solution validation failed: {error}")
-    return _CoreAnalysis(outcome="recognized", puzzle=puzzle, solution=solution)
+    return _CoreAnalysis(
+        outcome="recognized",
+        puzzle=puzzle,
+        solution=solution,
+        channel_hues=tuple(float(hue) for hue in channel_hues),
+    )
 
 
 def _analyze_bar_core(
@@ -356,6 +396,7 @@ def analyze_bar_image(
         outcome=core.outcome,
         puzzle=core.puzzle,
         solution=core.solution,
+        channel_hues=core.channel_hues,
         issues=core.issues,
     )
 
@@ -410,5 +451,6 @@ def analyze_decoded_image(
         question_code_confidence=code.confidence,
         puzzle=core.puzzle,
         solution=core.solution,
+        channel_hues=core.channel_hues,
         issues=tuple(issues),
     )

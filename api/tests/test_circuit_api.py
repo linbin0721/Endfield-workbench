@@ -50,11 +50,14 @@ VERTICAL_PUZZLE = {
     ],
 }
 
+PALETTE = [{"channel": 0, "hue_degrees": 80.0}]
+
 
 def recognition(puzzle: dict = PUZZLE) -> dict:
     return {
         "outcome": "recognized",
         "puzzle": copy.deepcopy(puzzle),
+        "display_palette": copy.deepcopy(PALETTE),
         "notation": "digits",
         "question_code": "V40020",
         "question_code_confidence": 0.99,
@@ -312,6 +315,21 @@ def test_openapi_exposes_circuit_routes_and_strong_task_models() -> None:
         "CircuitCatalogEntry",
         "CircuitCatalogCandidate",
         "CircuitCatalogMatch",
+        "CircuitDisplayColor",
     } <= set(schemas)
+    palette_ref = schemas["CircuitRecognitionResult"]["properties"][
+        "display_palette"
+    ]["items"]["$ref"]
+    candidate_palette_ref = schemas["CircuitCatalogCandidate"]["properties"][
+        "display_palette"
+    ]["items"]["$ref"]
+    assert palette_ref.endswith("/CircuitDisplayColor")
+    assert candidate_palette_ref == palette_ref
+    assert schemas["CircuitDisplayColor"]["properties"]["hue_degrees"] == {
+        "type": "number",
+        "exclusiveMaximum": 360.0,
+        "minimum": 0.0,
+        "title": "Hue Degrees",
+    }
     assert schemas["CircuitRecognitionTaskView"]["properties"]["result"]
     assert schemas["CircuitSolveTaskView"]["properties"]["result"]
