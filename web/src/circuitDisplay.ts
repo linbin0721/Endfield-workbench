@@ -10,6 +10,15 @@ export type CircuitBoundarySegment = {
   x2: number;
   y2: number;
 };
+export type CircuitPieceFill = {
+  pathData: string;
+  bounds: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  };
+};
 
 export type CircuitDisplayColor = {
   channel: number;
@@ -108,21 +117,54 @@ export function circuitColorStyle(color: CircuitDisplayColor): CSSProperties {
   } as CSSProperties;
 }
 
-/** Return only the exposed unit edges of one already validated placement. */
-export function circuitPieceBoundarySegments(
-  cells: readonly CircuitDisplayPoint[],
-): CircuitBoundarySegment[] {
+function validatedCircuitDisplayCells(cells: readonly CircuitDisplayPoint[]): {
+  cells: readonly CircuitDisplayPoint[];
+  occupied: Set<string>;
+} {
+  if (!Array.isArray(cells) || cells.length === 0) {
+    throw new Error("empty circuit display cells");
+  }
   const occupied = new Set<string>();
   for (const cell of cells) {
-    if (!Number.isInteger(cell.row) || !Number.isInteger(cell.column) || cell.row < 0 || cell.column < 0) {
+    if (cell === null || typeof cell !== "object" ||
+        !Number.isInteger(cell.row) || !Number.isInteger(cell.column) ||
+        cell.row < 0 || cell.column < 0) {
       throw new Error("invalid circuit display cell");
     }
     const key = `${cell.row},${cell.column}`;
     if (occupied.has(key)) throw new Error("duplicate circuit display cell");
     occupied.add(key);
   }
+  return { cells, occupied };
+}
+
+/**
+ * Build one compound SVG fill path and its user-space gradient bounds.
+ * Every unit square is a subpath of the same fill element, so the browser
+ * rasterizes one placement with one continuous gradient and no cell strokes.
+ */
+export function circuitPieceFill(cells: readonly CircuitDisplayPoint[]): CircuitPieceFill {
+  const validated = validatedCircuitDisplayCells(cells);
+  let x1 = Number.POSITIVE_INFINITY, y1 = Number.POSITIVE_INFINITY;
+  let x2 = Number.NEGATIVE_INFINITY, y2 = Number.NEGATIVE_INFINITY;
+  const pathData = validated.cells.map((cell) => {
+    x1 = Math.min(x1, cell.column);
+    y1 = Math.min(y1, cell.row);
+    x2 = Math.max(x2, cell.column + 1);
+    y2 = Math.max(y2, cell.row + 1);
+    return `M${cell.column} ${cell.row}h1v1h-1Z`;
+  }).join("");
+  return { pathData, bounds: { x1, y1, x2, y2 } };
+}
+
+/** Return only the exposed unit edges of one validated placement. */
+export function circuitPieceBoundarySegments(
+  cells: readonly CircuitDisplayPoint[],
+): CircuitBoundarySegment[] {
+  const validated = validatedCircuitDisplayCells(cells);
+  const { occupied } = validated;
   const segments: CircuitBoundarySegment[] = [];
-  for (const cell of cells) {
+  for (const cell of validated.cells) {
     const { row, column } = cell;
     if (!occupied.has(`${row - 1},${column}`)) {
       segments.push({ x1: column, y1: row, x2: column + 1, y2: row });

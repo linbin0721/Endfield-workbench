@@ -3,6 +3,7 @@ import type { CircuitPuzzle, CircuitSolveResult } from "./api";
 import { deriveCircuitAnswer } from "./circuit";
 import {
   circuitPieceBoundarySegments,
+  circuitPieceFill,
   resolveCircuitDisplayPalette,
 } from "./circuitDisplay";
 
@@ -46,6 +47,11 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
     return invalidResult("显示颜色无法与题面对应，未绘制答案。");
   }
   const obstaclePatternId = `${svgId}-obstacle`;
+  const placementDrawings = placements.map((placement) => ({
+    placement,
+    fill: circuitPieceFill(placement.cells),
+    boundary: circuitPieceBoundarySegments(placement.cells),
+  }));
 
   return <div className="circuit-solution">
     <p className="success-line">答案已校验。连续色块代表一个库存形状；菱形是固定格，斜纹是障碍。</p>
@@ -63,6 +69,18 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
           <stop offset="0.24" stopColor={color.fill} />
           <stop offset="1" stopColor={color.softFill} />
         </linearGradient>)}
+        {placementDrawings.map(({ placement, fill }) => {
+          const color = palette.colors[placement.channel];
+          return <linearGradient key={placement.pieceIndex}
+            id={`${svgId}-piece-${placement.pieceIndex}`}
+            gradientUnits="userSpaceOnUse"
+            x1={fill.bounds.x1} y1={fill.bounds.y1}
+            x2={fill.bounds.x2} y2={fill.bounds.y2}>
+            <stop offset="0" stopColor={color.highlight} />
+            <stop offset="0.24" stopColor={color.fill} />
+            <stop offset="1" stopColor={color.softFill} />
+          </linearGradient>;
+        })}
       </defs>
 
       <rect className="circuit-svg-frame" x="0" y="0" width={normalized.columns} height={normalized.rows} />
@@ -91,16 +109,15 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
         </g>;
       })}
 
-      {placements.map((placement) => {
+      {placementDrawings.map(({ placement, fill, boundary }) => {
         const color = palette.colors[placement.channel];
-        const boundary = circuitPieceBoundarySegments(placement.cells);
         const outline = boundary.map((segment) =>
           `M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}`).join("");
         return <g key={placement.pieceIndex}
+          data-circuit-placement={placement.pieceIndex}
           aria-label={`${color.name}，${placement.cells.length} 格库存形状`}>
-          {placement.cells.map((cell) => <rect key={`${cell.row}-${cell.column}`}
-            x={cell.column} y={cell.row} width="1" height="1"
-            fill={`url(#${svgId}-color-${color.channel})`} aria-hidden="true" />)}
+          <path d={fill.pathData} fill={`url(#${svgId}-piece-${placement.pieceIndex})`}
+            data-circuit-piece-fill="" aria-hidden="true" />
           <path d={outline} fill="none" stroke={color.edge} strokeWidth="0.095"
             strokeLinejoin="round" strokeLinecap="round" aria-hidden="true" />
           <path d={outline} fill="none" stroke={color.highlight} strokeWidth="0.025"

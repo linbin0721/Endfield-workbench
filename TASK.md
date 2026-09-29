@@ -4,7 +4,34 @@
 
 ## 当前委派
 
-暂无。
+### EW-008：源石电路拼块整体填充
+
+- 状态：进行中
+- 目标：让答案棋盘中的每个库存形状呈现为一块连续、自然的整体，消除每格重复渐变造成的方块拼接感。
+- 范围：只调整源石电路成功答案的 SVG 拼块填充路径与渐变坐标；保留现有外轮廓、颜色来源、障碍、固定格、题面预览和交互流程。
+- 限制 / 约束：每个 placement 使用一个填充元素和覆盖该形状整体包围范围的连续渐变；不得恢复内部格线，不得合并相邻的不同 placement；不修改后端、契约、识别、求解、目录或部署配置。
+- 必要上下文：当前 `CircuitResult` 为一个 placement 的每个格子分别绘制 `<rect>`，通道渐变默认以各 rect 的 object bounding box 重复，导致明暗在每格重新开始。外轮廓已经由 `circuitPieceBoundarySegments` 正确计算。
+- 验收条件：直线、L/T/S 和凹形拼块内部没有格状明暗重复或发丝缝；每个拼块只使用一个整体填充路径；同色相邻的不同拼块仍由各自边界清楚分开；固定格和障碍不变；桌面与窄屏无溢出。
+- 验证要求：运行前端生产构建和 `git diff --check`；用模拟题面检查一个多格拼块只有一个填充 path、渐变为 `userSpaceOnUse` 且范围等于该拼块包围盒；完成桌面与 390px 浏览器截图供 Codex 审查。DSH 不读取 `set/`、不提交、不推送、不部署。
+
+#### DSH 回执
+
+- 实际改动：
+  - 在 `circuitDisplay.ts` 新增 `circuitPieceFill` 纯函数，为一个 placement 生成单一复合 SVG 填充 path 及整体 `x1/y1/x2/y2` 包围范围；填充与既有 `circuitPieceBoundarySegments` 共用同一个单元校验器，统一拒绝空集合、非整数/负坐标和重复单元，避免两套展示几何校验漂移。
+  - `CircuitResult` 先为各 placement 推导填充与外轮廓，再给每个 placement 定义独立的 `gradientUnits="userSpaceOnUse"` 线性渐变，渐变起止覆盖该 placement 的完整包围盒。每个 placement 只绘制一个填充 `path`，不再按单元绘制多个 `rect`；原有深浅两层外轮廓继续按 placement 独立绘制，相邻不同 placement 不合并。
+- 验证结果：
+  - 已忽略的纯函数脚本覆盖直线、L/T/S、凹形、整体 bounds、path 单元子路径数，以及空集合、负数、非整数和重复单元；fill 与 boundary 对同组非法输入均拒绝，检查通过。
+  - 模拟 API 的 Playwright 浏览器全流程通过：合成 4×4 题面共 3 个 placement，每组恰好 1 个 `path[data-circuit-piece-fill]`、0 个逐格 `rect`、2 个独立外轮廓 path；横向双格 placement 的渐变为 `userSpaceOnUse`，范围精确为 `(2,0) → (4,1)`。原有 6 次 solve、2 次活动任务取消、非法答案拒绘、色板来源、气球 smoke、焦点和竞态断言同时通过。
+  - 1440×900 与 390×844 均无横向溢出；截图保存在已忽略的 `deploy/.local-backups/ew008-desktop-1440x900.png` 和 `ew008-mobile-390x844.png`。目视确认横向双格和 L 形的明暗在整体形状上连续、没有逐格重复渐变或发丝缝，同色相邻的独立 placement 仍有清楚边界，固定格与障碍未变化。测试浏览器缺 CJK 字体导致文字呈方框，不影响图形审查。
+  - 最终常规 `npm run build` 通过（TypeScript + Vite，61 modules transformed）；`git diff --check` 通过；测试 preview 与浏览器子进程已清理。
+- 未完成项 / 风险 / 待决策事项：按范围未读取 `set/`、未修改后端/契约/识别/求解/目录/部署，未连接生产或部署；浏览器使用合成题面，生产真实题面的最终视觉仍由 Codex 发布前验收。
+- 建议写入长期记忆：无；每个 placement 使用一个 user-space 整体渐变填充、不同 placement 不合并的长期约束已记录在 EW-008 冻结任务中。
+
+#### Codex 验收
+
+- 独立检查：待验收。
+- 结论：待验收。
+- 提交 / 推送：待验收。
 
 ## 近期完成
 
