@@ -288,9 +288,9 @@
 - 结论：B2b 已验收。已解码 BGR 图片的 bars/digits/roman/mixed 编排、可选题号及最终求解校验闭环完成；字节/EXIF 边界、一次性 OCR 子进程和正式结果 JSON 留给 B2c。
 - 提交 / 推送：`68b0ab8`（`feat: decode circuit screenshot constraints`）已推送到 `origin/main`；本验收记录随后推送。
 
-###### 当前委派 B2c：图片边界、一次性 worker 与正式结果
+###### B2c：图片边界、一次性 worker 与正式结果（已验收）
 
-- 状态：已委派，待 DSH 回执与 Codex 验收
+- 状态：已验收
 - 目标：把 B2b 已解码图片闭环封装成正式 Pydantic JSON 结果和受父进程监督的一次性 OCR worker，完整执行图片字节、格式、像素、EXIF、工作尺寸、超时和 stdout 上限。
 - 范围：新增 `api/app/puzzles/circuit/recognize.py`、`recognize_worker.py` 及对应单元测试；允许更新 circuit 包说明和本节回执。不得修改 `main.py`、任务队列、上传中间件、配置、数据库、OpenAPI、前端、部署或既有 balloon worker；HTTP/目录接线属于 C1/C2。
 - 限制 / 约束：严格实现 `docs/circuit-design.md` 的 B2c 冻结契约。worker 只接受 stdin 图片并只向 stdout 写 JSON；原图不落盘。正式结果不暴露内部解答，不用 `dict`/`Any` 伪造未来 catalog 字段。父进程必须 `shell=False`、限制 256 KiB stdout、单线程环境、超时杀死并等待子进程；错误文本不得包含异常、路径或图片内容。
@@ -300,16 +300,20 @@
 
 #### DSH 回执
 
-- 实际改动：待填写。
-- 验证结果：待填写。
-- 未完成项 / 风险 / 待决策事项：待填写。
-- 建议写入长期记忆：待填写。
+- 实际改动：
+  - 新增 `api/app/puzzles/circuit/recognize.py`：定义禁止额外字段的 `CircuitRecognitionResult`，覆盖七种 outcome，重复检查 recognized/puzzle/notation、no_board/notation 和题号/置信度不变量；正式结果不含内部 `solution` 或目录占位。`recognize_circuit_job` 以 `shell=False` 启动一次性模块 worker，经 stdin 传原始图片、丢弃 stderr，传递求解时间/节点限制并覆盖 OMP/OpenBLAS/MKL/ORT 单线程环境；超时执行 kill、communicate、wait，非零退出、超过 256 KiB 输出、非法 JSON/UTF-8 或模型不符均收敛为不含内部信息的 `failed`。
+  - 新增 `api/app/puzzles/circuit/recognize_worker.py`：最多读取 12 MiB 加一字节，只接受 PNG/JPEG/WebP；在载入像素前检查正尺寸与 2000 万源像素上限，应用 EXIF 方向，转 RGB 后按 3200 最长边和 400 万工作像素双限制用 Lanczos 缩小，绝不放大，最后输出连续 `uint8` BGR。worker 设置 OpenCV 单线程，只构造一个双单线程 `RapidOCR` 并把同一实例及求解限制传给 B2b；映射时丢弃内部解答，预期图片错误为 `invalid_image`，识别异常为 `failed`，OCR 期间 Python stdout 重定向到已被父进程丢弃的 stderr。
+  - 新增 `api/tests/test_circuit_recognize.py`（50 项）：覆盖七种 outcome、额外字段、题面/notation/题号不变量；PNG/JPEG/WebP、空/损坏/GIF、12 MiB、非法与超 2000 万像素头、EXIF 1/3/6/8、最长边/总像素缩放、不放大及 RGB→BGR；单 OCR 实例、参数传递、内部解答剔除；有效 JSON、非零退出、超时 kill/wait、超大 stdout、非法 JSON/UTF-8/模型、线程环境，以及真实一次性 worker 的坏图边界。没有修改 HTTP、任务队列、配置、数据库、OpenAPI、前端、部署或 balloon。
+- 验证结果：新增测试 `50 passed`；连同 B2b、视觉和领域的定向测试 `548 passed`；后端全量 `622 passed, 9 skipped, 1 warning`（4 项目录存储因未设置 `CATALOG_TEST_DSN` 跳过，5 项既有 `samples/private/` 样本缺失跳过；warning 是既有 Starlette/httpx 弃用提示）。`git diff --check` 通过。按本批限制未读取 `set/`，因此 40 张私有原始图片、冷启动耗时、数字/条形 `V40020` 一致性和超时后的真实进程树由 Codex 独立验收。
+- 未完成项 / 风险 / 待决策事项：本批没有接入 HTTP、任务池、目录或生产能力，仍由 C1/C2 完成。40 张私有样本回归、冷启动耗时、数字/条形 `V40020` 一致性和超时后真实进程树按分工留给 Codex 验收。
+- 建议写入长期记忆：正式源石电路识别结果故意丢弃识别阶段用于可解性复核的内部 `solution`；后续 solve 路由必须从正式 `puzzle` 独立求解，不能扩展识别 JSON 暴露该内部解答。
 
 #### Codex 验收
 
-- 独立检查：待验收。
-- 结论：待验收。
-- 提交 / 推送：待验收。
+- 独立检查：复核正式模型、父进程监督、匿名文件 stdout 边界、字节与图片头检查、EXIF 转正、双重工作尺寸、BGR 转换、单 OCR 生命周期及错误收敛。正式结果禁止额外字段和内部解答；父进程只从匿名文件读取 256 KiB 加一字节，超时路径执行 kill、communicate 和 wait。真实 10 ms 超时审计返回 `timeout`，随后进程树无残留子进程。
+- 验证结果：独立定向复跑 `548 passed`；后端全量 `622 passed、9 skipped、1` 个既有 Starlette/httpx 弃用警告。37 张训练图和 3 张测试图均以原始文件字节进入真实 `recognize_circuit_job`：21 张为 `recognized/bars`、18 张为 `already_completed/bars`、1 张为 `recognized/digits`，失败 0；所有正式题面重新构造、再次求解并通过独立校验。数字版与条形版 `V40020` 题面一致，题号命中 36/40。一次性进程冷启动总耗时 min/mean/P50/P95/max 约 3.69/4.53/4.05/6.23/6.86 秒，均低于 25 秒上限；输出均不含 `solution`。
+- 结论：B2c 已验收，EW-006 的识别器 B 批完成。源石电路现在具备受限的离线原始图片识别闭环；尚未建立独立目录表、公开 API、前端页面或生产 release，继续 C1/C2。
+- 提交 / 推送：`f0411ed`（`feat: bound circuit recognition workers`）已推送到 `origin/main`；本验收记录随后推送。
 
 ##### 后续批次
 
