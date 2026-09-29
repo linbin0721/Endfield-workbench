@@ -1,13 +1,13 @@
 # 项目当前状态
 
-最后核验：2026-09-29 18:11 UTC。
+最后核验：2026-09-29 18:18 UTC。
 
 ## 当前阶段
 
 - “浮空回收”和“源石电路”均已公开部署。两者都支持截图识别、自动求解和按题号查询；网页入口分别为 `/balloon` 与 `/circuit`。
-- 当前生产前端提交为 `a6fe91b6c943309e14022b2d50098836c1b23ac4`，API 提交为 `4056d5e7c8c53e0e1c5e5c408435b81c92107d60`；EW-010 已验收并发布。
+- 当前生产前端提交为 `f1f66ba150c88d026b6ddcd15d55a91a02b0b7ac`，API 提交为 `4056d5e7c8c53e0e1c5e5c408435b81c92107d60`；EW-011 已验收并发布。
 - 源石电路截图识别会保留真实色相；截图、题号目录与 legacy 候选都能把正确色板带到答案。每个库存形状使用一个整体路径和连续渐变，不显示内部格线、通道/拼块编号、坐标、旋转或约束清单。
-- 源石电路截图与题号入口共用同一张未解题示意画面；约束已从示例中移除，题号、棋盘和库存由三个编号区域标出。库存形状使用与答案相同的整体 SVG 路径、连续渐变和外轮廓。
+- 源石电路截图与题号入口共用同一张未解题示意画面；约束已从示例中移除，题号、棋盘和库存由三个编号区域标出。库存形状使用与答案相同的整体 SVG 路径、连续渐变和外轮廓，回退示例色为游戏中的蓝青色与荧光绿色。
 - 源石电路私有训练集现有 37 张，测试集 3 张；当前支持短条、数字和罗马数字约束、1～4 通道、障碍、固定格及可旋转库存拼块。
 
 ## 生产部署
@@ -15,7 +15,7 @@
 | 项目 | 当前值 |
 | --- | --- |
 | 前端 | `https://endfield.linbin.org/` |
-| 前端 release | `/var/www/endfield-workbench/releases/a6fe91b`；`current` 指向该目录 |
+| 前端 release | `/var/www/endfield-workbench/releases/f1f66ba`；`current` 指向该目录 |
 | API | `https://api.linbin.org/endfield` |
 | API 容器 | `endfield-workbench-api-1`，镜像 `sha256:0dc5433b…`，健康，单 Uvicorn worker，异常重启次数 0 |
 | PostgreSQL | `endfield-workbench-db-1`，PostgreSQL 17，健康，异常重启次数 0，卷 `endfield-workbench_catalog_data` |
@@ -36,6 +36,7 @@
 - Edge 154 中 `/circuit` 深链和刷新正常；1440×900 与 390×844 无横向溢出，输入焦点为 2px 实线。答案区域没有 `C1`/`P1`、坐标、旋转或约束文字。
 - EW-008 公网 DOM 验证 V40020 的 4 个 placement 各有 1 个整体 fill path、0 个逐格 rect、2 个独立外轮廓；7/3/4/4 格形状的 user-space 渐变范围分别与自身包围盒一致，桌面和移动端目视无格状重复或内部缝隙。
 - EW-010 公网 Edge 验证两种入口的示意 stage 完全一致：约束节点为 0，编号区域为 `3/1/2`，三组库存各有 1 个整体 SVG fill path、0 个 rect 和 2 个外轮廓 path。1440×900 与 390×844 均无重叠或横向溢出，console/runtime error 为 0。
+- EW-011 公网 Edge 验证库存填充为 `[174°, 77°, 77°]`，固定格使用相同两色，旧 34° 橙黄色不存在；整体路径数量、桌面/移动端无溢出及 console/runtime error 检查均通过。
 - 公网 10 路并发目录查询均为 HTTP 200；API 主动重启后健康、目录色板与题号求解正常。
 - HTTPS 证书、HTTP 301、生产 Origin CORS、非允许 Origin 拒绝、Compose 配置、Nginx 配置和回环端口检查均通过。
 - 空闲快照：API CPU 0.22%、内存 51.72 MiB；PostgreSQL CPU 0.00%、内存 28.68 MiB。
