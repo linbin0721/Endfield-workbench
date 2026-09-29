@@ -475,9 +475,21 @@
 - 结论：D2b 已验收。源石电路截图和题号两条前端流程、竞态清理及代码级 capability 达到发布门槛；真实截图、公网、PostgreSQL 持久化和生产资源仍由 E 批验收，当前生产站尚未切换。
 - 提交 / 推送：`68b8045`（`feat: complete circuit puzzle frontend`）已推送到 `origin/main`。
 
-##### 后续批次
+##### 当前批次 E：生产发布与全链路验收
 
-- E：全量测试与私有回归后备份数据库、构建镜像和静态 release，依次验证回环、公网 HTTPS/CORS、双谜题实际请求、重启持久化、10 路并发和资源占用，再公开 capability。
+- 状态：进行中
+- 目标：把已验收的 A～D 代码安全发布到现有 VPS，在不改动共享 Nginx 其他站点的前提下完成源石电路公开上线和双谜题回归。
+- 范围：发布前全量测试与私有样本回归；PostgreSQL 和 Nginx 恢复点；Compose 配置检查、API 镜像构建与单 worker 更新；带生产 API 地址的版本化静态前端构建和原子 symlink 切换；回环、公网、CORS、HTTP 跳转、真实截图、题号目录、重启持久化、10 路并发和资源快照。
+- 限制 / 约束：继续复用 `deploy/compose.vps.yaml` 和现有共享 Nginx；API 只绑定 `127.0.0.1:18000`，PostgreSQL 不发布宿主端口，Caddy 不启动；数据库变更前先备份并验证 dump；前端使用 `VITE_API_BASE_URL=https://api.linbin.org/endfield` 的生产构建；任何失败先保留旧静态 release，并按本批备份或前一镜像回滚。
+- 必要上下文：发布前生产前端为 `56256c94aa1fcba5b98f9871abe720e2e00767c0`，API release 为 `33cd3502c0a5b074ca83419a645ea396618de19c`；生产 Origin 为 `https://endfield.linbin.org`。源石电路私有样本只用于本机和实际请求验证，不进入镜像、Git、日志或静态目录。
+- 验收条件：API 与数据库健康且 API 单 worker；静态 `current` 指向本次版本目录；HTTP 跳转 HTTPS，证书有效，CORS 只允许生产前端；两种谜题至少各一个真实截图流程成功，源石电路截图和题号流程均能得到经校验结果；目录跨 API/数据库重启保持；10 路并发无异常 5xx；内部端口未暴露；空闲资源可接受且日志无持续错误。
+- 验证要求：记录发布 commit、备份路径、Compose/Nginx 检查、完整测试结果、私有样本汇总、容器健康/重启次数、公开端点与浏览器验证、并发结果、重启后复查和 `docker stats --no-stream`；验收后更新 `STATUS.md`、实际更新/回滚命令与本任务结论。
+
+#### Codex 验收
+
+- 独立检查：进行中。
+- 结论：待验收。
+- 提交 / 推送：待验收。
 
 ## 近期完成
 
