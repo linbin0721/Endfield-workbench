@@ -113,7 +113,14 @@ ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbenc
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
 
-For the EW-007 release (`4056d5e`), roll the static site and API image back to the preceding EW-006 release without changing the backward-compatible database column:
+EW-008 (`d8dc3bf`) changed only the static frontend. Roll back its unified-piece rendering without restarting the API:
+
+```sh
+ln -s /var/www/endfield-workbench/releases/4056d5e /var/www/endfield-workbench/current.rollback
+mv -Tf /var/www/endfield-workbench/current.rollback /var/www/endfield-workbench/current
+```
+
+To roll the earlier EW-007 release (`4056d5e`) back to EW-006, switch both the static site and API image without changing the backward-compatible database column:
 
 ```sh
 ln -s /var/www/endfield-workbench/releases/90b762f /var/www/endfield-workbench/current.rollback
