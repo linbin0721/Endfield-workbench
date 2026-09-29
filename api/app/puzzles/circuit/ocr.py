@@ -13,7 +13,6 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Literal
 
-import cv2
 import numpy as np
 
 from app.catalog.circuit_rules import normalize_circuit_code
@@ -22,7 +21,8 @@ from app.puzzles.circuit.vision import BoardGeometry, SymbolLayout
 
 CONSTRAINT_MIN_CONFIDENCE = 0.90
 QUESTION_CODE_MIN_CONFIDENCE = 0.95
-QUESTION_FULL_FRAME_MAX_SIDE = 1800
+QUESTION_CODE_CROP_WIDTH_PERCENT = 28
+QUESTION_CODE_CROP_HEIGHT_PERCENT = 22
 CONSTRAINT_CROP_PADDING = 0.05
 
 _ROMAN_VALUES = {
@@ -297,35 +297,16 @@ def _reading_from_candidates(
 def read_circuit_question_code(
     image: np.ndarray, geometry: BoardGeometry | None, ocr: object
 ) -> QuestionCodeReading:
-    """Read a code beside the board, then fall back to a bounded full frame."""
+    """Read an optional code once from its fixed top-left screen region."""
     _validated_image(image, "read_circuit_question_code")
-    saw_code_like = False
-    if geometry is not None:
-        step = float(geometry.step)
-        left = 0
-        right = min(
-            image.shape[1],
-            max(0, int(math.ceil(geometry.left - 0.05 * step))),
-        )
-        top = max(0, int(math.floor(geometry.top - 2.0 * step)))
-        bottom = min(image.shape[0], int(math.ceil(geometry.bottom + step)))
-        if right > left and bottom > top:
-            candidates, saw_code_like = _codes_from_boxes(
-                _ocr_boxes(ocr, image[top:bottom, left:right])
-            )
-            reading = _reading_from_candidates(candidates, saw_code_like)
-            if reading is not None and (reading.code is not None or reading.ambiguous):
-                return reading
-
+    del geometry  # Kept in the public signature for existing callers.
     height, width = image.shape[:2]
-    scale = min(1.0, QUESTION_FULL_FRAME_MAX_SIDE / max(height, width))
-    frame = image
-    if scale < 1.0:
-        frame = cv2.resize(
-            image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA
-        )
-    candidates, full_saw = _codes_from_boxes(_ocr_boxes(ocr, frame))
-    reading = _reading_from_candidates(candidates, saw_code_like or full_saw)
+    crop_width = max(1, (width * QUESTION_CODE_CROP_WIDTH_PERCENT + 99) // 100)
+    crop_height = max(1, (height * QUESTION_CODE_CROP_HEIGHT_PERCENT + 99) // 100)
+    candidates, saw_code_like = _codes_from_boxes(
+        _ocr_boxes(ocr, image[:crop_height, :crop_width])
+    )
+    reading = _reading_from_candidates(candidates, saw_code_like)
     if reading is not None:
         return reading
     return QuestionCodeReading(None, None, False, False)

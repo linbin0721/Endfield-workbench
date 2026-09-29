@@ -299,35 +299,37 @@ def boxes(*values: tuple[str, float]):
     return [([0, 0, 1, 1], text, confidence) for text, confidence in values]
 
 
-def test_question_code_prefers_relative_board_region() -> None:
+@pytest.mark.parametrize("board", [geometry(), None])
+def test_question_code_uses_one_exact_fixed_crop(
+    board: BoardGeometry | None,
+) -> None:
+    image = np.arange(11 * 13 * 3, dtype=np.uint8).reshape((11, 13, 3))
     ocr = FakeOCR(box_results=[boxes(("△-V40020", 0.98))])
-    result = read_circuit_question_code(
-        np.zeros((160, 200, 3), dtype=np.uint8), geometry(), ocr
-    )
+    result = read_circuit_question_code(image, board, ocr)
     assert result == QuestionCodeReading("V40020", 0.98, True, False)
     assert len(ocr.box_calls) == 1
-    assert ocr.box_calls[0].shape[1] < 200
+    assert ocr.box_calls[0].shape == (3, 4, 3)
+    assert np.array_equal(ocr.box_calls[0], image[:3, :4])
 
 
-def test_question_code_falls_back_to_full_frame_and_downscales() -> None:
-    ocr = FakeOCR(
-        box_results=[boxes(("noise", 0.99)), boxes(("△-WL0020", 0.97))]
-    )
+def test_question_code_crop_is_at_least_one_pixel_and_never_falls_back() -> None:
+    ocr = FakeOCR(box_results=[boxes(("noise", 0.99)), boxes(("WL0020", 0.99))])
     result = read_circuit_question_code(
-        np.zeros((2000, 3000, 3), dtype=np.uint8), geometry(), ocr
+        np.zeros((1, 1, 3), dtype=np.uint8), geometry(), ocr
     )
-    assert result.code == "WL0020"
-    assert len(ocr.box_calls) == 2
-    assert max(ocr.box_calls[1].shape[:2]) == 1800
+    assert result == QuestionCodeReading(None, None, False, False)
+    assert len(ocr.box_calls) == 1
+    assert ocr.box_calls[0].shape == (1, 1, 3)
 
 
-def test_question_code_without_geometry_reads_only_the_bounded_full_frame() -> None:
+def test_question_code_without_geometry_uses_the_same_fixed_crop() -> None:
     ocr = FakeOCR(box_results=[boxes(("V40051", 0.96))])
     result = read_circuit_question_code(
         np.zeros((200, 300, 3), dtype=np.uint8), None, ocr
     )
     assert result.code == "V40051"
     assert len(ocr.box_calls) == 1
+    assert ocr.box_calls[0].shape == (44, 84, 3)
 
 
 def test_question_code_conflict_is_ambiguous() -> None:
@@ -341,14 +343,13 @@ def test_question_code_conflict_is_ambiguous() -> None:
     assert len(ocr.box_calls) == 1
 
 
-def test_question_code_low_confidence_survives_fallback_as_code_like() -> None:
-    ocr = FakeOCR(
-        box_results=[boxes(("V40020", 0.94)), boxes(("V40020", 0.93))]
-    )
+def test_question_code_low_confidence_remains_code_like() -> None:
+    ocr = FakeOCR(box_results=[boxes(("V40020", 0.94))])
     result = read_circuit_question_code(
         np.zeros((160, 200, 3), dtype=np.uint8), geometry(), ocr
     )
     assert result == QuestionCodeReading(None, None, True, False)
+    assert len(ocr.box_calls) == 1
 
 
 def test_question_code_repeated_same_code_is_not_ambiguous() -> None:
