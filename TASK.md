@@ -6,7 +6,7 @@
 
 ### EW-006：源石电路截图、题号目录与求解全链路
 
-- 状态：进行中（领域核心和截图识别 A、B 已验收；当前执行 C1 独立目录）
+- 状态：进行中（领域核心、截图识别和独立目录 A、B、C1 已验收；当前准备 C2 API 接线）
 - 目标：在独立 `/circuit` 页面提供与浮空回收一致的截图识别和按题号查询入口，并返回经过独立校验的源石电路摆放结果。
 - 范围：`line-count-v1` 题面模型、求解与校验、截图识别、源石电路独立 PostgreSQL 目录、API/OpenAPI、前端三路由与答案绘制、测试和生产发布。
 - 限制 / 约束：算法、契约和批次边界由 Codex 决定；DSH 按批次实现，不自行改变规则。浮空回收现有行为和表结构不得回退；`set/` 原图及派生材料不得提交；功能通过全链路验收前不得在能力接口公开为可用。
@@ -315,9 +315,9 @@
 - 结论：B2c 已验收，EW-006 的识别器 B 批完成。源石电路现在具备受限的离线原始图片识别闭环；尚未建立独立目录表、公开 API、前端页面或生产 release，继续 C1/C2。
 - 提交 / 推送：`f0411ed`（`feat: bound circuit recognition workers`）已推送到 `origin/main`；本验收记录随后推送。
 
-##### 当前批次 C1：独立 PostgreSQL 目录
+##### 批次 C1：独立 PostgreSQL 目录（已验收）
 
-- 状态：进行中
+- 状态：已验收
 - 目标：为源石电路建立与气球目录隔离的题号、正常变体、图片观察和数据库故障降级闭环，供 C2 的 HTTP 路由直接接线。
 - 范围：新增 `api/app/catalog/circuit_models.py`、`circuit_rules.py`、`circuit_store.py`、`circuit_service.py` 及专用测试；把题号规范化规则从 OCR 模块移到纯规则模块；为 `CircuitRecognitionResult` 加入强类型、可空的 `catalog` 字段。不得修改 `main.py`、任务队列、中间件、配置变量、OpenAPI 导出、前端、Compose 或生产服务。
 - 限制 / 约束：只新增 `circuit_catalog_entry/candidate/observation` 三张表和索引，不读写或迁移 `balloon_catalog_*`；同编号的不同指纹是正常变体，没有 entry 级 `disputed`；候选由两个不同图片摘要确认；同一 `(code,image_sha256)` 幂等，已记录摘要若产生新指纹则返回 `digest_mismatch` 并保留历史。OCR worker 不连接数据库；API 进程写入前必须重新构造题面、独立求解并再次校验解答。
@@ -344,9 +344,10 @@
 
 #### Codex 验收
 
-- 独立检查：待验收。
-- 结论：待验收。
-- 提交 / 推送：待验收。
+- 独立检查：逐项复核响应模型、题号纯规则、四旋转拼块规范化、全局通道置换、观察对象自校验、逐题号行锁、三种写入 disposition、候选排序及 API 进程复核边界。额外枚举 24 种通道置换并对每种生成 10 组拼块乱序/旋转/单元格乱序，共 240 个等价题面指纹完全一致；镜像形状保持不同。未发现需返工项。
+- 验证结果：独立定向测试 `196 passed、4 skipped`；无数据库的后端全量 `653 passed、13 skipped、1` 个既有 Starlette/httpx 弃用警告，其中 8 项目录存储因未设置 `CATALOG_TEST_DSN` 跳过，5 项因缺少旧 `samples/private/` 样本跳过。另起不发布宿主端口的临时 PostgreSQL 17，先写入非空气球目录再同时运行两套真实存储测试，共 `8 passed`；结束时气球 entry/candidate/observation 为 `1/1/2`，电路为 `1/1/1`，电路测试前后气球表内容摘要一致。临时容器和网络已删除，生产数据库与服务未改动。
+- 结论：C1 已验收。源石电路目录具备独立表、正常多变体、候选二次确认、摘要漂移保护、数据库故障降级和并发幂等语义；尚未接入应用生命周期、HTTP、任务 finalize 或公开契约，继续 C2。
+- 提交 / 推送：`6185a9f`（`feat: add circuit puzzle catalog`）已推送到 `origin/main`；本验收记录随后推送。
 
 ##### 后续批次
 
