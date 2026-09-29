@@ -113,7 +113,14 @@ ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbenc
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
 
-EW-008 (`d8dc3bf`) changed only the static frontend. Roll back its unified-piece rendering without restarting the API:
+EW-009 (`abc4e8b`) changed only the static frontend. Roll back its simplified circuit guide without restarting the API:
+
+```sh
+ln -s /var/www/endfield-workbench/releases/d8dc3bf /var/www/endfield-workbench/current.rollback
+mv -Tf /var/www/endfield-workbench/current.rollback /var/www/endfield-workbench/current
+```
+
+To also roll back EW-008 (`d8dc3bf`) and its unified-piece rendering without restarting the API:
 
 ```sh
 ln -s /var/www/endfield-workbench/releases/4056d5e /var/www/endfield-workbench/current.rollback
