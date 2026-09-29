@@ -3,8 +3,9 @@
 Only the pure helpers ``saturated_components``, ``fit_axis_lattice``,
 ``square_lattices``, ``cluster_hues``, ``cell_evidence``, ``classify_cell``,
 ``reconstruct_piece``, bar extraction, board location, target decoding and
-board cell extraction are exercised. Every image is built in memory from
-simple shapes, no file is read and no other recognition stage is imported.
+board cell extraction and inventory extraction are exercised. Every image is
+built in memory from simple shapes, no file is read and no other recognition
+stage is imported.
 """
 
 import dataclasses
@@ -25,6 +26,8 @@ from app.puzzles.circuit.vision import (
     CellEvidence,
     ChannelClusters,
     Component,
+    InventoryPiece,
+    InventoryState,
     PieceShape,
     cell_evidence,
     classify_cell,
@@ -32,6 +35,7 @@ from app.puzzles.circuit.vision import (
     extract_bar_stacks,
     extract_bar_targets,
     extract_board_cells,
+    extract_inventory,
     fit_axis_lattice,
     group_bar_ensembles,
     locate_bar_board,
@@ -2762,3 +2766,375 @@ def test_board_cell_map_is_detached_from_source_pixels() -> None:
         for cell in row
         for value in (cell.kind, cell.channel, cell.confidence)
     )
+
+
+# ---------------------------------------------------------------------------
+# inventory slots and pieces
+
+INVENTORY_HUES = (38, 104, 145, 170)
+
+
+def inventory_geometry(step: int = 100) -> BoardGeometry:
+    return cell_map_geometry(2, 2, step=step, origin=(40, 180))
+
+
+def inventory_slot_box(
+    index: int,
+    *,
+    step: int,
+    columns: int,
+    origin: tuple[int, int],
+) -> tuple[int, int, int]:
+    side = round(1.57 * step)
+    pitch = round(1.72 * step)
+    row, column = divmod(index, columns)
+    return origin[0] + column * pitch, origin[1] + row * pitch, side
+
+
+def draw_inventory_slot(
+    image: np.ndarray,
+    index: int,
+    *,
+    step: int,
+    columns: int,
+    origin: tuple[int, int],
+    value: int = 180,
+) -> None:
+    left, top, side = inventory_slot_box(
+        index, step=step, columns=columns, origin=origin
+    )
+    thickness = max(2, round(0.035 * step))
+    cv2.rectangle(
+        image,
+        (left, top),
+        (left + side - 1, top + side - 1),
+        (value, value, value),
+        thickness,
+    )
+
+
+def draw_inventory_piece(
+    image: np.ndarray,
+    index: int,
+    cells: tuple[tuple[int, int], ...],
+    hue: int,
+    *,
+    step: int,
+    columns: int,
+    origin: tuple[int, int],
+) -> None:
+    left, top, side = inventory_slot_box(
+        index, step=step, columns=columns, origin=origin
+    )
+    unit = max(8, round(0.24 * step))
+    gap = max(1, round(0.02 * step))
+    rows = max(row for row, _ in cells) + 1
+    columns_count = max(column for _, column in cells) + 1
+    width = columns_count * unit
+    height = rows * unit
+    piece_left = left + (side - width) // 2
+    piece_top = top + (side - height) // 2
+    for row, column in cells:
+        paste(
+            image,
+            piece_left + column * unit + gap // 2,
+            piece_top + row * unit + gap // 2,
+            solid(
+                hue,
+                width=unit - gap,
+                height=unit - gap,
+                value=210,
+            ),
+        )
+
+
+def inventory_scene(
+    slot_count: int,
+    pieces: dict[int, tuple[int, tuple[tuple[int, int], ...]]],
+    *,
+    step: int = 100,
+    columns: int = 2,
+    origin: tuple[int, int] | None = None,
+    frame_value: int = 180,
+) -> tuple[np.ndarray, BoardGeometry]:
+    geometry = inventory_geometry(step)
+    slot_origin = origin or (geometry.right + round(1.20 * step), round(0.40 * step))
+    pitch = round(1.72 * step)
+    rows = math.ceil(slot_count / columns)
+    width = int(slot_origin[0] + (columns - 1) * pitch + 1.57 * step + 2.0 * step)
+    height = int(max(geometry.bottom + step, slot_origin[1] + (rows + 2) * pitch))
+    image = blank(width, height)
+    for index in range(slot_count):
+        draw_inventory_slot(
+            image,
+            index,
+            step=step,
+            columns=columns,
+            origin=(int(slot_origin[0]), int(slot_origin[1])),
+            value=frame_value,
+        )
+    for index, (channel, cells) in pieces.items():
+        draw_inventory_piece(
+            image,
+            index,
+            cells,
+            INVENTORY_HUES[channel],
+            step=step,
+            columns=columns,
+            origin=(int(slot_origin[0]), int(slot_origin[1])),
+        )
+    return image, geometry
+
+
+@pytest.mark.parametrize(
+    ("step", "origin"),
+    [
+        pytest.param(50, (163, 27), id="half-translated"),
+        pytest.param(100, (367, 43), id="unit-translated"),
+        pytest.param(200, (713, 81), id="double-translated"),
+    ],
+)
+def test_extract_inventory_is_scale_and_translation_invariant(
+    step: int, origin: tuple[int, int]
+) -> None:
+    shapes = {
+        0: (0, ((0, 0), (0, 1), (0, 2))),
+        1: (1, ((0, 0), (1, 0), (1, 1))),
+        2: (2, ((0, 0), (0, 1), (1, 1), (1, 2))),
+        3: (3, ((0, 0), (0, 1), (0, 2), (1, 1))),
+        4: (0, ((0, 0), (1, 0), (1, 1), (2, 0))),
+    }
+    image, geometry = inventory_scene(5, shapes, step=step, origin=origin)
+
+    result = extract_inventory(image, geometry, INVENTORY_HUES)
+
+    assert result is not None
+    assert (result.slot_count, result.empty_count) == (5, 0)
+    assert [piece.slot_index for piece in result.pieces] == [0, 1, 2, 3, 4]
+    assert [piece.channel for piece in result.pieces] == [0, 1, 2, 3, 0]
+    assert [piece.cells for piece in result.pieces] == [
+        shapes[index][1] for index in range(5)
+    ]
+    assert all(piece.iou >= 0.72 for piece in result.pieces)
+
+
+def test_extract_inventory_keeps_mixed_and_all_empty_slots() -> None:
+    image, geometry = inventory_scene(
+        3,
+        {1: (0, ((0, 0), (0, 1), (1, 0)))},
+    )
+    mixed = extract_inventory(image, geometry, (INVENTORY_HUES[0],))
+    empty_image, empty_geometry = inventory_scene(3, {})
+    empty = extract_inventory(empty_image, empty_geometry, (INVENTORY_HUES[0],))
+
+    assert mixed is not None
+    assert (mixed.slot_count, mixed.empty_count) == (3, 2)
+    assert len(mixed.pieces) == 1
+    assert mixed.pieces[0].slot_index == 1
+    assert empty is not None
+    assert (empty.slot_count, empty.empty_count, empty.pieces) == (3, 3, ())
+
+
+def test_extract_inventory_uses_visible_dividers_in_solid_rectangles() -> None:
+    square_image, square_geometry = inventory_scene(
+        1,
+        {
+            0: (
+                0,
+                ((0, 0), (0, 1), (1, 0), (1, 1)),
+            )
+        },
+    )
+    line_image, line_geometry = inventory_scene(1, {})
+    left, top, side = inventory_slot_box(
+        0,
+        step=100,
+        columns=2,
+        origin=(int(line_geometry.right + 120), 40),
+    )
+    cell_width, piece_height = 22, 26
+    piece_left = left + (side - 4 * cell_width) // 2
+    piece_top = top + (side - piece_height) // 2
+    for column, cell_value in enumerate((194, 181, 152, 195)):
+        paste(
+            line_image,
+            piece_left + column * cell_width,
+            piece_top,
+            solid(
+                INVENTORY_HUES[0],
+                width=cell_width,
+                height=piece_height,
+                value=cell_value,
+            ),
+        )
+
+    square = extract_inventory(
+        square_image, square_geometry, (INVENTORY_HUES[0],)
+    )
+    line = extract_inventory(line_image, line_geometry, (INVENTORY_HUES[0],))
+
+    assert square is not None
+    assert square.pieces[0].cells == ((0, 0), (0, 1), (1, 0), (1, 1))
+    assert (square.pieces[0].rows, square.pieces[0].columns) == (2, 2)
+    assert line is not None
+    assert line.pieces[0].cells == ((0, 0), (0, 1), (0, 2), (0, 3))
+    assert (line.pieces[0].rows, line.pieces[0].columns) == (1, 4)
+
+
+def test_extract_inventory_accepts_a_one_column_prefix_and_low_contrast_frames() -> None:
+    image, geometry = inventory_scene(
+        2,
+        {0: (0, ((0, 0),)), 1: (0, ((0, 0), (1, 0)))},
+        columns=1,
+        frame_value=35,
+    )
+
+    result = extract_inventory(image, geometry, (INVENTORY_HUES[0],))
+
+    assert result is not None
+    assert result.slot_count == 2
+    assert [piece.slot_index for piece in result.pieces] == [0, 1]
+    assert result.pieces[0].cells == ((0, 0),)
+
+
+def test_extract_inventory_rejects_a_hole_followed_by_another_frame() -> None:
+    image, geometry = inventory_scene(4, {})
+    left, top, side = inventory_slot_box(
+        2, step=100, columns=2, origin=(int(geometry.right + 120), 40)
+    )
+    image[top - 4 : top + side + 4, left - 4 : left + side + 4] = 0
+
+    assert extract_inventory(image, geometry, (INVENTORY_HUES[0],)) is None
+
+
+def test_extract_inventory_rejects_two_distinct_grids() -> None:
+    image, geometry = inventory_scene(2, {})
+    image = np.concatenate((image, blank(image.shape[1], 220)), axis=0)
+    second_origin = (int(geometry.right + 120), 430)
+    for index in range(2):
+        draw_inventory_slot(
+            image,
+            index,
+            step=100,
+            columns=2,
+            origin=second_origin,
+        )
+
+    assert extract_inventory(image, geometry, (INVENTORY_HUES[0],)) is None
+
+
+def test_extract_inventory_rejects_unknown_or_multiple_content() -> None:
+    unknown, geometry = inventory_scene(1, {})
+    draw_inventory_piece(
+        unknown,
+        0,
+        ((0, 0), (0, 1)),
+        75,
+        step=100,
+        columns=2,
+        origin=(int(geometry.right + 120), 40),
+    )
+    multiple, multiple_geometry = inventory_scene(1, {})
+    left, top, side = inventory_slot_box(
+        0,
+        step=100,
+        columns=2,
+        origin=(int(multiple_geometry.right + 120), 40),
+    )
+    paste(multiple, left + side // 3, top + side // 2, solid(INVENTORY_HUES[0], width=14, height=14))
+    paste(multiple, left + 2 * side // 3, top + side // 2, solid(INVENTORY_HUES[0], width=14, height=14))
+
+    assert extract_inventory(unknown, geometry, (INVENTORY_HUES[0],)) is None
+    assert extract_inventory(multiple, multiple_geometry, (INVENTORY_HUES[0],)) is None
+
+
+def test_extract_inventory_rejects_content_between_two_channel_hues() -> None:
+    image, geometry = inventory_scene(1, {})
+    draw_inventory_piece(
+        image,
+        0,
+        ((0, 0), (0, 1)),
+        39,
+        step=100,
+        columns=2,
+        origin=(int(geometry.right + 120), 40),
+    )
+
+    assert extract_inventory(image, geometry, (35.0, 43.0)) is None
+
+
+def test_extract_inventory_rejects_a_clipped_last_slot() -> None:
+    image, geometry = inventory_scene(3, {})
+    _, top, side = inventory_slot_box(
+        2, step=100, columns=2, origin=(int(geometry.right + 120), 40)
+    )
+    clipped = image[: top + side // 2]
+
+    assert extract_inventory(clipped, geometry, (INVENTORY_HUES[0],)) is None
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((0, 0, 3), dtype=np.uint8), id="empty"),
+        pytest.param(np.zeros((20, 20), dtype=np.uint8), id="grayscale"),
+        pytest.param(np.zeros((20, 20, 3), dtype=np.float32), id="float"),
+        pytest.param("not an image", id="string"),
+    ],
+)
+def test_extract_inventory_rejects_invalid_images(image: object) -> None:
+    with pytest.raises(ValueError):
+        extract_inventory(image, inventory_geometry(), (INVENTORY_HUES[0],))  # type: ignore[arg-type]
+
+
+def test_extract_inventory_validates_geometry_and_channel_hues() -> None:
+    image, geometry = inventory_scene(1, {})
+    with pytest.raises(ValueError, match="BoardGeometry"):
+        extract_inventory(image, "not geometry", (INVENTORY_HUES[0],))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="step must be positive"):
+        extract_inventory(
+            image,
+            dataclasses.replace(geometry, step=-1.0),
+            (INVENTORY_HUES[0],),
+        )
+    for hues in ((), (10, 30, 50, 70, 90), (10, 11), (float("nan"),)):
+        with pytest.raises(ValueError):
+            extract_inventory(image, geometry, hues)
+
+
+def test_inventory_results_are_frozen_plain_values_and_detached() -> None:
+    image, geometry = inventory_scene(
+        2, {0: (0, ((0, 0), (0, 1), (1, 0)))}
+    )
+    result = extract_inventory(image, geometry, (INVENTORY_HUES[0],))
+    assert result is not None
+    before = result
+    image[:] = 255
+
+    assert result == before
+    assert InventoryState.__dataclass_params__.frozen is True
+    assert InventoryPiece.__dataclass_params__.frozen is True
+    assert [field.name for field in dataclasses.fields(InventoryState)] == [
+        "slot_count",
+        "empty_count",
+        "pieces",
+        "minimum_confidence",
+    ]
+    assert [field.name for field in dataclasses.fields(InventoryPiece)] == [
+        "slot_index",
+        "channel",
+        "cells",
+        "rows",
+        "columns",
+        "iou",
+        "center_x",
+        "center_y",
+    ]
+    assert type(result.pieces) is tuple
+    assert all(
+        type(value) in (int, float, tuple)
+        for piece in result.pieces
+        for value in dataclasses.astuple(piece)
+    )
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.empty_count = 0

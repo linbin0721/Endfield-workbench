@@ -2853,3 +2853,616 @@ def extract_board_cells(
         cells.append(tuple(line))
     minimum_confidence = min(cell.confidence for row in cells for cell in row)
     return BoardCellMap(cells=tuple(cells), minimum_confidence=float(minimum_confidence))
+
+
+# ---------------------------------------------------------------------------
+# inventory slots and pieces (B1b3b)
+
+INVENTORY_SLOT_SIDE_RATIOS = (1.55, 1.57, 1.59)
+INVENTORY_SLOT_PITCH_RATIOS = (1.70, 1.72, 1.74)
+INVENTORY_SLOT_BORDER_WIDTH = 0.035
+INVENTORY_FRAME_SEGMENTS = 4
+INVENTORY_STRUCTURE_SIGMA = 0.02
+INVENTORY_MIN_FRAME_RESPONSE = 0.25
+INVENTORY_RELATIVE_FRAME_RESPONSE = 0.35
+INVENTORY_GRID_AMBIGUITY_RATIO = 0.75
+INVENTORY_GRID_DEDUP_DISTANCE = 0.10
+INVENTORY_MAX_SLOTS = 32
+INVENTORY_CANDIDATE_LIMIT = 96
+INVENTORY_CONTENT_LOW = 0.16
+INVENTORY_CONTENT_HIGH = 0.84
+INVENTORY_CONTENT_MIN_AREA = 0.020
+INVENTORY_CONTENT_SMALL_AREA = 0.006
+INVENTORY_CONTENT_CLOSE_SIZE = 0.04
+INVENTORY_DIVIDER_MIN_GRADIENT = 0.75
+INVENTORY_DIVIDER_AXIS_DELTA = 0.20
+
+
+@dataclass(frozen=True)
+class InventoryPiece:
+    """One uniquely reconstructed piece in a confirmed inventory slot."""
+
+    slot_index: int
+    channel: int
+    cells: tuple[tuple[int, int], ...]
+    rows: int
+    columns: int
+    iou: float
+    center_x: float
+    center_y: float
+
+
+@dataclass(frozen=True)
+class InventoryState:
+    """Complete immutable inventory, including slots that are empty."""
+
+    slot_count: int
+    empty_count: int
+    pieces: tuple[InventoryPiece, ...]
+    minimum_confidence: float
+
+
+@dataclass(frozen=True)
+class _InventoryGrid:
+    """Internal slot lattice; every coordinate is a plain Python scalar."""
+
+    columns: int
+    side: int
+    pitch: int
+    left: int
+    top: int
+    slot_count: int
+    scores: tuple[float, ...]
+    threshold: float
+
+
+def _inventory_frame_response(
+    structure: np.ndarray, side: int, band: int
+) -> np.ndarray:
+    """Weakest distributed response over four segmented square-frame sides.
+
+    A single mean per side can be raised by short, strong crossings from four
+    neighboring slots. Splitting every side and taking the weakest segment
+    requires continuous frame support while retaining dim but complete slots.
+    """
+    height, width = structure.shape
+    valid_height = height - side + 1
+    valid_width = width - side + 1
+    if valid_height <= 0 or valid_width <= 0:
+        return np.zeros((0, 0), dtype=np.float32)
+    response = np.full((valid_height, valid_width), np.inf, dtype=np.float32)
+    for segment in range(INVENTORY_FRAME_SEGMENTS):
+        start = int(round(segment * side / INVENTORY_FRAME_SEGMENTS))
+        end = int(round((segment + 1) * side / INVENTORY_FRAME_SEGMENTS))
+        length = end - start
+        horizontal = cv2.boxFilter(
+            structure,
+            -1,
+            (length, band),
+            anchor=(0, 0),
+            normalize=True,
+            borderType=cv2.BORDER_CONSTANT,
+        )
+        vertical = cv2.boxFilter(
+            structure,
+            -1,
+            (band, length),
+            anchor=(0, 0),
+            normalize=True,
+            borderType=cv2.BORDER_CONSTANT,
+        )
+        response = np.minimum.reduce(
+            (
+                response,
+                horizontal[:valid_height, start : start + valid_width],
+                horizontal[
+                    side - band : side - band + valid_height,
+                    start : start + valid_width,
+                ],
+                vertical[start : start + valid_height, :valid_width],
+                vertical[
+                    start : start + valid_height,
+                    side - band : side - band + valid_width,
+                ],
+            )
+        )
+    return response
+
+
+def _inventory_grid_position(
+    left: int, top: int, pitch: int, columns: int, index: int
+) -> tuple[int, int]:
+    """Top-left pixel of one row-major slot lattice position."""
+    row, column = divmod(index, columns)
+    return left + column * pitch, top + row * pitch
+
+
+def _inventory_grid_candidate(
+    response: np.ndarray,
+    *,
+    left: int,
+    top: int,
+    side: int,
+    pitch: int,
+    columns: int,
+    minimum_left: int,
+    minimum_response: float,
+) -> _InventoryGrid | None:
+    """Confirm a maximal one/two-column row-major frame prefix."""
+    height, width = response.shape
+    if not (0 <= top < height and minimum_left <= left < width):
+        return None
+    anchor_scores: list[float] = []
+    for index in range(columns):
+        x, y = _inventory_grid_position(left, top, pitch, columns, index)
+        if x < 0 or y < 0 or x >= width or y >= height:
+            return None
+        anchor_scores.append(float(response[y, x]))
+    anchor = min(anchor_scores)
+    if anchor < minimum_response:
+        return None
+    threshold = max(
+        minimum_response,
+        INVENTORY_RELATIVE_FRAME_RESPONSE * anchor,
+    )
+    if any(score < threshold for score in anchor_scores):
+        return None
+
+    # A candidate beginning in the second real row/column is a suffix, not a
+    # complete inventory. Reject any same-lattice frame above or to its left.
+    previous_left = left - pitch
+    if previous_left >= minimum_left and float(response[top, previous_left]) >= threshold:
+        return None
+    previous_top = top - pitch
+    while previous_top >= 0:
+        for column in range(columns):
+            x = left + column * pitch
+            if x < width and float(response[previous_top, x]) >= threshold:
+                return None
+        previous_top -= pitch
+
+    if columns == 1:
+        # A one-column interpretation may not ignore frames in the parallel
+        # position where a second column would live. Otherwise a damaged
+        # two-column grid could collapse to an apparently valid shorter list.
+        parallel_left = left + pitch
+        parallel_top = top
+        while parallel_left < width and parallel_top < height:
+            if float(response[parallel_top, parallel_left]) >= threshold:
+                return None
+            parallel_top += pitch
+
+    scores: list[float] = []
+    check_limit = INVENTORY_MAX_SLOTS + 4
+    for index in range(check_limit):
+        x, y = _inventory_grid_position(left, top, pitch, columns, index)
+        if x < 0 or y < 0 or x >= width or y >= height:
+            break
+        scores.append(float(response[y, x]))
+    if not scores:
+        return None
+    present = tuple(score >= threshold for score in scores)
+    try:
+        slot_count = present.index(False)
+    except ValueError:
+        # The image never shows a complete blank terminator. The panel may be
+        # clipped or contain more pieces than the domain permits.
+        return None
+    if slot_count < 1 or slot_count > INVENTORY_MAX_SLOTS:
+        return None
+    if any(present[slot_count + 1 :]):
+        return None
+
+    # A partially visible next slot can otherwise look like a blank terminator
+    # because one of its four sides is missing. Reject when that predicted box
+    # crosses an image edge; a fully visible blank box is the completeness
+    # witness for this prefix.
+    next_x, next_y = _inventory_grid_position(
+        left, top, pitch, columns, slot_count
+    )
+    if not (0 <= next_x < width and 0 <= next_y < height):
+        return None
+    return _InventoryGrid(
+        columns=int(columns),
+        side=int(side),
+        pitch=int(pitch),
+        left=int(left),
+        top=int(top),
+        slot_count=int(slot_count),
+        scores=tuple(float(score) for score in scores[:slot_count]),
+        threshold=float(threshold),
+    )
+
+
+def _inventory_same_grid(
+    first: _InventoryGrid, second: _InventoryGrid, step: float
+) -> bool:
+    """Whether two nearby scale hypotheses describe the same slot boxes."""
+    if first.slot_count != second.slot_count or first.columns != second.columns:
+        return False
+    tolerance = INVENTORY_GRID_DEDUP_DISTANCE * step
+    for index in range(first.slot_count):
+        first_x, first_y = _inventory_grid_position(
+            first.left, first.top, first.pitch, first.columns, index
+        )
+        second_x, second_y = _inventory_grid_position(
+            second.left, second.top, second.pitch, second.columns, index
+        )
+        first_center = (first_x + 0.5 * first.side, first_y + 0.5 * first.side)
+        second_center = (second_x + 0.5 * second.side, second_y + 0.5 * second.side)
+        if math.dist(first_center, second_center) > tolerance:
+            return False
+    return True
+
+
+def _inventory_grid_score(grid: _InventoryGrid) -> tuple[int, float, float]:
+    """Prefer the longest prefix, then its weakest and mean frame support."""
+    return (
+        grid.slot_count,
+        min(grid.scores),
+        float(statistics.fmean(grid.scores)),
+    )
+
+
+def _inventory_locate_grid(
+    image: np.ndarray, geometry: BoardGeometry
+) -> _InventoryGrid | None:
+    """Locate one unique inventory frame grid to the right of the board."""
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    sigma = max(0.8, INVENTORY_STRUCTURE_SIGMA * float(geometry.step))
+    structure = np.abs(gray - cv2.GaussianBlur(gray, (0, 0), sigma))
+    minimum_left = max(0, int(math.ceil(geometry.right + 0.20 * geometry.step)))
+    candidates: list[_InventoryGrid] = []
+
+    for side_ratio in INVENTORY_SLOT_SIDE_RATIOS:
+        side = int(round(side_ratio * geometry.step))
+        band = max(2, int(round(INVENTORY_SLOT_BORDER_WIDTH * geometry.step)))
+        response = _inventory_frame_response(structure, side, band)
+        if response.size == 0 or minimum_left >= response.shape[1]:
+            continue
+        search = response.copy()
+        search[:, :minimum_left] = -1.0
+        # A first slot may sit above or below the board top, but it cannot start
+        # far below the board itself. This keeps unrelated bottom controls out.
+        maximum_top = min(
+            response.shape[0] - 1,
+            int(math.ceil(geometry.bottom + 0.50 * geometry.step)),
+        )
+        if maximum_top + 1 < response.shape[0]:
+            search[maximum_top + 1 :, :] = -1.0
+        minimum_response = max(
+            INVENTORY_MIN_FRAME_RESPONSE,
+            INVENTORY_RELATIVE_FRAME_RESPONSE * float(np.max(search)),
+        )
+        radius = max(3, int(round(0.12 * geometry.step)))
+        maxima = cv2.dilate(search, np.ones((radius, radius), dtype=np.uint8))
+        points = np.argwhere(
+            (search >= minimum_response) & (search >= maxima - 1e-6)
+        )
+        ranked = sorted(
+            ((float(search[y, x]), int(x), int(y)) for y, x in points),
+            key=lambda item: (-item[0], item[2], item[1]),
+        )[:INVENTORY_CANDIDATE_LIMIT]
+
+        for pitch_ratio in INVENTORY_SLOT_PITCH_RATIOS:
+            pitch = int(round(pitch_ratio * geometry.step))
+            for _, left, top in ranked:
+                for columns in (1, 2):
+                    candidate = _inventory_grid_candidate(
+                        response,
+                        left=left,
+                        top=top,
+                        side=side,
+                        pitch=pitch,
+                        columns=columns,
+                        minimum_left=minimum_left,
+                        minimum_response=minimum_response,
+                    )
+                    if candidate is not None:
+                        candidates.append(candidate)
+    if not candidates:
+        return None
+
+    candidates.sort(key=_inventory_grid_score, reverse=True)
+    groups: list[list[_InventoryGrid]] = []
+    for candidate in candidates:
+        matching = next(
+            (
+                group
+                for group in groups
+                if _inventory_same_grid(group[0], candidate, geometry.step)
+            ),
+            None,
+        )
+        if matching is None:
+            groups.append([candidate])
+        else:
+            matching.append(candidate)
+    best_per_group = [max(group, key=_inventory_grid_score) for group in groups]
+    best_per_group.sort(key=_inventory_grid_score, reverse=True)
+    best = best_per_group[0]
+    if len(best_per_group) > 1:
+        second = best_per_group[1]
+        best_score = _inventory_grid_score(best)
+        second_score = _inventory_grid_score(second)
+        if second.slot_count == best.slot_count and (
+            second_score[1] >= INVENTORY_GRID_AMBIGUITY_RATIO * best_score[1]
+        ):
+            return None
+    return best
+
+
+def _inventory_trim(mask: np.ndarray) -> np.ndarray | None:
+    """Tight boolean bounding box, or ``None`` for an empty mask."""
+    rows, columns = np.nonzero(mask)
+    if not len(rows):
+        return None
+    return mask[
+        int(rows.min()) : int(rows.max()) + 1,
+        int(columns.min()) : int(columns.max()) + 1,
+    ]
+
+
+def _inventory_piece_mask(
+    mask: np.ndarray, step: float
+) -> np.ndarray | None:
+    """Join one piece's fill/outline and return one filled concave contour."""
+    kernel_side = max(1, int(round(INVENTORY_CONTENT_CLOSE_SIZE * step)))
+    closed = cv2.morphologyEx(
+        mask.astype(np.uint8),
+        cv2.MORPH_CLOSE,
+        np.ones((kernel_side, kernel_side), dtype=np.uint8),
+    )
+    label_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        closed, connectivity=8
+    )
+    substantial: list[int] = []
+    small_area = 0
+    for label in range(1, label_count):
+        area = int(stats[label, cv2.CC_STAT_AREA])
+        if area >= INVENTORY_CONTENT_MIN_AREA * step * step:
+            substantial.append(label)
+        else:
+            small_area += area
+    if len(substantial) != 1:
+        return None
+    if small_area > INVENTORY_CONTENT_SMALL_AREA * step * step:
+        return None
+    primary = (labels == substantial[0]).astype(np.uint8)
+    contours, _ = cv2.findContours(primary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if len(contours) != 1:
+        return None
+    filled = np.zeros(primary.shape, dtype=np.uint8)
+    cv2.drawContours(filled, contours, 0, 1, cv2.FILLED)
+    # Rasterizing a concave external contour can leave one diagonally attached
+    # corner pixel as its own 4-connected component. Drop only such collectively
+    # tiny contour remnants; two substantive 4-connected parts remain invalid.
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        filled, connectivity=4
+    )
+    if count - 1 > 1:
+        ordered = sorted(
+            range(1, count),
+            key=lambda label: int(stats[label, cv2.CC_STAT_AREA]),
+            reverse=True,
+        )
+        discarded_area = sum(
+            int(stats[label, cv2.CC_STAT_AREA]) for label in ordered[1:]
+        )
+        if discarded_area > INVENTORY_CONTENT_SMALL_AREA * step * step:
+            return None
+        filled = (labels == ordered[0]).astype(np.uint8)
+    trimmed = _inventory_trim(filled.astype(bool))
+    return None if trimmed is None else trimmed.astype(np.uint8)
+
+
+def _inventory_divider_counts(profile: np.ndarray, step: float) -> tuple[int, ...]:
+    """Axis subdivision counts whose every internal divider is visible."""
+    values = np.asarray(profile, dtype=np.float32).reshape(1, -1)
+    if values.shape[1] < 2:
+        return (1,)
+    smooth = cv2.GaussianBlur(
+        values, (0, 0), max(0.8, 0.02 * values.shape[1])
+    ).reshape(-1)
+    gradient = np.abs(np.diff(smooth))
+    low = max(0, int(round(0.10 * len(gradient))))
+    high = min(len(gradient), int(round(0.90 * len(gradient))))
+    interior = gradient[low:high] if high > low else gradient
+    median = float(np.median(interior))
+    mad = float(np.median(np.abs(interior - median)))
+    threshold = max(INVENTORY_DIVIDER_MIN_GRADIENT, median + 3.0 * mad)
+    radius = max(1, int(round(0.015 * step)))
+    supported = [1]
+    for count in range(2, PIECE_MAX_GRID + 1):
+        signals: list[float] = []
+        for divider in range(1, count):
+            position = int(round(divider * values.shape[1] / count))
+            start = max(0, position - radius)
+            end = min(len(gradient), position + radius)
+            signals.append(0.0 if end <= start else float(np.max(gradient[start:end])))
+        if signals and min(signals) >= threshold:
+            supported.append(count)
+    return tuple(supported)
+
+
+def _inventory_refine_rectangle(
+    shape: PieceShape,
+    clean: np.ndarray,
+    value_crop: np.ndarray,
+    step: float,
+) -> PieceShape:
+    """Resolve integer subdivisions hidden by a solid rectangular silhouette.
+
+    ``reconstruct_piece`` deliberately prefers the coarsest near-best mask, so
+    a filled 2x2 square is indistinguishable from one large cell and a slightly
+    stretched four-cell line can look like three cells. The UI draws internal
+    cell dividers even when the channel mask is solid. For rectangular results
+    only, use those dividers to select a finer square grid; concave shapes keep
+    the independently reconstructed result unchanged.
+    """
+    expected_rectangle = tuple(
+        (row, column)
+        for row in range(shape.rows)
+        for column in range(shape.columns)
+    )
+    if shape.cells != expected_rectangle:
+        return shape
+    if value_crop.shape != clean.shape:
+        value_crop = cv2.resize(
+            value_crop,
+            (clean.shape[1], clean.shape[0]),
+            interpolation=cv2.INTER_AREA,
+        )
+    height, width = clean.shape
+    central_rows = _region_bounds(height, 0.20, 0.80)
+    central_columns = _region_bounds(width, 0.20, 0.80)
+    column_profile = np.median(
+        value_crop[central_rows[0] : central_rows[1], :], axis=0
+    )
+    row_profile = np.median(
+        value_crop[:, central_columns[0] : central_columns[1]], axis=1
+    )
+    column_counts = _inventory_divider_counts(column_profile, step)
+    row_counts = _inventory_divider_counts(row_profile, step)
+    candidates: list[tuple[int, float, int, int]] = []
+    for rows in row_counts:
+        if rows < shape.rows:
+            continue
+        for columns in column_counts:
+            if columns < shape.columns:
+                continue
+            row_pitch = height / rows
+            column_pitch = width / columns
+            delta = abs(row_pitch - column_pitch) / max(row_pitch, column_pitch)
+            if delta <= INVENTORY_DIVIDER_AXIS_DELTA:
+                candidates.append((rows * columns, -delta, rows, columns))
+    if not candidates:
+        return shape
+    _, _, rows, columns = max(candidates)
+    if rows * columns <= len(shape.cells):
+        return shape
+    cells = tuple(
+        (row, column) for row in range(rows) for column in range(columns)
+    )
+    return PieceShape(
+        cells=cells,
+        rows=int(rows),
+        columns=int(columns),
+        iou=float(np.count_nonzero(clean) / clean.size),
+    )
+
+
+def extract_inventory(
+    image: np.ndarray,
+    geometry: BoardGeometry,
+    channel_hues: Sequence[float],
+) -> InventoryState | None:
+    """Recover every right-side inventory slot and its optional piece.
+
+    Invalid arguments raise ``ValueError``. A valid image whose complete slot
+    lattice, content channel or piece shape is not unique returns ``None``;
+    an independently confirmed inventory in which every slot is empty returns
+    a normal :class:`InventoryState` with an empty ``pieces`` tuple.
+    """
+    _validated_board_image(image, "extract_inventory")
+    _validated_geometry(geometry, "extract_inventory")
+    hues = _normalized_channel_hues(channel_hues)
+    grid = _inventory_locate_grid(image, geometry)
+    if grid is None:
+        return None
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    channel_masks = _board_channel_masks(hsv, hues)
+    saturation = hsv[:, :, 1]
+    value = hsv[:, :, 2]
+    candidate_pixels = ((saturation >= MIN_SATURATION) & (value >= MIN_VALUE)) | (
+        (saturation >= CELL_DIM_MIN_SATURATION) & (value >= CELL_DIM_MIN_VALUE)
+    )
+    assigned_pixels = np.logical_or.reduce(channel_masks)
+    pieces: list[InventoryPiece] = []
+    confidences: list[float] = []
+    empty_count = 0
+    minimum_area = INVENTORY_CONTENT_MIN_AREA * geometry.step * geometry.step
+
+    for slot_index in range(grid.slot_count):
+        left, top = _inventory_grid_position(
+            grid.left, grid.top, grid.pitch, grid.columns, slot_index
+        )
+        right, bottom = left + grid.side, top + grid.side
+        if left < 0 or top < 0 or right > image.shape[1] or bottom > image.shape[0]:
+            return None
+        inner_x = _region_bounds(
+            grid.side, INVENTORY_CONTENT_LOW, INVENTORY_CONTENT_HIGH
+        )
+        inner_y = _region_bounds(
+            grid.side, INVENTORY_CONTENT_LOW, INVENTORY_CONTENT_HIGH
+        )
+        x0, x1 = left + inner_x[0], left + inner_x[1]
+        y0, y1 = top + inner_y[0], top + inner_y[1]
+        candidate = candidate_pixels[y0:y1, x0:x1]
+        unassigned = (candidate & ~assigned_pixels[y0:y1, x0:x1]).astype(np.uint8)
+        unassigned_count, _, unassigned_stats, _ = cv2.connectedComponentsWithStats(
+            unassigned, connectivity=8
+        )
+        if any(
+            int(unassigned_stats[label, cv2.CC_STAT_AREA]) >= minimum_area
+            for label in range(1, unassigned_count)
+        ):
+            return None
+        areas = tuple(
+            int(np.count_nonzero(mask[y0:y1, x0:x1])) for mask in channel_masks
+        )
+        owners = tuple(index for index, area in enumerate(areas) if area >= minimum_area)
+        if len(owners) > 1:
+            return None
+        frame_confidence = min(
+            1.0,
+            grid.scores[slot_index] / (2.0 * grid.threshold),
+        )
+        if not owners:
+            if np.count_nonzero(candidate) >= minimum_area:
+                return None
+            empty_count += 1
+            content_confidence = max(
+                0.0,
+                1.0 - float(np.count_nonzero(candidate)) / minimum_area,
+            )
+            confidences.append(min(frame_confidence, content_confidence))
+            continue
+
+        channel = owners[0]
+        slot_mask = channel_masks[channel][y0:y1, x0:x1]
+        clean = _inventory_piece_mask(slot_mask, geometry.step)
+        if clean is None:
+            return None
+        shape = reconstruct_piece(clean)
+        if shape is None:
+            return None
+        occupied_rows, occupied_columns = np.nonzero(slot_mask)
+        value_crop = value[
+            y0 + int(occupied_rows.min()) : y0 + int(occupied_rows.max()) + 1,
+            x0 + int(occupied_columns.min()) : x0 + int(occupied_columns.max()) + 1,
+        ].astype(np.float32)
+        shape = _inventory_refine_rectangle(
+            shape, clean, value_crop, geometry.step
+        )
+        pieces.append(
+            InventoryPiece(
+                slot_index=int(slot_index),
+                channel=int(channel),
+                cells=tuple((int(row), int(column)) for row, column in shape.cells),
+                rows=int(shape.rows),
+                columns=int(shape.columns),
+                iou=float(shape.iou),
+                center_x=float(left + 0.5 * grid.side),
+                center_y=float(top + 0.5 * grid.side),
+            )
+        )
+        confidences.append(min(frame_confidence, float(shape.iou)))
+
+    return InventoryState(
+        slot_count=int(grid.slot_count),
+        empty_count=int(empty_count),
+        pieces=tuple(pieces),
+        minimum_confidence=float(min(confidences)),
+    )
