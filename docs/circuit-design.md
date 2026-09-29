@@ -193,6 +193,18 @@ GET  /api/v1/puzzles/circuit/catalog/{code}
 - 契约变化后依次导出 `contracts/openapi.json`、运行 `npm run generate:api`、再构建前端。
 - 最终验收前才把 `/api/v1/puzzles` 中的 circuit 能力切换为可用并声明 `line-count-v1`。
 
+### C2 冻结契约
+
+应用新增 `CircuitRecognitionTaskView` 和 `CircuitSolveTaskView`，分别把 `TaskView.result` 收窄为 `CircuitRecognitionResult | null` 与 `CircuitSolveResult | null`。`create_app` 可注入独立 `CircuitCatalogService`；未注入时用现有 `CATALOG_DB_*` 配置建立懒连接服务，lifespan 结束时与气球目录服务分别关闭。
+
+三个具体路由必须写在通用占位之前：
+
+- `POST /api/v1/puzzles/circuit/recognize` 只接收一个 `image`，沿用 12 MiB 文件上限、multipart 总量、30 秒接收、并发上传和队列错误语义；计算 SHA-256 后提交 `recognize_circuit_job(data, recognize_limit, solve_limit, solve_nodes)`，并在 API 进程 finalize 中调用电路目录服务。
+- `POST /api/v1/puzzles/circuit/solve` 接收 `CircuitPuzzle`，只把服务端求解时间和节点上限传给 `solve_circuit_job`，返回 202 任务；客户端不能覆盖限制。
+- `GET /api/v1/puzzles/circuit/catalog/{code}` 使用纯规则规范化题号；非法格式为 422 `INVALID_CODE`，未知为 404 `CATALOG_NOT_FOUND`，目录未配置或不可用为 503 `CATALOG_UNAVAILABLE`，成功返回 `CircuitCatalogEntry` 的全部正常变体。
+
+上传中间件只匹配 `POST` 的 `/api/v1/puzzles/balloon/recognize` 与 `/api/v1/puzzles/circuit/recognize` 两个完整路径，不能影响 GET、后缀路径或通用未知谜题。C2 虽建立可调用的后端契约，但 `PUZZLES["circuit"]` 继续声明 unavailable，直到 D2 页面、类型消费和全链路验收同时完成。导出契约后必须重新生成 TypeScript，禁止手改生成文件。
+
 ## 实施批次和验收门槛
 
 ### A. 领域核心
