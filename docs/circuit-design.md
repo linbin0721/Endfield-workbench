@@ -235,6 +235,14 @@ GET  /api/v1/puzzles/circuit/catalog/{code}
 - D2 加入源石电路双入口、候选缩略图、示意截图和答案棋盘。结果按通道同时使用颜色与编号/纹理，不能只靠颜色传递信息。
 - 桌面与窄屏检查键盘操作、忙状态、切换清理、错误信息和结果可读性。
 
+### D1 冻结契约
+
+前端使用 `BrowserRouter`。共享布局提供品牌首页链接及首页、浮空回收、源石电路三个可键盘操作的导航项，当前项带 `aria-current` 和明确视觉状态；页面内容通过 `Outlet` 渲染。`/` 是谜题选择页，气球卡片进入 `/balloon`；电路卡片明确标为开发中，可进入只说明状态的 `/circuit` 占位页。未知路径显示简短未找到页面并可返回首页。
+
+现有 `App.tsx` 中的全部气球状态与副作用整体迁入 `BalloonPage`：能力查询、generation、AbortController、active task、图片选择、两入口切换、目录候选和答案状态均留在同一个页面组件内。除了适配共享 header/main/footer 所需的外层标记，不改变业务分支和 API 调用；路由卸载继续执行现有 cleanup，取消轮询及活动任务。
+
+生产前端位于域名根路径，不设置 basename。`web/vercel.json` 增加所有路径回退到 `/index.html` 的 rewrite；VPS 已有 Nginx `try_files`，D1 不修改系统配置。桌面和 390px 窄屏必须无横向滚动，导航可换行；本批不调用电路 API、不打开 capability、不增加电路示例或解答组件。
+
 ### E. 发布
 
 - 后端全量 pytest、私有样本回归、前端类型生成与生产构建、Compose 和 Nginx 配置检查。
