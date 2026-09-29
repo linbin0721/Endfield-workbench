@@ -6,7 +6,7 @@
 
 ### EW-006：源石电路截图、题号目录与求解全链路
 
-- 状态：进行中（全链路设计与批次 A、B1a、B1b1、B1b2 已验收；已恢复并进入 B1b3）
+- 状态：进行中（全链路设计与批次 A、B1a、B1b1、B1b2、B1b3a、B1b3b 已验收；当前执行 B1b3c）
 - 目标：在独立 `/circuit` 页面提供与浮空回收一致的截图识别和按题号查询入口，并返回经过独立校验的源石电路摆放结果。
 - 范围：`line-count-v1` 题面模型、求解与校验、截图识别、源石电路独立 PostgreSQL 目录、API/OpenAPI、前端三路由与答案绘制、测试和生产发布。
 - 限制 / 约束：算法、契约和批次边界由 Codex 决定；DSH 按批次实现，不自行改变规则。浮空回收现有行为和表结构不得回退；`set/` 原图及派生材料不得提交；功能通过全链路验收前不得在能力接口公开为可用。
@@ -175,9 +175,9 @@
 - 结论：B1b3a 已验收。该层只输出完整格子图，尚未读取库存、构造题面或判定 `already_completed`；继续执行 B1b3b。
 - 提交 / 推送：`96bcaeb`（`feat: classify circuit board cells`）；记录提交随后与功能提交一并推送到 `origin/main`。
 
-###### 当前委派 B1b3b：库存槽位与拼块
+###### B1b3b：库存槽位与拼块（已验收）
 
-- 状态：进行中
+- 状态：已验收
 - 目标：新增 frozen `InventoryPiece`、`InventoryState` 与 `extract_inventory(image, geometry, channel_hues)`，确认棋盘右侧完整槽位格阵并输出空槽和按槽位排序的带通道拼块形状。
 - 范围：只修改 `api/app/puzzles/circuit/vision.py`、`api/tests/test_circuit_vision.py` 和本节 DSH 回执；不得新增离线编排、OCR、worker、API、目录、前端或部署逻辑，不得改变 `reconstruct_piece`、B1b3a 格子语义或批次 A 领域模型。
 - 限制 / 约束：公开字段和算法边界见 `docs/circuit-design.md` 的 B1b3b 冻结说明。槽框必须由灰度四边结构独立确认并组成唯一的一至两列行优先前缀；彩色组件只判断已确认槽位的内容。所有空间门槛相对 `geometry.step` 或槽位尺寸；不得用文件名、题号、绝对坐标、截图宽高固定比例、完成图配对信息或单图例外。
@@ -199,9 +199,31 @@
 - 结论：B1b3b 已验收。该层现在能独立恢复完整库存，但尚未把目标、格子和库存组装为领域题面，也不负责完成态判定；继续执行 B1b3c。
 - 提交 / 推送：`afe6cc9`（`feat: extract circuit inventory pieces`）已推送到 `origin/main`；本验收记录随后推送。
 
+###### 当前委派 B1b3c：条形题面离线闭环
+
+- 状态：进行中
+- 目标：新增无 OCR、数据库、FastAPI 依赖的 `analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis`，把既有条形视觉层组装成经过领域校验、求解和独立复核的题面，或保守返回不完整/已完成。
+- 范围：新增 `api/app/puzzles/circuit/analyze.py` 与 `api/tests/test_circuit_analyze.py`；允许为完成画面在 `vision.py`/视觉测试中增加 `extract_bar_channel_hues(geometry, ensembles)`，只返回棋盘相邻横纵短条共有的唯一通道色相。不得实现数字/罗马数字、题号 OCR、图片解码 worker、目录、API、前端或部署，不得改变既有视觉阈值和领域语义。
+- 限制 / 约束：`BarImageAnalysis` 为 frozen dataclass，结果只允许 `recognized/incomplete/no_board/already_completed`，包含可选 `CircuitPuzzle`、可选 `CircuitSolution` 和 `tuple[str, ...] issues`；只有 `recognized` 同时携带题面和解答。普通未完成图必须没有 `placed` 格；完整空库存且至少有一个 `placed` 格才是 `already_completed`，有库存拼块又有 `placed` 格视为中途状态，空库存但无 `placed` 格也视为不完整。完成态可在目标数组缺失时成立，但颜色只能来自与已确认棋盘相邻、两轴均出现且唯一聚类的短条，不能从配对截图继承或补猜目标。
+- 必要上下文：管线固定为短条栈 → 候选集合 → 棋盘几何 → 通道色相 → 格子/库存 → 条形目标 → `CircuitPuzzle` → `solve_circuit` → `validate_solution`。领域题面按槽位顺序生成拼块编号；障碍来自 `blocked` 格，固定格来自带通道的 `fixed` 格。模型拒绝、无解、求解超限或独立校验失败都返回 `incomplete`，不泄露部分题面或解答；编程错误不应被宽泛吞掉。
+- 验收条件：21/21 未完成条形输入为 `recognized`，返回题面可再次通过 Pydantic，解答可再次通过独立校验；18/18 完成图为 `already_completed` 且不携带题面/解答；数字式 `V40020` 为 `no_board`。合成编排测试覆盖四种结果、目标缺失的完成态、中途态、空库存未完成态、视觉层失败、领域拒绝、无解、求解限额、校验失败、非法限制和返回结构不变量。
+- 验证要求：运行 `test_circuit_analyze.py`、`test_circuit_vision.py`、`test_circuit.py` 和后端全量 pytest；用忽略脚本逐图记录结果、尺寸/通道/障碍/固定格/拼块、求解耗时和独立校验结论，原图与报告不得提交。
+
+#### DSH 回执
+
+- 实际改动：待填写。
+- 验证结果：待填写。
+- 未完成项 / 风险 / 待决策事项：待填写。
+- 建议写入长期记忆：待填写。
+
+#### Codex 验收
+
+- 独立检查：待验收。
+- 结论：待验收。
+- 提交 / 推送：待验收。
+
 ##### B1b3 后续子批
 
-- B1b3c：新增条形离线编排，执行领域模型、求解和独立校验，完成 21 个输入与 18 个完成图的闭环。
 - B2：加入数字/罗马数字与题号 OCR、图片解码边界、一次性受限子进程和正式识别结果模型；19 张训练输入、18 张完成图及 3 张测试输入完成端到端回归。
 - C1/C2：实现独立 PostgreSQL 目录，再接入识别、求解、题号查询路由、任务队列、上传限流、OpenAPI 与生成类型。
 - D1/D2：先把现有气球流程无行为变化地迁入 `/balloon`，再实现 `/` 选择页和 `/circuit` 双入口、候选选择、示意图与答案棋盘。

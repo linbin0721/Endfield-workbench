@@ -273,6 +273,7 @@ B1b3 按棋盘、库存、闭环三个顺序子批实现，接口冻结为：
 ```text
 extract_board_cells(image, geometry, channel_hues) -> BoardCellMap | None
 extract_inventory(image, geometry, channel_hues) -> InventoryState | None
+extract_bar_channel_hues(geometry, ensembles) -> tuple[float, ...] | None
 analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis
 ```
 
@@ -282,6 +283,7 @@ analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis
 - `InventoryState` 保存已确认的完整槽位数、空槽数、置信度和按槽位行优先排序的 `InventoryPiece`。每个拼块保存 `slot_index/channel/cells/rows/columns/iou` 及槽位中心标量，不保存裁剪或掩膜。
 - 库存先在棋盘右侧寻找一至两列重复方形槽位，再在每个槽位内按通道色相生成一个干净的四连通掩膜并调用 `reconstruct_piece`。独立搜索到的彩色组件只能作为槽位内容证据，不能替代完整槽位格阵；面板被裁断、一个槽位有多个候选、颜色歧义或形状重建歧义都返回 `None`。
 - 完成图的槽位框仍在，但所有槽位为空。只有“确认到完整空库存、棋盘至少有一个已放置的跨格组件、格子状态无歧义”才能返回 `already_completed`；库存仍有拼块且棋盘已有放置组件视为中途状态，返回 `incomplete`。空库存且棋盘没有放置组件也返回 `incomplete`。
+- `extract_bar_channel_hues` 只供完成态编排：选择与已确认棋盘相邻且格距相容的唯一横、纵集合，聚类两轴短条色相，并要求每个通道在两轴均有证据。它可以在完成高亮导致行列总数不守恒时保留通道身份，但不得输出或补猜任何目标值。
 - `BarImageAnalysis` 只有 `recognized/incomplete/no_board/already_completed` 四种离线结果，保存可选的 `CircuitPuzzle`、已经独立校验的 `CircuitSolution` 和纯文本 `issues`。只有 `recognized` 可携带题面和解答；其余结果两者都为空。
 - `analyze_bar_image` 只编排条形模式：依次执行短条、集合、几何、通道、格子、库存和目标解析。普通未完成图必须没有已放置组件，再构造领域模型并依次通过 `solve_circuit` 与 `validate_solution`；模型拒绝、无解、求解超限或独立校验失败都返回 `incomplete`。完成图允许条形目标因高亮吞并而不完整，但仍必须满足上一条的空库存和已放置证据。数字/罗马数字、题号 OCR、进程监督和公开 API 留在 B2。
 
