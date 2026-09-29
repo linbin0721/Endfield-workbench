@@ -9,7 +9,12 @@ const maxBytes = 12 * 1024 * 1024;
 const maxPixels = 20_000_000;
 const isFullCrop = (crop: Crop) => crop.left === 0 && crop.top === 0 && crop.width === 100 && crop.height === 100;
 
-export default function ImageInput({ onChanged }: { onChanged: (selection: ImageSelection | null, changed?: boolean) => void }) {
+type Props = {
+  onChanged: (selection: ImageSelection | null, changed?: boolean) => void;
+  cropHint?: string;
+};
+
+export default function ImageInput({ onChanged, cropHint }: Props) {
   const [image, setImage] = useState<ImageInfo | null>(null);
   const [crop, setCrop] = useState<Crop>(initialCrop);
   const [useCrop, setUseCrop] = useState(false);
@@ -156,7 +161,8 @@ export default function ImageInput({ onChanged }: { onChanged: (selection: Image
         <label><input type="radio" name="image-source" checked={!useCrop} onChange={() => selectCrop(false)} /> 默认整图（自动定位）</label>
         <label><input type="radio" name="image-source" checked={useCrop} onChange={() => selectCrop(true)} /> 手动裁剪</label>
       </fieldset>
-      <p className="muted">{!useCrop ? "默认上传完整原图，不在浏览器裁剪。" : cropped ? "请保留完整棋盘和右侧所有气球库存。" : "手动裁剪为 100%，仍上传完整原图。"}</p>
+      <p className="muted">{!useCrop ? "默认上传完整原图，不在浏览器裁剪。" : cropped
+        ? cropHint ?? "请保留完整棋盘和右侧所有气球库存。" : "手动裁剪为 100%，仍上传完整原图。"}</p>
       {useCrop && <fieldset className="crop-controls"><legend>裁剪范围（占原图百分比）</legend>
         {(["left", "top", "width", "height"] as const).map((field) => <label key={field}>
           {{ left: "左边距", top: "上边距", width: "宽度", height: "高度" }[field]}

@@ -9,7 +9,7 @@ def make_client() -> TestClient:
     return TestClient(create_app(Settings(cors_origins=("http://localhost:5173",), max_workers=1)))
 
 
-def test_health_capabilities_and_unavailable_engines() -> None:
+def test_health_capabilities_and_puzzle_engines() -> None:
     with make_client() as client:
         assert client.get("/api/v1/health").json() == {"status": "ok"}
         puzzles = client.get("/api/v1/puzzles").json()
@@ -17,10 +17,12 @@ def test_health_capabilities_and_unavailable_engines() -> None:
         by_id = {p["id"]: p for p in puzzles}
         assert by_id["balloon"]["recognition_available"] and by_id["balloon"]["solving_available"]
         assert by_id["balloon"]["supported_rule_versions"] == ["center-torque-v1"]
-        assert not by_id["circuit"]["recognition_available"] and not by_id["circuit"]["solving_available"]
-        assert by_id["circuit"]["supported_rule_versions"] == []
-        # Concrete circuit routes are callable for C2 integration while the
-        # public capability remains disabled until the D2 frontend is ready.
+        assert by_id["circuit"]["recognition_available"] and by_id["circuit"]["solving_available"]
+        assert by_id["circuit"]["supported_rule_versions"] == ["line-count-v1"]
+        assert by_id["circuit"]["rules_note"] == (
+            "按通道满足每行和每列的覆盖数；障碍格不可覆盖，固定格计入约束；"
+            "全部库存拼块均可旋转且必须使用"
+        )
         recognition = client.post("/api/v1/puzzles/circuit/recognize")
         assert recognition.status_code == 422
         assert recognition.json()["error"]["code"] == "INVALID_REQUEST"

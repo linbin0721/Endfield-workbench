@@ -454,10 +454,20 @@
 
 #### DSH 回执
 
-- 实际改动：待回执。
-- 验证结果：待回执。
-- 未完成项 / 风险 / 待决策事项：待回执。
-- 建议写入长期记忆：待回执。
+- 实际改动：
+  - 将 `/circuit` 占位页替换为独立完整状态机：按 `id=circuit`、对应 available 标志和 `line-count-v1` capability 分别控制识别与求解；初始只呈现两个大入口和能力状态。截图分支按自制示意、共享 `ImageInput`、识别与求解排列，题号分支按题号示意、专用查询表单排列。共享图片组件只新增可选 `cropHint`，气球页不传参数时原文案和行为不变。
+  - 电路识别/求解使用 generation、轮询 `AbortController`、`activeTaskId` 和 mounted guard；显式取消、模式切换、路由卸载会中止轮询并 DELETE 已知任务，提交响应迟到时也 DELETE 新任务。取消会 remount 图片和题号查询组件，清除旧图片、目录 entry/notice、候选、错误与答案。完整 `recognized` 先经 D2a 防御校验并始终求解本次截图题面；目录多变体只显示匹配说明。只有 `incomplete/no_board` 且目录带候选时才提供正常变体选择；`already_completed` 只提示在游戏内重置后重拍。
+  - 新增 `CircuitCodeQuery`：接受并规范化可选三角、连字符和空格包围的 `V#####`/`WL####`，请求电路目录；单候选防御校验后自动求解，多候选交给 `CircuitCatalogCandidates` 预览选择。重复查询和卸载均用自身 generation/AbortController 隔离旧响应，不复用气球 `CodeQuery`。
+  - 页面展示短条/数字/罗马数字/混合约束类型、题号与置信度，以及目录 available、recorded、duplicate、image digest mismatch、matched status、正常变体数和 issues；未使用“争议”语义。求解结果只交给 `CircuitResult`，并补充任务排队、取消、失败、队列/上传繁忙及网络错误的中文反馈。
+  - 最后将 `PUZZLES["circuit"]` 的识别与求解设为可用，只声明 `line-count-v1`，规则说明覆盖逐行逐列通道计数、障碍/固定格、旋转和全部库存；同步两处 capability 测试。首页源石电路卡改为可用，根 README 和 API README 更新为两个谜题的当前代码能力并明确不代表生产已发布；未修改算法、识别、目录、Settings、TaskManager 或部署。
+- 验证结果：
+  - 后端 capability/API 定向测试：`15 passed、1` 个既有 Starlette/httpx 弃用警告；无数据库后端全量：`666 passed、14 skipped、1 warning`，跳过项来自未设置 `CATALOG_TEST_DSN` 的真实 PostgreSQL 用例及容器中缺少的私有识别样本。
+  - 使用测试镜像正常运行 `api/export_openapi.py`，随后运行 `npm run generate:api`；capability 只改变运行数据、不改变 OpenAPI 结构，因此 `contracts/openapi.json` 与 `web/src/generated/api.ts` 哈希和 Git diff 均无变化。再次生成的哈希一致。`npm run build` 通过（TypeScript 与 Vite，60 modules transformed）；`git diff --check` 通过；相关文件权限均为 0644。
+  - 用生产构建、Vite preview、模拟 API 和现有 headless Edge/Playwright 完成浏览器审计：截图 `recognized` 即使目录返回两个变体，求解 POST 仍精确等于本次截图题面；题号单变体自动求解，多正常变体选择第二项后提交对应 2×2 题面；`already_completed` 显示重置后重拍且不出现候选，`incomplete` 可显示目录候选。
+  - 竞态审计中 5 个任务被 DELETE：queued 显式取消、模式切换、离开 `/circuit`、迟到的识别提交响应和题号求解显式取消；迟到响应没有覆盖新模式。题号求解取消后输入、entry、notice 和候选均消失。`/`、`/balloon`、`/circuit` 三个深链直接打开及 reload 正确，气球初始双入口收起且两入口仍可分别展开。
+  - 1440×900 与 390×844 下分别检查电路题号多变体和截图初始分支，均满足 `document.scrollWidth <= innerWidth`；键盘 Tab 焦点为 2px solid outline；浏览器无 page error。浏览器上传使用仓库公开气球示例图作为模拟字节载荷，只验证前端状态机，没有声称真实源石电路 OCR 通过。未读取 `set/`、未连接 PostgreSQL 或生产服务、未部署。
+- 未完成项 / 风险 / 待决策事项：D2b 的 API 数据均为浏览器内模拟，真实源石电路截图、公网 HTTPS、生产 PostgreSQL 目录持久化、容器重启与生产资源占用仍留给 E 批；能力现在表示当前代码已就绪，生产站仍运行旧 release，不能据此视为线上功能已发布。
+- 建议写入长期记忆：无新增；截图完整题面优先于目录变体、同编号多项是正常变体、能力开启不等于生产发布等边界已在设计和长期记忆中记录。
 
 #### Codex 验收
 

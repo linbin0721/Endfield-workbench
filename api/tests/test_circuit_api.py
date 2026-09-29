@@ -85,7 +85,7 @@ def wait_for_task(client: TestClient, task_id: str) -> dict:
     raise AssertionError("circuit task did not finish")
 
 
-def test_circuit_routes_take_priority_while_capability_stays_private(
+def test_circuit_routes_take_priority_and_capability_is_public(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -100,10 +100,10 @@ def test_circuit_routes_take_priority_while_capability_stays_private(
         assert capability == {
             "id": "circuit",
             "name": "源石电路",
-            "recognition_available": False,
-            "solving_available": False,
-            "supported_rule_versions": [],
-            "rules_note": "尚未开放",
+            "recognition_available": True,
+            "solving_available": True,
+            "supported_rule_versions": ["line-count-v1"],
+            "rules_note": "按通道满足每行和每列的覆盖数；障碍格不可覆盖，固定格计入约束；全部库存拼块均可旋转且必须使用",
         }
 
         created = client.post(

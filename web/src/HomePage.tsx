@@ -16,11 +16,11 @@ export default function HomePage() {
         <p>上传截图自动识别棋盘与气球库存，或按题号查询已记录题面。</p>
         <span className="puzzle-card-action">进入工具</span>
       </Link>
-      <Link className="puzzle-card upcoming" to="/circuit">
-        <span className="puzzle-card-status">开发中</span>
+      <Link className="puzzle-card available" to="/circuit">
+        <span className="puzzle-card-status">可用</span>
         <h2>源石电路</h2>
-        <p>页面与求解流程正在开发，可进入查看当前状态。</p>
-        <span className="puzzle-card-action">查看状态</span>
+        <p>上传截图识别行列约束与库存拼块，或按题号查询已记录的正常变体。</p>
+        <span className="puzzle-card-action">进入工具</span>
       </Link>
     </div>
   </div>;
