@@ -90,7 +90,7 @@ export function validateCircuitPuzzle(value: unknown): CircuitPuzzleCheck {
   }
   const channelIndices = channels.map((channel) => channel.index).sort((a, b) => a - b);
   if (channelIndices.some((index, position) => index !== position)) {
-    return puzzleError("通道编号必须从 C1 连续排列");
+    return puzzleError("颜色通道编号必须从零开始连续排列");
   }
   const knownChannels = new Set(channelIndices);
 

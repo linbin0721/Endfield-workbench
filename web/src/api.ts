@@ -17,6 +17,7 @@ export type CircuitSolveTaskView = components["schemas"]["CircuitSolveTaskView"]
 export type CircuitCatalogCandidate = components["schemas"]["CircuitCatalogCandidate"];
 export type CircuitCatalogEntry = components["schemas"]["CircuitCatalogEntry"];
 export type CircuitCatalogMatch = components["schemas"]["CircuitCatalogMatch"];
+export type CircuitDisplayColor = components["schemas"]["CircuitDisplayColor"];
 
 const configured = import.meta.env.VITE_API_BASE_URL?.trim();
 export const API_BASE = configured || (import.meta.env.DEV ? "http://localhost:8000" : "");

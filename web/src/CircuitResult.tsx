@@ -1,14 +1,23 @@
+import { useId } from "react";
 import type { CircuitPuzzle, CircuitSolveResult } from "./api";
 import { deriveCircuitAnswer } from "./circuit";
-import { CircuitChannelToken } from "./CircuitPuzzlePreview";
+import {
+  circuitPieceBoundarySegments,
+  resolveCircuitDisplayPalette,
+} from "./circuitDisplay";
 
-type Props = { puzzle: CircuitPuzzle | unknown; result: CircuitSolveResult };
+type Props = {
+  puzzle: CircuitPuzzle | unknown;
+  displayPalette?: unknown;
+  result: CircuitSolveResult;
+};
 
 const invalidResult = (message: string) => <div className="notice warning" role="alert">
   <strong>服务返回的答案无效。</strong> {message}
 </div>;
 
-export default function CircuitResult({ puzzle, result }: Props) {
+export default function CircuitResult({ puzzle, displayPalette, result }: Props) {
+  const svgId = useId().replace(/:/g, "");
   if (result === null || typeof result !== "object" || Array.isArray(result)) {
     return invalidResult("响应结构无法识别，未绘制答案。");
   }
@@ -32,37 +41,74 @@ export default function CircuitResult({ puzzle, result }: Props) {
   const checked = deriveCircuitAnswer(puzzle, value);
   if (!checked.answer) return invalidResult(`${checked.error} 未绘制答案。`);
   const { puzzle: normalized, cells, placements } = checked.answer;
+  const palette = resolveCircuitDisplayPalette(normalized, displayPalette);
+  if (palette.colors.length !== normalized.channels.length) {
+    return invalidResult("显示颜色无法与题面对应，未绘制答案。");
+  }
+  const obstaclePatternId = `${svgId}-obstacle`;
 
   return <div className="circuit-solution">
-    <p className="success-line">已找到并重新校验一组完整摆放。固定格计入对应通道的行列约束。</p>
-    <div className="circuit-legend" aria-label="答案通道图例">
-      {normalized.channels.map((channel) => <CircuitChannelToken key={channel.index} channel={channel.index} />)}
-      <span className="circuit-legend-item fixed">固定 = 题面已有格</span>
-      <span className="circuit-legend-item blocked">× 障碍</span>
-    </div>
-    <div className="circuit-board circuit-answer-board"
-      style={{ gridTemplateColumns: `repeat(${normalized.columns}, minmax(0, 1fr))` }}>
-      {cells.map((cell) => {
-        const channelClass = cell.channel != null ? ` circuit-channel-${cell.channel}` : "";
-        const description = cell.kind === "blocked" ? "障碍格" : cell.kind === "fixed"
-          ? `固定格 C${cell.channel! + 1}` : cell.kind === "placed"
-            ? `拼块 ${cell.pieceIndex! + 1}，C${cell.channel! + 1}` : "空格";
-        return <span key={`${cell.row},${cell.column}`} className={`circuit-cell ${cell.kind}${channelClass}`}
-          aria-label={`第 ${cell.row + 1} 行第 ${cell.column + 1} 列，${description}`}>
-          {cell.kind === "blocked" ? "×" : cell.kind === "fixed"
-            ? <><b>C{cell.channel! + 1}</b><small>固定</small></> : cell.kind === "placed"
-              ? <><b>C{cell.channel! + 1}</b><small>P{cell.pieceIndex! + 1}</small></> : null}
-        </span>;
+    <p className="success-line">答案已校验。连续色块代表一个库存形状；菱形是固定格，斜纹是障碍。</p>
+    <svg className="circuit-answer-svg" viewBox={`0 0 ${normalized.columns} ${normalized.rows}`}
+      role="img" aria-label="源石电路完成棋盘" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <pattern id={obstaclePatternId} width="0.24" height="0.24" patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)">
+          <rect width="0.24" height="0.24" fill="#29343d" />
+          <rect width="0.08" height="0.24" fill="#66737d" />
+        </pattern>
+        {palette.colors.map((color) => <linearGradient key={color.channel}
+          id={`${svgId}-color-${color.channel}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={color.highlight} />
+          <stop offset="0.24" stopColor={color.fill} />
+          <stop offset="1" stopColor={color.softFill} />
+        </linearGradient>)}
+      </defs>
+
+      <rect className="circuit-svg-frame" x="0" y="0" width={normalized.columns} height={normalized.rows} />
+      {cells.map((cell) => <rect key={`base-${cell.row}-${cell.column}`}
+        className="circuit-svg-cell" x={cell.column + 0.045} y={cell.row + 0.045}
+        width="0.91" height="0.91" rx="0.08" />)}
+
+      {cells.filter((cell) => cell.kind === "blocked").map((cell) => <g
+        key={`blocked-${cell.row}-${cell.column}`} aria-label="障碍格">
+        <rect x={cell.column + 0.08} y={cell.row + 0.08} width="0.84" height="0.84" rx="0.09"
+          fill={`url(#${obstaclePatternId})`} className="circuit-svg-obstacle" />
+        <path d={`M${cell.column + 0.28} ${cell.row + 0.28}L${cell.column + 0.72} ${cell.row + 0.72}M${cell.column + 0.72} ${cell.row + 0.28}L${cell.column + 0.28} ${cell.row + 0.72}`}
+          className="circuit-svg-obstacle-cross" aria-hidden="true" />
+      </g>)}
+
+      {cells.filter((cell) => cell.kind === "fixed").map((cell) => {
+        const color = palette.colors[cell.channel!];
+        const centerX = cell.column + 0.5, centerY = cell.row + 0.5;
+        return <g key={`fixed-${cell.row}-${cell.column}`}
+          aria-label={`${color.name}固定格`}>
+          <rect x={cell.column + 0.12} y={cell.row + 0.12} width="0.76" height="0.76" rx="0.13"
+            fill={`url(#${svgId}-color-${color.channel})`} stroke={color.edge} strokeWidth="0.07" />
+          <path d={`M${centerX} ${centerY - 0.22}L${centerX + 0.22} ${centerY}L${centerX} ${centerY + 0.22}L${centerX - 0.22} ${centerY}Z`}
+            fill="none" stroke={color.highlight} strokeWidth="0.075" aria-hidden="true" />
+          <circle cx={centerX} cy={centerY} r="0.07" fill={color.edge} aria-hidden="true" />
+        </g>;
       })}
-    </div>
-    <ol className="circuit-placement-list" aria-label="拼块摆放清单">
-      {placements.map((placement) => <li key={placement.pieceIndex}>
-        <strong>拼块 {placement.pieceIndex + 1}</strong>
-        <CircuitChannelToken channel={placement.channel} />
-        <span>锚点：第 {placement.row + 1} 行、第 {placement.column + 1} 列</span>
-        <span>{placement.rotation === 0 ? "不旋转" : `顺时针旋转 ${placement.rotation}°`}</span>
-      </li>)}
-    </ol>
-    <p className="muted small">规则 {value.rule_version} · {placements.length} 个库存拼块均已使用</p>
+
+      {placements.map((placement) => {
+        const color = palette.colors[placement.channel];
+        const boundary = circuitPieceBoundarySegments(placement.cells);
+        const outline = boundary.map((segment) =>
+          `M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}`).join("");
+        return <g key={placement.pieceIndex}
+          aria-label={`${color.name}，${placement.cells.length} 格库存形状`}>
+          {placement.cells.map((cell) => <rect key={`${cell.row}-${cell.column}`}
+            x={cell.column} y={cell.row} width="1" height="1"
+            fill={`url(#${svgId}-color-${color.channel})`} aria-hidden="true" />)}
+          <path d={outline} fill="none" stroke={color.edge} strokeWidth="0.095"
+            strokeLinejoin="round" strokeLinecap="round" aria-hidden="true" />
+          <path d={outline} fill="none" stroke={color.highlight} strokeWidth="0.025"
+            strokeLinejoin="round" strokeLinecap="round" opacity="0.72" aria-hidden="true" />
+        </g>;
+      })}
+      <rect className="circuit-svg-border" x="0.025" y="0.025"
+        width={normalized.columns - 0.05} height={normalized.rows - 0.05} rx="0.08" />
+    </svg>
   </div>;
 }

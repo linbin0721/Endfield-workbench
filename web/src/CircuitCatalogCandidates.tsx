@@ -9,7 +9,7 @@ type Props = {
   code?: string;
   disabled?: boolean;
   actionLabel?: string;
-  onSolve: (puzzle: CircuitPuzzle, label: string) => void;
+  onSolve: (puzzle: CircuitPuzzle, displayPalette: unknown, label: string) => void;
 };
 
 const statusText = {
@@ -44,7 +44,8 @@ export default function CircuitCatalogCandidates({ candidates, matchedFingerprin
       return;
     }
     setError("");
-    onSolve(checked.puzzle, code ? `题号 ${code} 的目录变体` : "目录题面变体");
+    onSolve(checked.puzzle, candidate.display_palette,
+      code ? `题号 ${code} 的目录变体` : "目录题面变体");
   };
 
   return <div className="circuit-candidates">
@@ -62,7 +63,7 @@ export default function CircuitCatalogCandidates({ candidates, matchedFingerprin
           <span className="muted small">观察 {candidate.observations} 次</span>
           {candidate.fingerprint === matchedFingerprint && <em className="candidate-tag">本次截图匹配</em>}
         </span>
-        <CircuitPuzzlePreview puzzle={candidate.puzzle} compact />
+        <CircuitPuzzlePreview puzzle={candidate.puzzle} displayPalette={candidate.display_palette} compact />
       </label>)}
     </fieldset>
     {error && <p className="error-text" role="alert">{error}</p>}

@@ -65,17 +65,12 @@
 .not-found-page p{font-size:1.05rem;margin-bottom:24px}
 @media(max-width:560px){.site-header{align-items:flex-start}.site-nav{width:100%;justify-content:flex-start}.site-nav a{padding:7px 9px}.puzzle-cards{grid-template-columns:1fr}.puzzle-card{min-height:205px;padding:20px}}
 
-/* Source Circuit components: channel text is always present; patterns reinforce color. */
-.circuit-channel-0{color:#eafffb;background-color:#176b65;background-image:repeating-linear-gradient(135deg,#ffffff20 0 3px,transparent 3px 7px)}
-.circuit-channel-1{color:#fff8ea;background-color:#9b5b19;background-image:radial-gradient(#ffffff42 1px,transparent 1.5px);background-size:6px 6px}
-.circuit-channel-2{color:#fff1ff;background-color:#74468f;background-image:repeating-linear-gradient(90deg,#ffffff20 0 2px,transparent 2px 7px)}
-.circuit-channel-3{color:#eef6ff;background-color:#315b9a;background-image:repeating-linear-gradient(45deg,#ffffff20 0 2px,transparent 2px 6px),repeating-linear-gradient(-45deg,#ffffff12 0 2px,transparent 2px 6px)}
-.circuit-channel-token{display:inline-flex;align-items:center;justify-content:center;min-width:2.1rem;border:1px solid #ffffff42;border-radius:6px;padding:2px 6px;font-size:.72rem;font-weight:900;line-height:1.35;white-space:nowrap}
+/* Source Circuit preview and guide layout. */
 .circuit-preview{min-width:0;display:grid;gap:13px;border:1px solid #344a58;border-radius:12px;background:#111b23;padding:14px}
 .circuit-preview-error{margin:8px 0}
 .circuit-targets{display:grid;gap:7px}
 .circuit-target{display:flex;align-items:center;gap:7px 12px;flex-wrap:wrap;min-width:0;color:#c2d0d9;font-size:.78rem}
-.circuit-target>span:not(.circuit-channel-token){overflow-wrap:anywhere}.circuit-target b{color:#eef4f7}
+.circuit-target b{color:#eef4f7}
 .circuit-preview-body{display:grid;grid-template-columns:minmax(180px,.9fr) minmax(220px,1.1fr);gap:15px;align-items:start;min-width:0}
 .circuit-preview-label{margin:0 0 7px;color:#aebfca;font-size:.78rem;font-weight:700}
 .circuit-board{display:grid;gap:3px;width:min(100%,430px);min-width:0}
@@ -94,7 +89,7 @@
 .circuit-guide .highlighted{border:2px solid #70d4d2;box-shadow:0 0 0 2px #70d4d226}.circuit-guide .dimmed{opacity:.42}
 .circuit-guide-region-label{display:block;width:max-content;max-width:100%;margin:0 0 8px;border-radius:5px;padding:3px 6px;background:#70d4d2;color:#102226;font-size:.65rem;font-weight:900;line-height:1.25;white-space:normal}
 .circuit-guide-code-region code{display:block;color:#f1dcff;font-size:clamp(.65rem,1.4vw,.86rem);font-weight:800;white-space:nowrap}.circuit-guide.code .circuit-guide-code-region{border-color:#c084ef;box-shadow:0 0 0 2px #c084ef33}
-.circuit-guide-column-targets{display:grid;gap:3px;margin:0 0 5px 46px;font-size:.62rem;color:#c7d7df}.circuit-guide-column-targets span{display:flex;align-items:center;gap:5px;white-space:nowrap}.circuit-guide-column-targets .circuit-channel-token{min-width:1.65rem;font-size:.55rem;padding:1px 3px}
+.circuit-guide-column-targets{display:grid;gap:3px;margin:0 0 5px 46px;font-size:.62rem;color:#c7d7df}.circuit-guide-column-targets span{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .circuit-guide-board-row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px;align-items:stretch}.circuit-guide-row-targets{display:grid;grid-template-columns:1fr 1fr;gap:2px}.circuit-guide-row-targets span{display:flex;align-items:center;justify-content:center;text-align:center;border-radius:4px;background:#20313d;color:#c6d5de;font-size:.53rem;line-height:1.35}
 .circuit-guide-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.circuit-guide-board .circuit-cell{font-size:.56rem}
 .circuit-guide-inventory{display:grid;gap:7px}.circuit-guide-piece{display:flex;align-items:center;gap:7px;border:1px solid #314652;border-radius:6px;padding:6px;color:#c8d5dd;font-size:.63rem}.circuit-guide figcaption{margin-top:10px;color:#aebfca;font-size:.78rem;line-height:1.55}.circuit-guide figcaption code{color:#e8d1f6}
@@ -103,9 +98,33 @@
 .circuit-candidate{display:grid;gap:9px;min-width:0;border:1px solid #304552;border-radius:11px;padding:11px;background:#142029;cursor:pointer}.circuit-candidate:hover{border-color:#507080}.circuit-candidate.selected{border-color:#6cd2cd;background:#172d34;box-shadow:inset 0 0 0 1px #6cd2cd44}
 .circuit-candidate-heading{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}.circuit-candidate-heading input{min-height:auto;margin:0}.circuit-candidate-heading strong{font-size:.87rem}.circuit-candidate-status{border-radius:999px;padding:2px 7px;font-size:.68rem;font-weight:800}.circuit-candidate-status.provisional{color:#ecd8aa;background:#49391f}.circuit-candidate-status.verified{color:#b7efe8;background:#1d4b47}.circuit-candidate .candidate-tag{margin-left:0}
 
-.circuit-solution{display:grid;gap:15px}.circuit-solution>p{margin:0}.circuit-answer-board{max-width:620px}.circuit-answer-board .circuit-cell{font-size:clamp(.62rem,2vw,.9rem)}
-.circuit-placement-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin:0;padding:0;list-style:none}.circuit-placement-list li{display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid #344a58;border-radius:9px;padding:9px 11px;background:#152129;font-size:.78rem}.circuit-placement-list li>span:not(.circuit-channel-token){color:#b5c5cf}
-
 @media(max-width:700px){.circuit-preview-body,.circuit-preview.compact .circuit-preview-body{grid-template-columns:1fr}.circuit-guide-stage{grid-template-columns:minmax(82px,.55fr) minmax(190px,1.45fr);align-items:stretch}.circuit-guide-inventory{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}.circuit-guide-inventory .circuit-guide-region-label{grid-column:1/-1}.circuit-guide-piece{justify-content:center;flex-wrap:wrap}}
-@media(max-width:440px){.circuit-guide-stage{grid-template-columns:1fr;padding:10px}.circuit-guide-code-region,.circuit-guide-board-region,.circuit-guide-inventory{width:100%}.circuit-guide-inventory{grid-column:auto}.circuit-preview{padding:10px}.circuit-target{gap:5px 8px}.circuit-piece-list{grid-template-columns:1fr 1fr}.circuit-piece{flex-wrap:wrap}.circuit-placement-list{grid-template-columns:1fr}.circuit-cell{border-radius:3px}.circuit-candidate{padding:9px}}
+@media(max-width:440px){.circuit-guide-stage{grid-template-columns:1fr;padding:10px}.circuit-guide-code-region,.circuit-guide-board-region,.circuit-guide-inventory{width:100%}.circuit-guide-inventory{grid-column:auto}.circuit-preview{padding:10px}.circuit-target{gap:5px 8px}.circuit-piece-list{grid-template-columns:1fr 1fr}.circuit-piece{flex-wrap:wrap}.circuit-cell{border-radius:3px}.circuit-candidate{padding:9px}}
 .circuit-recognition-meta{display:grid;gap:10px;margin-top:14px}.circuit-recognition-meta .notice p{margin:0}.circuit-recognition-meta .notice p+p{margin-top:6px}.circuit-recognition-meta ul,.circuit-choice ul{margin:8px 0 0;padding-left:22px}.circuit-choice{margin-top:14px}
+
+/* Source Circuit presentation colors are runtime hue variables with channel patterns. */
+.circuit-color-token{display:inline-flex;align-items:center;gap:6px;min-width:0;border:1px solid #ffffff38;border-radius:999px;padding:2px 8px 2px 4px;background:#101b23;color:#eef5f7;font-size:.72rem;font-weight:800;line-height:1.35;white-space:nowrap}
+.circuit-color-token>i{display:block;width:1rem;aspect-ratio:1;border:1px solid var(--circuit-color-highlight);border-radius:50%;background-color:var(--circuit-color);box-shadow:inset 0 0 0 1px #0005}
+[data-circuit-pattern="0"]{background-color:var(--circuit-color);background-image:repeating-linear-gradient(135deg,#ffffff35 0 2px,transparent 2px 6px)}
+[data-circuit-pattern="1"]{background-color:var(--circuit-color);background-image:radial-gradient(#ffffff70 1px,transparent 1.4px);background-size:6px 6px}
+[data-circuit-pattern="2"]{background-color:var(--circuit-color);background-image:repeating-linear-gradient(90deg,#ffffff30 0 2px,transparent 2px 7px)}
+[data-circuit-pattern="3"]{background-color:var(--circuit-color);background-image:repeating-linear-gradient(45deg,#ffffff35 0 2px,transparent 2px 6px),repeating-linear-gradient(-45deg,#ffffff18 0 2px,transparent 2px 6px)}
+.circuit-target>span:not(.circuit-color-token){overflow-wrap:anywhere}
+.circuit-cell.fixed{border-color:var(--circuit-color-highlight);box-shadow:inset 0 0 0 2px #09121788}
+.circuit-fixed-mark{display:block;width:42%;aspect-ratio:1;border:2px solid var(--circuit-color-highlight);transform:rotate(45deg);box-shadow:0 0 0 1px var(--circuit-color-edge);background:#07111645}
+.circuit-obstacle-mark{position:relative;display:block;width:48%;aspect-ratio:1}
+.circuit-obstacle-mark:before,.circuit-obstacle-mark:after{content:"";position:absolute;left:46%;top:0;width:2px;height:100%;border-radius:2px;background:#c8d1d6;transform:rotate(45deg)}
+.circuit-obstacle-mark:after{transform:rotate(-45deg)}
+.circuit-piece-shape i.filled{border:1px solid var(--circuit-color-highlight);background-color:var(--circuit-color)}
+.circuit-piece{flex-wrap:wrap}.circuit-piece .circuit-color-token{font-size:.68rem}.circuit-piece small{margin-left:auto}
+.circuit-guide-column-targets .circuit-color-token{font-size:.55rem;padding:1px 5px 1px 2px}.circuit-guide-column-targets .circuit-color-token>i{width:.75rem}
+.circuit-guide-row-targets span{position:relative;border:1px solid var(--circuit-color);background:var(--circuit-color-soft)}
+.circuit-guide-row-targets span>i{display:block;width:.58rem;height:.58rem;margin:2px auto;border-radius:50%;background:var(--circuit-color)}
+.circuit-solution{display:grid;gap:14px}.circuit-solution .success-line{margin:0;max-width:700px;line-height:1.65}
+.circuit-answer-svg{display:block;width:min(100%,680px);height:auto;max-height:72vh;margin:0 auto;overflow:visible;filter:drop-shadow(0 18px 30px #0005)}
+.circuit-svg-frame{fill:#0a131a;stroke:#637582;stroke-width:.055}
+.circuit-svg-cell{fill:#172731;stroke:#405360;stroke-width:.025}
+.circuit-svg-obstacle{stroke:#9aa8b1;stroke-width:.035}
+.circuit-svg-obstacle-cross{fill:none;stroke:#e4e9ec;stroke-width:.055;stroke-linecap:round}
+.circuit-svg-border{fill:none;stroke:#d5e1e7;stroke-width:.05;pointer-events:none}
+@media(max-width:560px){.circuit-color-token{font-size:.66rem;padding-right:6px}.circuit-preview-body{gap:11px}.circuit-piece-list{grid-template-columns:repeat(2,minmax(0,1fr))}.circuit-piece{padding:6px;gap:5px}.circuit-answer-svg{width:100%;max-height:none}.answer-panel{padding-inline:12px}}

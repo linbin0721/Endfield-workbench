@@ -13,7 +13,7 @@ type Props = {
   canSolve: boolean;
   busy: boolean;
   onQueryStart: () => void;
-  onSolve: (puzzle: CircuitPuzzle, label: string) => void;
+  onSolve: (puzzle: CircuitPuzzle, displayPalette: unknown, label: string) => void;
 };
 
 const dashes = "-֊־᐀᠆‐‑‒–—―−⸺⸻﹘﹣－";
@@ -78,7 +78,7 @@ export default function CircuitCodeQuery({ canQuery, canSolve, busy, onQueryStar
         if (!checked.puzzle) { setError(checked.error); return; }
         if (!canSolve) { setError("源石电路求解服务当前不可用，请稍后重试。"); return; }
         setNotice(`题号 ${result.code} 只有一个题面变体，已自动提交求解。`);
-        onSolve(checked.puzzle, `题号 ${result.code}`);
+        onSolve(checked.puzzle, candidates[0].display_palette, `题号 ${result.code}`);
       }
     } catch (caught) {
       if (controller.signal.aborted || version !== generation.current) return;

@@ -1,4 +1,5 @@
-import { CircuitChannelToken, CircuitPieceShape } from "./CircuitPuzzlePreview";
+import { circuitColorStyle, circuitFallbackDisplayColor } from "./circuitDisplay";
+import { CircuitColorToken, CircuitPieceShape } from "./CircuitPuzzlePreview";
 
 type Props = { mode: "screenshot" | "code" };
 
@@ -14,6 +15,7 @@ const GUIDE_PIECES = [
   { channel: 1, cells: [{ row: 0, column: 0 }, { row: 1, column: 0 }, { row: 1, column: 1 }] },
   { channel: 1, cells: [{ row: 0, column: 0 }] },
 ];
+const GUIDE_COLORS = [circuitFallbackDisplayColor(0), circuitFallbackDisplayColor(1)];
 
 export default function CircuitGuideExample({ mode }: Props) {
   const titleId = `circuit-guide-${mode}-title`;
@@ -35,26 +37,31 @@ export default function CircuitGuideExample({ mode }: Props) {
         <div className={`circuit-guide-board-region${screenshot ? " highlighted" : " dimmed"}`}>
           {screenshot && <span className="circuit-guide-region-label">1 必需：完整棋盘 + 上/左约束</span>}
           <div className="circuit-guide-column-targets">
-            <span><CircuitChannelToken channel={0} /> 3·0·1·0</span>
-            <span><CircuitChannelToken channel={1} /> 1·2·0·1</span>
+            <span><CircuitColorToken color={GUIDE_COLORS[0]} /> 3·0·1·0</span>
+            <span><CircuitColorToken color={GUIDE_COLORS[1]} /> 1·2·0·1</span>
           </div>
           <div className="circuit-guide-board-row">
             <div className="circuit-guide-row-targets">
-              <span>C1<br />3<br />0<br />1<br />0</span><span>C2<br />0<br />1<br />2<br />1</span>
+              <span style={circuitColorStyle(GUIDE_COLORS[0])}><i aria-hidden="true" />3<br />0<br />1<br />0</span>
+              <span style={circuitColorStyle(GUIDE_COLORS[1])}><i aria-hidden="true" />0<br />1<br />2<br />1</span>
             </div>
             <div className="circuit-guide-board">
-              {GUIDE_CELLS.map((channel, index) => <span key={index}
-                className={`circuit-cell ${channel === -1 ? "blocked" : channel == null ? "empty" : `fixed circuit-channel-${channel}`}`}>
-                {channel === -1 ? "×" : channel == null ? "" : `C${channel + 1}`}
-              </span>)}
+              {GUIDE_CELLS.map((channel, index) => {
+                const color = channel != null && channel >= 0 ? GUIDE_COLORS[channel] : null;
+                return <span key={index} className={`circuit-cell ${channel === -1 ? "blocked" : color ? "fixed" : "empty"}`}
+                  style={color ? circuitColorStyle(color) : undefined} data-circuit-pattern={color?.channel}>
+                  {channel === -1 ? <i className="circuit-obstacle-mark" aria-hidden="true" />
+                    : color ? <i className="circuit-fixed-mark" aria-hidden="true" /> : null}
+                </span>;
+              })}
             </div>
           </div>
         </div>
         <div className={`circuit-guide-inventory${screenshot ? " highlighted" : " dimmed"}`}>
           {screenshot && <span className="circuit-guide-region-label">2 必需：全部拼块</span>}
           {GUIDE_PIECES.map((piece, index) => <div className="circuit-guide-piece" key={index}>
-            <CircuitPieceShape cells={piece.cells} channel={piece.channel} />
-            <span>P{index + 1} / C{piece.channel + 1}</span>
+            <CircuitPieceShape cells={piece.cells} color={GUIDE_COLORS[piece.channel]} />
+            <span>{GUIDE_COLORS[piece.channel].name}</span>
           </div>)}
         </div>
       </div>

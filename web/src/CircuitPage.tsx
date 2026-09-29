@@ -28,6 +28,11 @@ type CandidateChoice = {
   candidates: CircuitCatalogCandidate[];
   matchedFingerprint: string | null;
 };
+type SolveSubmission = {
+  puzzle: CircuitPuzzle;
+  displayPalette: unknown;
+  source: string;
+};
 
 const notationText: Record<string, string> = {
   bars: "短条约束",
@@ -78,8 +83,7 @@ export default function CircuitPage() {
   const [recognition, setRecognition] = useState<CircuitRecognitionResult | null>(null);
   const [choice, setChoice] = useState<CandidateChoice | null>(null);
   const [result, setResult] = useState<CircuitSolveResult | null>(null);
-  const [submittedPuzzle, setSubmittedPuzzle] = useState<CircuitPuzzle | null>(null);
-  const [answerSource, setAnswerSource] = useState("");
+  const [submission, setSubmission] = useState<SolveSubmission | null>(null);
   const generation = useRef(0);
   const busy = useRef(false);
   const activeTaskId = useRef<string | null>(null);
@@ -96,7 +100,7 @@ export default function CircuitPage() {
     activeTaskId.current = null;
     busy.current = false;
     setTask(null); setSubmitting(false); setOperation(null); setWorkError("");
-    setRecognition(null); setChoice(null); setResult(null); setSubmittedPuzzle(null); setAnswerSource("");
+    setRecognition(null); setChoice(null); setResult(null); setSubmission(null);
   }, []);
 
   useEffect(() => {
@@ -138,11 +142,16 @@ export default function CircuitPage() {
     setImageSelection(selection);
   }, [invalidate]);
 
-  async function beginSolve(puzzle: CircuitPuzzle, version: number, source: string) {
+  async function beginSolve(
+    puzzle: CircuitPuzzle,
+    displayPalette: unknown,
+    version: number,
+    source: string,
+  ) {
     if (!mounted.current || generation.current !== version || !canSolve) return;
     busy.current = true;
     setOperation("solve"); setTask(null); setResult(null); setWorkError(""); setSubmitting(true);
-    setSubmittedPuzzle(puzzle); setChoice(null); setAnswerSource(source);
+    setSubmission({ puzzle, displayPalette, source }); setChoice(null);
     try {
       const created = await submitCircuit(puzzle);
       if (!mounted.current || generation.current !== version) {
@@ -174,7 +183,7 @@ export default function CircuitPage() {
         setWorkError("识别已完成，但源石电路求解服务当前不可用，请稍后重试。");
         return;
       }
-      await beginSolve(checked.puzzle, version, "本次截图识别");
+      await beginSolve(checked.puzzle, value.display_palette, version, "本次截图识别");
       return;
     }
     busy.current = false;
@@ -265,9 +274,9 @@ export default function CircuitPage() {
     setImageSelection(null); setImageVersion((value) => value + 1); setMode(next);
   };
 
-  const solveFromChoice = (puzzle: CircuitPuzzle, label: string) => {
+  const solveFromChoice = (puzzle: CircuitPuzzle, displayPalette: unknown, label: string) => {
     if (busy.current || !canSolve) return;
-    void beginSolve(puzzle, generation.current, label);
+    void beginSolve(puzzle, displayPalette, generation.current, label);
   };
 
   const catalog = recognition?.catalog ?? null;
@@ -348,9 +357,10 @@ export default function CircuitPage() {
           </section>}
         </div>}
       </div>
-      {result && submittedPuzzle && <div className="right-column"><section className="panel answer-panel" aria-label="求解结果">
-        <span className="eyebrow">答案</span>{answerSource && <p className="muted small">来源：{answerSource}</p>}
-        <CircuitResult puzzle={submittedPuzzle} result={result} />
+      {result && submission && <div className="right-column"><section className="panel answer-panel" aria-label="求解结果"
+        data-answer-source={submission.source}>
+        <span className="eyebrow">答案</span>
+        <CircuitResult puzzle={submission.puzzle} displayPalette={submission.displayPalette} result={result} />
       </section></div>}
     </div>}
   </>;
