@@ -2324,6 +2324,61 @@ def extract_bar_targets(
     )
 
 
+def extract_bar_channel_hues(
+    geometry: BoardGeometry, ensembles: Sequence[BarEnsemble]
+) -> tuple[float, ...] | None:
+    """Recover channel identities without interpreting bar counts.
+
+    This completion-screen helper applies the same board adjacency and pitch
+    gates as :func:`extract_bar_targets`, but deliberately ignores every
+    stack's ``count``. Exactly one adjacent ensemble is required on each axis,
+    every stack anchor must still map to a board line centre, and every
+    clustered hue must occur on both axes. It preserves channel identity when
+    a completion highlight has swallowed bars without inventing target values.
+    """
+    _validated_geometry(geometry, "extract_bar_channel_hues")
+    pool = _validated_ensembles(ensembles, "extract_bar_channel_hues")
+    step = float(geometry.step)
+
+    adjacent: dict[str, list[BarEnsemble]] = {"horizontal": [], "vertical": []}
+    for ensemble in pool:
+        scale = max(float(ensemble.step), step)
+        if abs(float(ensemble.step) - step) / scale > BOARD_STEP_TOLERANCE:
+            continue
+        if ensemble.orientation == "horizontal":
+            gap = float(geometry.top) - float(ensemble.baseline)
+        else:
+            gap = float(geometry.left) - float(ensemble.baseline)
+        if 0.0 <= gap <= BAR_ENSEMBLE_GAP_MAX * step:
+            adjacent[ensemble.orientation].append(ensemble)
+    if len(adjacent["horizontal"]) != 1 or len(adjacent["vertical"]) != 1:
+        return None
+
+    horizontal = tuple(adjacent["horizontal"][0].stacks)
+    vertical = tuple(adjacent["vertical"][0].stacks)
+    stacks = horizontal + vertical
+    clusters = cluster_hues([stack.hue for stack in stacks])
+    if clusters is None or not clusters.centers:
+        return None
+
+    axes_by_channel: dict[int, set[str]] = {
+        channel: set() for channel in range(len(clusters.centers))
+    }
+    for position, stack in enumerate(stacks):
+        centers = (
+            geometry.column_centers
+            if stack.orientation == "horizontal"
+            else geometry.row_centers
+        )
+        distance = min(abs(float(center) - float(stack.anchor)) for center in centers)
+        if distance > BAR_CENTER_TOLERANCE * step:
+            return None
+        axes_by_channel[int(clusters.assignments[position])].add(stack.orientation)
+    if any(axes != {"horizontal", "vertical"} for axes in axes_by_channel.values()):
+        return None
+    return tuple(float(hue) for hue in clusters.centers)
+
+
 # ---------------------------------------------------------------------------
 # board cell states (B1b3a)
 

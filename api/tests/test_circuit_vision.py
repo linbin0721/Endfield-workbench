@@ -32,6 +32,7 @@ from app.puzzles.circuit.vision import (
     cell_evidence,
     classify_cell,
     cluster_hues,
+    extract_bar_channel_hues,
     extract_bar_stacks,
     extract_bar_targets,
     extract_board_cells,
@@ -3138,3 +3139,109 @@ def test_inventory_results_are_frozen_plain_values_and_detached() -> None:
     )
     with pytest.raises(dataclasses.FrozenInstanceError):
         result.empty_count = 0
+
+
+# ---------------------------------------------------------------------------
+# bar channel identity without target decoding
+
+
+def channel_hue_geometry() -> BoardGeometry:
+    return BoardGeometry(
+        left=200.0,
+        top=200.0,
+        right=400.0,
+        bottom=400.0,
+        step=100.0,
+        rows=2,
+        columns=2,
+        row_centers=(250.0, 350.0),
+        column_centers=(250.0, 350.0),
+        evidence_ratio=1.0,
+        score_margin=1.0,
+    )
+
+
+def channel_hue_ensemble(
+    orientation: str,
+    samples: tuple[tuple[float, float], ...],
+    *,
+    baseline: float = 180.0,
+    step: float = 100.0,
+) -> BarEnsemble:
+    stacks = tuple(
+        BarStack(
+            orientation=orientation,  # type: ignore[arg-type]
+            anchor=anchor,
+            baseline=baseline,
+            hue=hue,
+            count=1,
+            step=step,
+            residual_ratio=0.0,
+        )
+        for anchor, hue in samples
+    )
+    return BarEnsemble(
+        orientation=orientation,  # type: ignore[arg-type]
+        baseline=baseline,
+        step=step,
+        stacks=stacks,
+        residual_ratio=0.0,
+    )
+
+
+def test_extract_bar_channel_hues_requires_each_channel_on_both_axes() -> None:
+    geometry = channel_hue_geometry()
+    horizontal = channel_hue_ensemble(
+        "horizontal", ((245.0, 10.0), (255.0, 100.0), (345.0, 10.0))
+    )
+    vertical = channel_hue_ensemble(
+        "vertical", ((245.0, 10.0), (255.0, 100.0), (345.0, 100.0))
+    )
+
+    result = extract_bar_channel_hues(geometry, (horizontal, vertical))
+
+    assert result == pytest.approx((10.0, 100.0))
+
+    missing_second_axis = channel_hue_ensemble(
+        "vertical", ((250.0, 10.0), (350.0, 10.0))
+    )
+    assert extract_bar_channel_hues(
+        geometry, (horizontal, missing_second_axis)
+    ) is None
+
+
+def test_extract_bar_channel_hues_requires_unique_adjacent_ensembles() -> None:
+    geometry = channel_hue_geometry()
+    horizontal = channel_hue_ensemble(
+        "horizontal", ((250.0, 10.0), (350.0, 10.0))
+    )
+    vertical = channel_hue_ensemble(
+        "vertical", ((250.0, 10.0), (350.0, 10.0))
+    )
+    duplicate = channel_hue_ensemble(
+        "horizontal", ((250.0, 10.0), (350.0, 10.0)), baseline=170.0
+    )
+
+    assert extract_bar_channel_hues(
+        geometry, (horizontal, duplicate, vertical)
+    ) is None
+
+
+def test_extract_bar_channel_hues_rejects_anchor_outside_board_centers() -> None:
+    geometry = channel_hue_geometry()
+    horizontal = channel_hue_ensemble(
+        "horizontal", ((250.0, 10.0), (381.0, 10.0))
+    )
+    vertical = channel_hue_ensemble(
+        "vertical", ((250.0, 10.0), (350.0, 10.0))
+    )
+
+    assert extract_bar_channel_hues(geometry, (horizontal, vertical)) is None
+
+
+def test_extract_bar_channel_hues_validates_inputs() -> None:
+    geometry = channel_hue_geometry()
+    with pytest.raises(ValueError, match="BoardGeometry"):
+        extract_bar_channel_hues("geometry", ())  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="sequence of BarEnsemble"):
+        extract_bar_channel_hues(geometry, "ensembles")  # type: ignore[arg-type]
