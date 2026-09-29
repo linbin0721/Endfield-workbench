@@ -39,6 +39,7 @@
 
 ## 已知坑与背景
 
+- PostgreSQL 被主动重启时，目录连接池中的旧连接会在重启后的第一次目录请求中被丢弃；该请求可能返回一次 `CATALOG_UNAVAILABLE`/503，下一次请求会用新连接恢复。健康检查、截图识别和求解不依赖目录而继续可用；若未来要求目录请求无感恢复，应在存储层加入一次受限重试并补数据库重启回归。
 - VPS 环境设置了 `NODE_ENV=production`，直接运行 `npm ci` 会遗漏 TypeScript、Vite 等构建依赖；在服务器构建前端时使用 `npm ci --include=dev`。
 - `samples/private/` 被 Git 忽略且不会随仓库部署。缺少这些样本时，测试通过只能证明公开测试覆盖的逻辑，不能证明真实截图 OCR 准确率。
 - 根目录 `set/` 也是不提交的本地识别样本，当前分为 `set/test set baloons/`（浮空回收回归图）、`set/train set puzzle/`（源石电路训练）、`set/test set puzzel/`（源石电路测试）；脚本必须使用当前实际路径，目录改名时同步引用。样本原图和派生审计图都不能进入 Git。

@@ -78,6 +78,68 @@ Treat dumps as private. Test restoration separately before relying on a backup; 
 
 `api/Dockerfile` already runs `python -m uvicorn ... --workers 1`, and the overlay must not change that. Do not add a `command:` to `api`, do not raise `--workers` above 1, and do not scale the service with `--scale api=N` or `deploy.replicas`. The task queue, running jobs and results live inside the single process; extra Uvicorn workers would answer from separate queues and make valid task IDs return 404 depending on which process handles the request.
 
+### VPS status, update, and rollback
+
+Run status and logs from the deployed checkout:
+
+```sh
+cd /root/project/EndfieldWorkbench/deploy
+docker compose -f compose.yaml -f compose.vps.yaml ps
+docker compose -f compose.yaml -f compose.vps.yaml logs --tail=100 api db
+curl -fsS http://127.0.0.1:18000/api/v1/health
+curl -fsS https://api.linbin.org/endfield/api/v1/health
+```
+
+Before an update, create and validate the catalog backup shown above. Then fast-forward the checkout, validate and rebuild the API, and publish a versioned static release:
+
+```sh
+cd /root/project/EndfieldWorkbench
+git fetch origin main
+git pull --ff-only origin main
+
+cd deploy
+docker compose -f compose.yaml -f compose.vps.yaml config --quiet
+docker compose -f compose.yaml -f compose.vps.yaml build api
+docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps api
+
+cd ../web
+npm ci --include=dev
+VITE_API_BASE_URL=https://api.linbin.org/endfield npm run build
+release="$(git -C .. rev-parse --short=7 HEAD)"
+test ! -e "/var/www/endfield-workbench/releases/$release"
+install -d -m 0755 "/var/www/endfield-workbench/releases/$release"
+cp -a dist/. "/var/www/endfield-workbench/releases/$release/"
+ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbench/current.next
+mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
+```
+
+For the 2026-09-29 release, roll the static site and API image back without changing the database:
+
+```sh
+ln -s /var/www/endfield-workbench/releases/56256c9 /var/www/endfield-workbench/current.rollback
+mv -Tf /var/www/endfield-workbench/current.rollback /var/www/endfield-workbench/current
+
+docker tag endfield-workbench-api:rollback-33cd350-20260929T052718Z endfield-workbench-api:latest
+cd /root/project/EndfieldWorkbench/deploy
+docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps --force-recreate api
+```
+
+Stop only this project's API without removing the database volume:
+
+```sh
+cd /root/project/EndfieldWorkbench/deploy
+docker compose -f compose.yaml -f compose.vps.yaml stop api
+```
+
+The release did not modify Nginx. Its pre-release archive is `deploy/.local-backups/nginx-ew006-e-20260929T052718Z.tar.gz`. If a later manual change to these two site files must be undone, restore and validate them with:
+
+```sh
+cd /
+tar -xzf /root/project/EndfieldWorkbench/deploy/.local-backups/nginx-ew006-e-20260929T052718Z.tar.gz -C /
+nginx -t
+systemctl reload nginx
+```
+
 ### Nginx example and the `/endfield` prefix
 
 The API has no path-prefix configuration and does not need one: Nginx strips the prefix before forwarding. The trailing slash on `proxy_pass` is what removes `/endfield`, so the API still receives `/api/v1/...`:
