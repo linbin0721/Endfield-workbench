@@ -9,6 +9,14 @@ export type RecognitionResult = components["schemas"]["BalloonRecognitionResult"
 export type CatalogEntry = components["schemas"]["CatalogEntry"];
 export type CatalogCandidate = components["schemas"]["CatalogCandidate"];
 export type CatalogMatch = components["schemas"]["CatalogMatch"];
+export type CircuitPuzzle = components["schemas"]["CircuitPuzzle"];
+export type CircuitRecognitionResult = components["schemas"]["CircuitRecognitionResult"];
+export type CircuitSolveResult = components["schemas"]["CircuitSolveResult"];
+export type CircuitRecognitionTaskView = components["schemas"]["CircuitRecognitionTaskView"];
+export type CircuitSolveTaskView = components["schemas"]["CircuitSolveTaskView"];
+export type CircuitCatalogCandidate = components["schemas"]["CircuitCatalogCandidate"];
+export type CircuitCatalogEntry = components["schemas"]["CircuitCatalogEntry"];
+export type CircuitCatalogMatch = components["schemas"]["CircuitCatalogMatch"];
 
 const configured = import.meta.env.VITE_API_BASE_URL?.trim();
 export const API_BASE = configured || (import.meta.env.DEV ? "http://localhost:8000" : "");
@@ -48,4 +56,16 @@ export const getTask = (id: string, signal?: AbortSignal) => request<Task>(`/api
 export const cancelTask = (id: string, signal?: AbortSignal) => request<Task>(`/api/v1/tasks/${encodeURIComponent(id)}`, { method: "DELETE", signal });
 export const getCatalogEntry = (code: string, signal?: AbortSignal) => request<CatalogEntry>(
   `/api/v1/puzzles/balloon/catalog/${encodeURIComponent(code.trim())}`, { signal },
+);
+export const submitCircuitRecognition = (image: Blob, filename: string) => {
+  const form = new FormData();
+  form.append("image", image, filename);
+  return request<CircuitRecognitionTaskView>("/api/v1/puzzles/circuit/recognize", { method: "POST", body: form });
+};
+export const submitCircuit = (puzzle: CircuitPuzzle, signal?: AbortSignal) => request<CircuitSolveTaskView>(
+  "/api/v1/puzzles/circuit/solve",
+  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(puzzle), signal },
+);
+export const getCircuitCatalogEntry = (code: string, signal?: AbortSignal) => request<CircuitCatalogEntry>(
+  `/api/v1/puzzles/circuit/catalog/${encodeURIComponent(code.trim())}`, { signal },
 );
