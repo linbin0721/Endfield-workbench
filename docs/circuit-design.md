@@ -287,6 +287,33 @@ analyze_bar_image(image, *, time_limit_seconds, max_nodes) -> BarImageAnalysis
 - `BarImageAnalysis` 只有 `recognized/incomplete/no_board/already_completed` 四种离线结果，保存可选的 `CircuitPuzzle`、已经独立校验的 `CircuitSolution` 和纯文本 `issues`。只有 `recognized` 可携带题面和解答；其余结果两者都为空。
 - `analyze_bar_image` 只编排条形模式：依次执行短条、集合、几何、通道、格子、库存和目标解析。普通未完成图必须没有已放置组件，再构造领域模型并依次通过 `solve_circuit` 与 `validate_solution`；模型拒绝、无解、求解超限或独立校验失败都返回 `incomplete`。完成图允许条形目标因高亮吞并而不完整，但仍必须满足上一条的空库存和已放置证据。数字/罗马数字、题号 OCR、进程监督和公开 API 留在 B2。
 
+B2a 的无 OCR 数字符号接口冻结为：
+
+```text
+ConstraintGlyph(
+    axis: row / column,
+    line_index: int,
+    channel: int,
+    left/top/right/bottom: float,
+    center_x/center_y: float,
+    hue: float,
+)
+
+SymbolLayout(
+    geometry: BoardGeometry,
+    channel_hues: tuple[float, ...],
+    glyphs: tuple[ConstraintGlyph, ...],
+    residual_ratio: float,
+)
+
+locate_symbol_board(image) -> SymbolLayout | None
+```
+
+- 本层只定位紧凑高饱和数字/罗马字形，不解析字符。图形模式的细长计数条继续走 B1，不得被当成字形。
+- 横向字形按共同底边形成列候选，纵向字形按共同右边形成行候选；锚点以 2～10 的整数格距解释。横纵候选必须复用条形棋盘相同的方格拟合、格内二维支持、外圈惩罚、12% 方格距门槛和唯一分数门槛。
+- 几何唯一后，只保留紧邻棋盘上方/左侧且能唯一映射到中心线的彩色组件。色相聚类为 1～4 通道，每个通道必须在两轴出现且显示偏移稳定；同一 `(axis, line_index, channel)` 的同色近邻组件合并成一个 `ConstraintGlyph`，以支持两位数字或拆分的罗马组合。
+- 缺少字形的已确认行列留给 B2b 归一化为 0。本层不读取低饱和 `∅`，只能用棋盘二维证据向候选尾部延伸，不能凭缺字形猜测尚未定位的棋盘范围。
+
 B1b3b 的库存返回结构冻结为：
 
 ```text
