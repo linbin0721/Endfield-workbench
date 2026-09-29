@@ -336,6 +336,28 @@ analyze_decoded_image(image, ocr, *, time_limit_seconds, max_nodes)
 - 题号只规范化为 `V` 加五位数字或 `WL` 加四位数字，允许前导三角形、连字符、空格和常见 Unicode 破折号，但不进行字母数字猜改。优先搜索相对已确认棋盘的左侧区域，无几何或区域失败时将最长边缩至不超过 1800 后全图回退。置信度至少 `0.95`；多个不同高置信编号视为歧义并留空。题号失败只增加 issue，不得把完整题面降级。
 - `DecodedImageAnalysis` 保存四种离线 outcome、可空 notation、可选题号及置信度、纯文本 issues，并沿用只有 `recognized` 能携带题面和已独立校验解答的不变量。先尝试 B2a 数字符号布局；命中后读取数字/罗马目标，否则走 B1 条形闭环。两种模式必须共用格子、库存、完成态、领域构造、求解限制和独立校验语义；条形结果 notation 为 `bars`。题号可在题面不完整甚至未找到棋盘时单独返回，供后续目录查询。
 
+B2c 的正式识别结果与进程边界冻结为：
+
+```text
+CircuitRecognitionResult
+  outcome                     recognized / incomplete / no_board /
+                              already_completed / timeout /
+                              invalid_image / failed
+  puzzle                      仅 recognized 提供
+  notation                    bars / digits / roman / mixed，可空
+  question_code, question_code_confidence
+  issues[]
+
+recognize_circuit_job(image_bytes, timeout_seconds,
+                      solve_time_limit_seconds, solve_max_nodes) -> dict
+```
+
+- `CircuitRecognitionResult` 使用 Pydantic、禁止额外字段并重复校验 B2b 不变量；不返回内部 `solution`，因为它只用于确认题面可解，正式求解仍由后续 circuit solve 路由完成。目录匹配字段等 C1 定义强类型模型后再加入，B2c 不使用无类型占位。
+- 父任务进程只监督一次性 `python -m app.puzzles.circuit.recognize_worker`：原始图片经 stdin 传入，stdout 只允许单个 JSON，stderr 丢弃，`shell=False`，并设置 OMP/OpenBLAS/MKL/ORT 单线程环境。超时后必须杀死并等待子进程；非零退出、超过 256 KiB 的 stdout、非法 JSON 或不符合模型的结果统一为 `failed`。
+- worker 最多读取 12 MiB 加一个字节，只接受 PNG/JPEG/WebP。先从图片头检查正尺寸和不超过 2000 万像素，再按 EXIF 方向转正并转为 RGB；工作图同时满足最长边不超过 3200 和总像素不超过 400 万，缩小使用高质量重采样且绝不放大，最后转成连续 `uint8` BGR。空文件、损坏文件、不支持格式、超字节/像素或 Pillow/OpenCV 解码错误均为 `invalid_image`。
+- worker 设置 OpenCV 单线程，只实例化一个 `RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)`，将同一实例和配置中的求解时间/节点限额传给 `analyze_decoded_image`。已解码结果映射到正式模型时保留题面、notation、题号和 issues，但丢弃内部解答。未捕获的识别异常必须在进程内收敛为 `failed`，stdout 不输出 traceback 或日志。
+- B2c 仍不接 HTTP、任务路由、数据库或前端。C2 使用现有任务池调用 `recognize_circuit_job`，上传限流扩展到 circuit 精确路径，并在 API 进程执行目录复核与写入。
+
 B1b3b 的库存返回结构冻结为：
 
 ```text

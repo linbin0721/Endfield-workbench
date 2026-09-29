@@ -288,9 +288,31 @@
 - 结论：B2b 已验收。已解码 BGR 图片的 bars/digits/roman/mixed 编排、可选题号及最终求解校验闭环完成；字节/EXIF 边界、一次性 OCR 子进程和正式结果 JSON 留给 B2c。
 - 提交 / 推送：`68b0ab8`（`feat: decode circuit screenshot constraints`）已推送到 `origin/main`；本验收记录随后推送。
 
-##### B2 后续子批
+###### 当前委派 B2c：图片边界、一次性 worker 与正式结果
 
-- B2c：实现 `CircuitRecognitionResult`、12 MiB/2000 万像素/最长边/工作像素/EXIF 边界、stdin/stdout worker 与父进程超时/输出上限；37 张训练图与 3 张测试图端到端回归。
+- 状态：已委派，待 DSH 回执与 Codex 验收
+- 目标：把 B2b 已解码图片闭环封装成正式 Pydantic JSON 结果和受父进程监督的一次性 OCR worker，完整执行图片字节、格式、像素、EXIF、工作尺寸、超时和 stdout 上限。
+- 范围：新增 `api/app/puzzles/circuit/recognize.py`、`recognize_worker.py` 及对应单元测试；允许更新 circuit 包说明和本节回执。不得修改 `main.py`、任务队列、上传中间件、配置、数据库、OpenAPI、前端、部署或既有 balloon worker；HTTP/目录接线属于 C1/C2。
+- 限制 / 约束：严格实现 `docs/circuit-design.md` 的 B2c 冻结契约。worker 只接受 stdin 图片并只向 stdout 写 JSON；原图不落盘。正式结果不暴露内部解答，不用 `dict`/`Any` 伪造未来 catalog 字段。父进程必须 `shell=False`、限制 256 KiB stdout、单线程环境、超时杀死并等待子进程；错误文本不得包含异常、路径或图片内容。
+- 必要上下文：生产配置已有识别 25 秒、求解 3 秒/300000 节点；API 上传上限已有 12 MiB，但 worker 必须独立重复校验。B2b 私有基线为 21 张条形输入、18 张完成图和 1 张数字输入，单进程内含 OCR 约 1.51～4.44 秒；一次性子进程还会增加模型加载时间。结果模型现在只需 `puzzle/notation/question_code/confidence/issues`，C1 再加入强类型目录匹配。
+- 验收条件：模型测试覆盖七种 outcome、额外字段、recognized/puzzle/notation、no_board notation、题号与置信度不变量。解码测试覆盖 PNG/JPEG/WebP、空/损坏/GIF、12 MiB、2000 万像素、EXIF 1/3/6/8、3200 最长边、400 万工作像素、不放大、RGB 到 BGR。监督测试覆盖有效 JSON、非零退出、超时、超大 stdout、非法 JSON/UTF-8/模型以及线程环境和参数传递；worker 映射测试确认内部解答不出现在 JSON。
+- 验证要求：运行新增 worker/supervisor、B2b、视觉和领域定向测试及后端全量；用原始文件字节通过 `recognize_circuit_job` 跑 37 张训练图和 3 张测试图，结果保持 21 `recognized/bars`、18 `already_completed/bars`、1 `recognized/digits`，数字/条形 `V40020` 题面一致。记录冷启动总耗时和失败数；另验证超时后无遗留子进程。私有图片和报告不提交。
+
+#### DSH 回执
+
+- 实际改动：待填写。
+- 验证结果：待填写。
+- 未完成项 / 风险 / 待决策事项：待填写。
+- 建议写入长期记忆：待填写。
+
+#### Codex 验收
+
+- 独立检查：待验收。
+- 结论：待验收。
+- 提交 / 推送：待验收。
+
+##### 后续批次
+
 - C1/C2：实现独立 PostgreSQL 目录，再接入识别、求解、题号查询路由、任务队列、上传限流、OpenAPI 与生成类型。
 - D1/D2：先把现有气球流程无行为变化地迁入 `/balloon`，再实现 `/` 选择页和 `/circuit` 双入口、候选选择、示意图与答案棋盘。
 - E：全量测试与私有回归后备份数据库、构建镜像和静态 release，依次验证回环、公网 HTTPS/CORS、双谜题实际请求、重启持久化、10 路并发和资源占用，再公开 capability。
