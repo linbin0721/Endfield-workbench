@@ -161,6 +161,23 @@ circuit_catalog_observation
 
 若同一图片摘要已经记录，而新版识别器对它算出不同指纹，目录保留原观察且报告不一致，不用新结果改写历史。候选返回顺序固定为已确认优先、观察数多者优先、首次出现时间优先。
 
+### C1 冻结契约
+
+目录响应固定为 `CircuitCatalogCandidate`、`CircuitCatalogEntry` 和 `CircuitCatalogMatch`：候选包含 `fingerprint/puzzle/status/observations/first_seen/last_seen`；entry 只含 `code/candidates/updated_at`，不设置整体状态；match 包含 `available/code/code_confidence/complete/recorded/duplicate/image_digest_mismatch/matched_fingerprint/matched_status/candidates/issues`。`CircuitRecognitionResult.catalog` 是强类型可空字段，worker 只产生 `null`，API 进程才填充。
+
+`circuit_puzzle_fingerprint` 先用 `CircuitPuzzle` 重新校验，再规范化以下内容：
+
+- 棋盘版本、行列、排序后的障碍格；
+- 排序后的固定格及其通道；
+- 每个通道的行列目标；
+- 拼块多重集。每个拼块的单元格先分别旋转 `0/90/180/270` 度、平移到局部原点并选择字典序最小形状，再与通道绑定并排序。
+
+对 1～4 个通道枚举所有全局重编号，把目标、固定格和拼块通道一起映射；对每种映射生成键稳定、无空白的 JSON，选择字典序最小的有效载荷后计算 SHA-256。因此只忽略全局通道命名，不会把独立交换局部通道、镜像形状或不同目标误合并。
+
+三张表只执行 `CREATE TABLE/INDEX IF NOT EXISTS`。`circuit_catalog_entry` 保存 code 和时间；candidate 以 `(code,fingerprint)` 唯一，保存首个规范有效题面、观察数和时间；observation 以 `(code,image_sha256)` 唯一，保存首次关联指纹。写入事务先建立并锁定 entry 行，再检查摘要：同指纹返回 `duplicate`，不同指纹返回 `digest_mismatch` 且不修改历史；新摘要才插入观察并增加对应候选。候选状态由观察数派生：1 为 `provisional`，至少 2 为 `verified`。查询顺序为 verified 在前、观察数降序、首次时间升序，再用稳定主键打破并列。
+
+`CircuitCatalogService.enrich_recognition` 只在识别结果带规范题号时工作。`recognized` 题面必须在 API 进程重新校验、调用有界求解器并再次调用独立校验器，成功后才能写入；其余 outcome 只查目录。完整截图始终保留并使用本次题面，目录候选只是匹配信息；不完整截图命中一个或多个变体时分别给出明确提示。数据库未配置或不可用时返回 `available=false`，保留原识别结果。服务不吞掉意外编程错误，后续任务 finalize guard 负责保留原结果。
+
 ## API
 
 新增具体路由，置于通用占位路由之前：
