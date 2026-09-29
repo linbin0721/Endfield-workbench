@@ -314,6 +314,28 @@ locate_symbol_board(image) -> SymbolLayout | None
 - 几何唯一后，只保留紧邻棋盘上方/左侧且能唯一映射到中心线的彩色组件。色相聚类为 1～4 通道，每个通道必须在两轴出现且显示偏移稳定；同一 `(axis, line_index, channel)` 的同色近邻组件合并成一个 `ConstraintGlyph`，以支持两位数字或拆分的罗马组合。
 - 缺少字形的已确认行列留给 B2b 归一化为 0。本层不读取低饱和 `∅`，只能用棋盘二维证据向候选尾部延伸，不能凭缺字形猜测尚未定位的棋盘范围。
 
+B2b 的已解码图片与 OCR 接口冻结为：
+
+```text
+ConstraintToken(value, notation, confidence)
+SymbolTargets(channel_hues, row_targets, column_targets,
+              notation, minimum_confidence)
+QuestionCodeReading(code, confidence, saw_code_like, ambiguous)
+
+parse_constraint_token(text, confidence, maximum) -> ConstraintToken | None
+extract_symbol_targets(image, layout, ocr) -> SymbolTargets | None
+normalize_circuit_code(text) -> str | None
+read_circuit_question_code(image, geometry, ocr) -> QuestionCodeReading
+analyze_decoded_image(image, ocr, *, time_limit_seconds, max_nodes)
+    -> DecodedImageAnalysis
+```
+
+- `ocr` 是注入的单实例识别器；本批只接收已经解码且完成工作尺寸限制的 BGR 图，不实例化 RapidOCR，不读字节、不处理 EXIF、不启动子进程。B2c 的一次性 worker 负责这些边界并把同一 OCR 实例传入。
+- 每个 `ConstraintGlyph` 只裁其合并边界外扩 `0.05 × step` 的区域，裁剪到图片范围后通过一次批量 `text_rec` 读取。置信度至少 `0.90`，并且文本经 Unicode 规范化后必须唯一匹配：十进制 `0..maximum`、规范罗马数字 `I..X` 且值不超过 `maximum`，或明确 `∅/Ø` 空标记；`O`、任意夹杂文字、非规范罗马组合、越界值和结果数不一致均拒绝。返回对象不保存裁剪或像素。
+- `row` 字形上限是棋盘列数，`column` 字形上限是棋盘行数。同一键不得重复；布局已确认但没有彩色字形的 `(axis, line, channel)` 归一化为 0。各通道行列总数不一致时返回不完整。观察到的数字与罗马标记分别产生 `digits`、`roman`，两类同时出现为 `mixed`；空标记不单独改变 notation。
+- 题号只规范化为 `V` 加五位数字或 `WL` 加四位数字，允许前导三角形、连字符、空格和常见 Unicode 破折号，但不进行字母数字猜改。优先搜索相对已确认棋盘的左侧区域，无几何或区域失败时将最长边缩至不超过 1800 后全图回退。置信度至少 `0.95`；多个不同高置信编号视为歧义并留空。题号失败只增加 issue，不得把完整题面降级。
+- `DecodedImageAnalysis` 保存四种离线 outcome、可空 notation、可选题号及置信度、纯文本 issues，并沿用只有 `recognized` 能携带题面和已独立校验解答的不变量。先尝试 B2a 数字符号布局；命中后读取数字/罗马目标，否则走 B1 条形闭环。两种模式必须共用格子、库存、完成态、领域构造、求解限制和独立校验语义；条形结果 notation 为 `bars`。题号可在题面不完整甚至未找到棋盘时单独返回，供后续目录查询。
+
 B1b3b 的库存返回结构冻结为：
 
 ```text
