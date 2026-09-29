@@ -113,6 +113,14 @@ ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbenc
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
 
+EW-012 (`f170d1e`) changed only the API OCR path. Roll it back to the previous API image without changing the static frontend or database:
+
+```sh
+docker tag endfield-workbench-api:rollback-4056d5e-20260929T1830Z endfield-workbench-api:latest
+cd /root/project/EndfieldWorkbench/deploy
+docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps --force-recreate api
+```
+
 EW-011 (`f1f66ba`) changed only the static frontend. Roll back its corrected fallback colors without restarting the API:
 
 ```sh
