@@ -33,6 +33,9 @@ pnpm-debug.log*
 samples/private/
 # Root-level private training/test samples; never commit the originals
 /set/
+
+# Local deployment evidence, backups and cached public source tables.
+/deploy/.local-backups/
 # Kept for compatibility: the root sample directory used to be named "test set/"
 /test set/
 /deploy/backups/
