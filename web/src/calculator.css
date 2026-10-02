@@ -1,0 +1,89 @@
+/* 325 challenge calculator. Loaded from CalculatorPage.tsx; rules stay scoped to calc-* class names. */
+.calc-workbench{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-bottom:18px}
+.calc-form-panel,.calc-output,.calc-results,.calc-solution,.calc-equip,.calc-gear-block{min-width:0}
+.calc-form{display:grid;gap:16px;min-width:0}
+.calc-field{display:grid;gap:6px;min-width:0}
+.calc-field label{font-size:.85rem;color:#c8d6df}
+.calc-field select,.calc-field input{width:100%;min-width:0}
+.calc-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;min-width:0}
+.calc-target-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border:1px solid #32414e;border-radius:10px;padding:10px 12px;background:#141e27}
+.calc-target-row .field-label{margin:0}
+.calc-target{font-size:1.5rem;line-height:1;color:#9ff0e8;letter-spacing:.02em}
+.calc-required{border:1px solid #344a58;border-radius:11px;margin:0;padding:12px;min-width:0}
+.calc-required legend{padding:0 5px;color:#c0d0da;font-size:.86rem}
+.calc-required>p{margin:0 0 10px;line-height:1.6}
+.calc-required-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.calc-check{display:flex;align-items:center;gap:8px;min-width:0;border:1px solid #2f4453;border-radius:9px;padding:9px 11px;background:#152129;cursor:pointer}
+.calc-check input{min-height:auto;margin:0;flex:0 0 auto}
+.calc-check:has(input:checked){border-color:#6cd2cd;background:#1b3038}
+.calc-advanced{border:1px solid #344a58;border-radius:11px;padding:11px 12px;min-width:0}
+.calc-advanced summary{cursor:pointer;color:#c8d6df;font-size:.88rem;font-weight:700}
+.calc-advanced[open] summary{margin-bottom:10px}
+.calc-advanced>p{margin:0 0 12px;line-height:1.6}
+.calc-output{display:grid;gap:14px}
+.calc-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.calc-progress p{margin:0;color:#9edbd5;min-width:0;overflow-wrap:anywhere}
+.calc-spinner{width:18px;height:18px;flex:0 0 auto;border:2px solid #3d5b66;border-top-color:#6cd2cd;border-radius:50%;animation:calc-spin .8s linear infinite}
+@keyframes calc-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.calc-spinner{animation:none}}
+.calc-error h2{margin:0 0 10px}
+.calc-error p{margin:0}
+.calc-results{display:grid;gap:12px}
+.calc-result-head{display:grid;gap:10px}
+.calc-result-head h2{margin:0}
+.calc-result-head .summary{margin-top:0}
+.calc-results .notice{margin:0;line-height:1.7}
+.calc-results .notice p{margin:0}
+.calc-results .notice p+p{margin-top:8px}
+.calc-solution-list{display:grid;gap:14px}
+.calc-solution{border:1px solid #32414e;border-radius:14px;padding:16px;background:#141e27;display:grid;gap:14px}
+.calc-solution-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;min-width:0}
+.calc-solution-title{min-width:0}
+.calc-solution-title h3{margin:0 0 4px;overflow-wrap:anywhere}
+.calc-solution-meta{margin:0;color:#a7b6c3;font-size:.85rem}
+.calc-match-badge{flex:0 0 auto;border:1px solid #48746f;border-radius:999px;padding:5px 11px;background:#193534;color:#9ff0e8;font-size:.8rem;font-weight:800;white-space:nowrap}
+.calc-match-badge:not(.reached){border-color:#705f42;background:#30281c;color:#ead5a8}
+.calc-attributes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;min-width:0}
+.calc-attribute{display:grid;gap:3px;min-width:0;border:1px solid #32414e;border-radius:11px;padding:10px;background:#101a22;text-align:center}
+.calc-attribute-name{font-size:.78rem;color:#a7b6c3}
+.calc-attribute strong{font-size:clamp(1.35rem,4.5vw,2rem);line-height:1.15;overflow-wrap:anywhere}
+.calc-attribute-state{font-size:.72rem;color:#8fa3b1;overflow-wrap:anywhere}
+.calc-attribute.matched{border-color:#6cd2cd;background:#173136;box-shadow:inset 0 0 0 1px #6cd2cd55}
+.calc-attribute.matched strong{color:#b7efe8}
+.calc-attribute.matched .calc-attribute-state{color:#8fd8d1}
+.calc-sets{margin:0;color:#c2d0d9;font-size:.85rem;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.calc-sets span{border:1px solid #385762;background:#1d313a;border-radius:7px;padding:3px 8px}
+.calc-gear{display:grid;gap:14px}
+.calc-gear-block h4{margin:0 0 8px;font-size:.92rem;color:#dbe6ed}
+.calc-weapon-name{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}
+.calc-tags{list-style:none;display:flex;flex-wrap:wrap;gap:7px;margin:0;padding:0}
+.calc-tags li{border:1px solid #385762;background:#1d313a;border-radius:7px;padding:5px 9px;font-size:.82rem}
+.calc-gem-note{margin:8px 0 0}
+.calc-equip-list{display:grid;gap:9px}
+.calc-equip{border:1px solid #2f4453;border-radius:10px;padding:10px 12px;background:#131d25}
+.calc-equip-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0;min-width:0;overflow-wrap:anywhere}
+.calc-slot{flex:0 0 auto;border:1px solid #48746f;border-radius:6px;padding:1px 7px;background:#193534;color:#9ff0e8;font-size:.72rem;font-weight:800}
+.calc-mod-list{list-style:none;display:grid;gap:6px;margin:9px 0 0;padding:0}
+.calc-mod{display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;min-width:0;border-top:1px dashed #2b3d4a;padding-top:6px;font-size:.83rem;color:#c2d0d9}
+.calc-mod:first-child{border-top:0;padding-top:0}
+.calc-mod span{min-width:0;overflow-wrap:anywhere}
+.calc-mod b{color:#eef4f7;white-space:nowrap}
+.calc-missing{color:#efddbb;font-size:.78rem}
+.calc-copy-ok{color:#a8e3d6;font-size:.85rem}
+.calc-notes{margin:0;padding-left:20px;color:#aebdca;font-size:.85rem;line-height:1.7}
+.calc-notes li+li{margin-top:4px}
+.calc-about{margin-top:18px}
+.calc-about h2{margin-bottom:12px}
+.calc-about .calc-notes{margin-bottom:12px}
+.calc-source{overflow-wrap:anywhere}
+.calc-source a{color:#8de0da}
+.calc-other-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 0;color:#a7b6c3;font-size:.9rem}
+.calc-other-tools a{color:#8de0da;font-weight:700}
+@media(max-width:900px){.calc-workbench{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){
+  .calc-attributes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .calc-solution{padding:13px}
+  .calc-form-grid{grid-template-columns:minmax(0,1fr)}
+  .calc-required-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .calc-match-badge{font-size:.75rem}
+}
