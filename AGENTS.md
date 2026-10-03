@@ -48,7 +48,8 @@ EndfieldWorkbench/
 ├── set/                        私有训练/测试样本，Git 忽略
 │   ├── test set baloons/       浮空回收回归样本
 │   ├── train set puzzle/       源石电路训练样本
-│   └── test set puzzel/        源石电路测试样本
+│   ├── test set puzzel/        源石电路测试样本
+│   └── test set issue/         用户反馈问题的原图回归样本
 └── app/                        本机现有空目录；后端源码位于 api/app/
 ```
 

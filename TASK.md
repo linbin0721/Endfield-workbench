@@ -1,12 +1,31 @@
 # 当前任务与交接
 
-下一任务编号：`EW-017`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
+下一任务编号：`EW-018`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
 
 ## 当前委派
 
 无。
 
 ## 近期完成
+
+### EW-017：复现两种解谜超过 8 秒的延迟
+
+- 状态：已验收；Codex 直接完成诊断，无 DSH 委派。
+- 目标：复现用户观察到的两种解谜耗时，区分上传、服务端识别、目录查询、求解、轮询及呈现时间，对照 EW-012 的优化判断原因。
+- 范围：生产网页和 API 的串行真实样本/题号测试，必要的隔离性能分析与记录。
+- 限制 / 约束：保持生产单 Uvicorn worker、资源与并发配置；不重启容器、不修改算法、前端或基础设施；原图与详细追踪仅留在被忽略的本地证据目录。
+- 必要上下文：当前前端 `5b97992`、API `f170d1e`；EW-012 已消除电路题号整图 OCR 回退，但每次识别仍创建 OCR 子进程。用户已确认是截图识别；新图为 `V40022`、`WL-A2016`、`WL-A2006`，均在 `set/test set issue/`，沿用 `set/` 忽略规则。
+- 验收条件：两模块各有浏览器端到端测量及服务端分段数据；确认旧优化代码仍在生产，给出有证据的瓶颈与未复现边界。
+- 验证要求：固定私有原图至少两次串行测试，题号链路对照，公网/回环与独立 worker 对照；记录成功终态、服务健康及异常重启情况。
+
+#### Codex 验收
+
+- 独立检查：公网 Chromium 对用户三张原图各跑两次完整识别/求解。`V40022` 为 9.276 / 6.677 秒（识别任务 7.500 / 5.317 秒），`WL-A2016` 为 8.641 / 8.492 秒（6.593 / 7.067 秒），`WL-A2006` 为 8.178 / 8.128 秒（6.600 / 6.382 秒）。六次均成功、零页面异常，服务端求解仅 2～7ms；其余上传、网络与轮询/呈现约 1.4～2.0 秒。
+- 分段分析：同一生产镜像在隔离 2 CPU / 2 GiB 容器中，`WL-A2016` worker 约 6.735 秒：模块导入 0.933 秒、模型初始化 0.401 秒、6 次 OCR 合计 4.924 秒；`V40022` worker 约 5.041 秒：导入 0.949 秒、模型初始化 0.407 秒、题号区域 OCR 单次 2.465 秒、库存视觉 0.702 秒。题面可求解，但 `V40022` 两次均未识别出题号，没有新增该题号目录记录。
+- 对照验证：既有 `WL-A2014` 两次约 8.3 秒，`V40005` 为 6.3～7.1 秒，数字版 `V40020` 为 7.609 秒；题号链路仅 0.915 / 0.547 秒。回环整条链路为气球 6.016 秒、电路 5.087 秒。生产 `circuit/ocr.py` 与仓库 SHA-256 相同，EW-012 的一次局部 OCR 仍生效；初始化与多次 OCR 尚未被该优化消除。
+- 结论与边界：已复现用户两类截图超过 8 秒，主要瓶颈在识别；增加 Uvicorn worker 不适用于单用户耗时。电路首次 7.5 秒识别的额外波动未被隔离复测稳定重现，不能认定为模型冷启动或 CPU 节流。后续优先分析题号/表头 OCR 成本、模型复用与轮询等待；本任务完成复现，不包含性能实现。
+- 服务与资料：API/数据库健康、异常重启数为 0；临时分析容器已删除，生产代码、资源和部署配置没有改动。三张问题原图均受已有 `set/` 忽略规则保护；网络追踪、脚本、分段报告仅位于已忽略的 `deploy/.local-backups/ew017-*`。
+- 提交 / 推送：本次提交项目目录、现状与诊断记录并正常推送 `main`；前端 release 仍为 `5b97992`，API 仍为 `f170d1e`。近期完成保留 EW-008 起最近 10 个任务，EW-007 历史见 Git。
 
 ### EW-016：电脑截图入口与移动端导入适配
 
@@ -234,72 +253,3 @@
 - 独立检查：复核共用输入校验、复合填充 path、placement 独立渐变 ID 与 user-space bounds，确认固定格、障碍和两层外轮廓未改变。独立运行纯函数检查、`npm run build`（61 modules）和公网 Edge 154 浏览器；生产 V40020 的 4 个 placement 分别只有 1 个填充 path、0 个逐格 rect、2 个外轮廓 path，7/3/4/4 个单元子路径均落在对应整体渐变范围内。
 - 结论：EW-008 已验收并发布。桌面和 390px 实际页面中，多格拼块内部渐变连续且没有逐格重复或发丝缝；同色相邻的不同 placement 仍由各自边界分开，页面无横向溢出。
 - 提交 / 推送：`d8dc3bf`（`fix: render circuit pieces as unified shapes`）已推送 `origin/main`；生产静态 release 为 `/var/www/endfield-workbench/releases/d8dc3bf`。后端、数据库、契约和 Nginx 均未修改。
-
-### EW-007：源石电路真实颜色与完成棋盘
-
-- 状态：已验收
-- 目标：让源石电路答案直接显示为使用截图真实颜色的完成棋盘，用户不需要理解通道编号、拼块编号、坐标或旋转角度。
-- 范围：识别色相展示模型、目录色板持久化和旧数据兼容、OpenAPI/生成类型、前端色板接线、游戏风格答案棋盘、候选预览、回归与生产发布。
-- 限制 / 约束：冻结契约见 `docs/circuit-result-design.md`。色板不进入领域题面、求解器、独立校验或指纹；主答案不显示 `C1`/`P1`、坐标清单、旋转角度、行列约束，也不增加相关开关；`set/` 原图及派生物不得提交；两个实现批次依次验收，生产发布由 Codex 在两批完成后执行。
-- 必要上下文：视觉识别现已得到按通道排序的 OpenCV hue，但正式响应和目录会丢失它；生产电路目录有一个无色板的 `V40020` legacy candidate，迁移必须保留题面和观察历史并只做安全补色。
-- 验收条件：截图和题号两条路径使用正确色板；旧候选有稳定回退；同色相邻拼块仍能看出独立轮廓；固定格、障碍、空格和拼块直观可分；非法答案不绘制；气球无回归；生产 HTTPS、CORS、数据库迁移、重启和实际请求通过。
-- 验证要求：批次 A/B 分别完成定向和全量验证；最终运行 40 张私有回归、真实临时 PostgreSQL、OpenAPI/类型生成、生产构建、模拟及公网浏览器、数据库备份与重启检查。
-
-#### 当前批次 A：后端色板、目录与契约
-
-- 目标：一次完成视觉色相到正式识别结果、目录候选、PostgreSQL 和生成契约的后端全链路。
-- 范围：新增共享展示模型；扩展 analyze/worker/recognition、目录模型/服务/store/fake/API 测试；幂等迁移候选表；重导 OpenAPI 和生成 TypeScript。不得修改求解器、题面模型或指纹语义、手写前端、Compose/Nginx、生产服务或生产数据库。
-- 限制 / 约束：严格按设计文档批次 A。`recognized` 色板必须完整匹配题面通道，其他 outcome 为空；候选色板允许空以兼容旧数据；旧候选只在题面 JSON 完全相等时补色；已有非空色板、digest mismatch 和等价但不同表示均不得改色。
-- 验收条件：条形/数字/罗马/混合路径输出标准 0～360° 色相；跨进程 JSON 不丢失；目录新写、重复、二次确认、多变体和旧表迁移正确；生成契约出现强类型色板且可重复。
-- 验证要求：新增模型、分析、worker、服务、内存与真实 PostgreSQL 测试；相关 circuit 测试和后端全量；OpenAPI 导出、前端类型生成、前端生产构建与 `git diff --check`。不得读取 `set/`，私有真实颜色由 Codex 验收。
-
-#### DSH 回执
-
-- 实际改动：
-  - 新增独立的 `CircuitDisplayColor` 展示模型和通道连续性校验；`DecodedImageAnalysis` / `BarImageAnalysis` 只在完整识别时保留按通道排序的 OpenCV hue，worker 在正式 JSON 边界按 `(hue * 2) % 360` 生成标准角度。`CircuitRecognitionResult` 要求 recognized 色板完整且连续，其他 outcome 只能为空。
-  - `CircuitCatalogCandidate`、目录 service、`CircuitObservation`、内存 fake 和 PostgreSQL store 全链路保存 `display_palette`。候选表新增 `jsonb NOT NULL DEFAULT '[]'` 并以 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 幂等迁移；新候选保存首次色板，已有非空色板不覆盖。legacy 空色板仅在 incoming/stored puzzle JSON 相等时补入，duplicate 也执行同一检查，digest mismatch 和同指纹但 JSON 不同的表示均不补色。
-  - 扩展模型、分析、worker、service、内存 fake、HTTP/OpenAPI 和真实 PostgreSQL 回归，覆盖 bool/NaN/范围、重复或错序通道、四种 notation、JSON 往返、新写/重复/二次确认/多变体/digest mismatch、非空色板不可覆盖、精确 JSON 补色、等价不同 JSON 不补色及旧表带历史行迁移。重新导出 `contracts/openapi.json` 并由生成器更新 `web/src/generated/api.ts`；未修改手写前端、题面/求解/校验/指纹、部署或生产环境。
-- 验证结果：
-  - 展示模型、analyze、worker、目录 service/fake 与 API 定向：`170 passed`，仅 1 个既有 Starlette/httpx 弃用警告。
-  - 不映射宿主端口的临时 PostgreSQL 17 上真实 store 定向：`10 passed`；带同一临时 PostgreSQL 的后端全量：`712 passed, 5 skipped`，仅 1 个既有弃用警告。5 个跳过项是仓库既有的本地图片样本缺失用例，不包含 PostgreSQL 测试。临时容器 `ew007-postgres` 和网络 `ew007-test` 均已删除，并确认无残留。
-  - OpenAPI 连续导出两次、TypeScript 连续生成两次，哈希稳定：`contracts/openapi.json` 为 `0c721645f48583fe897a30473be1443d1dc897fe577d757eb07432eb120e2dae`，`web/src/generated/api.ts` 为 `28a66bcad64fb4dc55f553c1a722e8170cf57e48bcb19706339eee90e126e656`。生成契约包含 `CircuitDisplayColor` 以及 recognition/candidate 的强类型 `display_palette`。
-  - `npm run build` 通过（TypeScript + Vite，60 modules transformed）；`git diff --check` 通过；新增文件和生成契约权限均为 0644。
-- 未完成项 / 风险 / 待决策事项：按批次边界未读取私有 `set/`、未连接或迁移生产数据库、未部署；真实截图色相对应和生产 legacy `V40020` 补色留给 Codex 独立验收及两批完成后的发布步骤。后端契约和持久化链路没有已知未决实现项。
-- 建议写入长期记忆：无；展示色板不参与领域题面/指纹、非空色板不可覆盖及精确 JSON 才能安全补色均已由冻结设计文档记录。
-
-#### Codex 验收
-
-- 独立检查：逐文件核对 hue 传播、正式响应校验、目录服务、内存 fake、PostgreSQL schema/upsert/duplicate 分支及生成契约，确认色板没有进入题面、求解、校验或指纹。独立重跑定向测试 `170 passed`、真实临时 PostgreSQL store `10 passed`、无数据库后端全量 `698 passed, 19 skipped`；其中跳过项为 14 项未接测试数据库和 5 项本机缺少既有 `samples/private/`。OpenAPI 与生成类型哈希和 DSH 回执一致，前端生产构建通过（60 modules transformed），临时数据库容器与网络无残留。
-- 结论：批次 A 已验收。识别色相、目录持久化、旧表迁移、安全补色和契约链路达到冻结设计要求；尚未改变当前生产服务。
-- 提交 / 推送：`0953eee`（`feat: preserve circuit display colors`）；与批次 B 委派记录一并推送到 `origin/main`。
-
-#### 当前批次 B：完成棋盘与页面接线
-
-- 目标：一次完成前端色板接线和接近游戏完成状态的答案棋盘，让用户只看颜色、形状与位置即可复现答案。
-- 范围：新增集中式色板校验和高对比回退；让截图、题号单变体/多变体及不完整截图候选把自己的色板传到预览和答案；重做 `CircuitResult` 与 `CircuitPuzzlePreview` 的彩色矢量表现；补模拟 API 浏览器和响应式回归。不得修改后端识别、题面、求解、目录规则、生成契约或部署。
-- 限制 / 约束：严格按 `docs/circuit-result-design.md` 批次 B。主答案不可见 `C1`/`P1`、拼块序号、坐标、旋转角度、行列约束和相关开关；每个 placement 形成内部连续、只有外轮廓的色块，不同 placement 即使同色相邻也必须保留边界；固定格用同色及非文字图形标记；障碍、空格、固定格和拼块可区分；任何缺失或无效色板整组回退，不能部分错配；非法题面或答案仍拒绝绘制。
-- 必要上下文：截图完整识别使用 recognition 的 `display_palette`；目录查询、目录候选和不完整截图回退使用 candidate 自己的 `display_palette`；solve API 不接收色板，因此页面在提交求解时必须把题面和色板作为同一来源状态保存，切换模式、候选或任务世代时一起清除。旧生产候选的空色板必须稳定显示固定回退色。
-- 验收条件：四通道、旋转、障碍、固定格、同色相邻的两个独立拼块和旧空色板均可直观看懂；答案与候选区无可见技术编号；截图和题号单/多变体都使用正确来源色板；竞态取消不会串色；1440×900 与 390×844 无横向溢出且键盘焦点可用；气球页面无回归。
-- 验证要求：新增可独立测试的色板/绘制纯函数；TypeScript 和生产构建；使用模拟 API 的浏览器覆盖截图、题号单/多变体、旧空色板、非法答案和快速切换；检查 DOM 不含禁用文字，并保存桌面/窄屏截图供 Codex 审查。不得读取 `set/`，真实颜色由 Codex 最终回归。
-
-#### DSH 回执
-
-- 实际改动：
-  - 新增集中式 `web/src/circuitDisplay.ts`：防御性校验题面与未知色板，只有长度、顺序、连续通道及有限 `[0, 360)` 色相全部有效才采用整组真实色；任一项无效即整组回退四个固定高对比色。保留合法色相精度，避免接近 360° 的值因显示层舍入越界；统一生成 HSL 填充、阴影、亮边和中文颜色名，并以纯函数计算单个库存形状的外露边界。
-  - 截图 recognized 使用本次 `display_palette`；题号单变体、多变体及不完整截图目录候选使用各候选自身色板。页面把题面、色板和来源绑定为同一个求解提交状态，沿用既有 generation / abort / cancel 失效路径一起清除；solve 请求体仍只有领域题面。
-  - 重做 `CircuitResult` 为 SVG 完成棋盘：先经过既有 `deriveCircuitAnswer` 独立结构校验，再分层绘制底格、障碍、固定格及每个 placement。一个 placement 内无格线且只画外轮廓；不同 placement 即使同色相邻仍各有边界。成功结果仅保留简短说明和棋盘，不显示通道/拼块编号、摆放清单、坐标、旋转、约束、规则版本或相关开关。
-  - `CircuitPuzzlePreview`、目录候选及自制示意统一使用真实/回退色、颜色名与纹理；候选仍保留行列数值、棋盘、库存形状、状态和观察次数，不再显示技术通道编号或库存序号。补充窄屏 SVG、色块、纹理、固定格和障碍样式，并删除已无引用的旧通道编号、旧答案棋盘/清单样式及陈旧注释，`.circuit-solution` 只保留一处定义；气球组件及后端、生成契约、部署均未修改。
-- 验证结果：
-  - 忽略目录中的纯函数脚本通过：覆盖四通道有效色板（含 359.9999° 保持在范围内且命名为红色）、8 组缺失/短项/错序/NaN/Infinity/越界色板的整组回退、颜色命名边界、L/T 形、90°/270° 旋转、同色相邻两个独立形状与合并形状的边界差异，以及重复单元拒绝。
-  - `npm run generate:api` 通过，随后 `git diff --exit-code -- contracts/openapi.json web/src/generated/api.ts` 通过，生成契约无差异；`npm run build` 通过（TypeScript + Vite，61 modules transformed）；后端 smoke `test_circuit_presentation.py test_circuit_api.py` 为 **24 passed**，仅 1 个既有 Starlette/httpx 弃用警告；`git diff --check` 通过。
-  - Playwright 真实浏览器 + 模拟 API 全流程通过：截图色板 `[12, 204]`、题号单候选 `[132, 24]`、多候选所选变体 `[300, 166]`、legacy 空色板回退 `[174, 34]` 均正确；共检查 6 次 solve、2 次活动任务 DELETE，截图题面未被目录多变体替换，非法答案不绘制，切换/取消无旧答案或串色，答案与候选可见文本不含禁用技术标识，气球双入口 smoke 通过。
-  - 1440×900 与 390×844 均为 `document.scrollWidth <= innerWidth`，键盘焦点为 2px solid；截图保存于已忽略的 `deploy/.local-backups/ew007-b-desktop-1440x900.png` 和 `ew007-b-mobile-390x844.png`。目视确认完成棋盘清楚、同色相邻形状边界独立、固定格/障碍/空格可区分；测试浏览器缺 CJK 字体导致截图文字呈方框，不影响布局和图形审查。新增源码权限为 0644，Vite 和本批专用浏览器进程已清理，无临时容器残留。
-- 未完成项 / 风险 / 待决策事项：按批次边界未读取 `set/`、未做真实截图颜色核对、未连接生产数据库、未部署；浏览器断言使用模拟 API，真实色相与生产 legacy 候选补色仍由 Codex 在最终私有回归和发布验收中确认。宿主命名空间没有任务指定的 `/opt/microsoft/msedge/msedge`，完整浏览器断言使用 Playwright Chromium 153；另启动的隔离 Edge 154 CDP 复跑在会话中断前未形成可记录的完整结果，相关进程已清理。
-- 建议写入长期记忆：无；色板不进入领域题面/求解/指纹、无效色板整组回退和答案只展示完成棋盘均已由冻结设计文档记录。
-
-#### Codex 验收
-
-- 独立检查：逐文件复核色板整组校验、截图/题号/候选来源绑定、竞态清理、SVG 摆放推导和同色拼块边界；独立运行纯展示函数、前端生产构建（61 modules）、后端展示/API smoke（24 passed）及模拟 API 浏览器流程。40 张私有电路原图经正式 worker 边界回归为 21 `recognized/bars`、1 `recognized/digits`、18 `already_completed`，失败 0；22 个完整题面均输出与通道严格对应的色板，输入与对应完成画面的色相差最大 5.45°，题号命中保持既有 36/40。
-- 结论：批次 B 与 EW-007 已验收并发布。生产 V40020 实图识别得到 77.04° 色相，legacy 空色板在题面 JSON 精确一致的 duplicate 路径安全补齐；题号查询返回使用该色板的 5×5 完成棋盘。Edge 154 在 1440×900 和 390×844 下确认 4 个库存形状各自有边界、2 个障碍清晰，无技术编号、坐标、旋转或答案约束文字，且没有横向溢出。
-- 生产验收：PostgreSQL 迁移前备份 `deploy/backups/circuit-before-ew007-20260929T085002Z.dump` 已通过 `pg_restore -l`；本机/公网健康、TLS、HTTP 301、生产 Origin CORS、非允许 Origin 拒绝、真实截图识别与求解、独立答案复核、10 路并发目录查询、API 重启后色板持久化均通过。API 保持单 Uvicorn worker 和 `127.0.0.1:18000` 回环绑定；空闲快照 API 51.72 MiB、PostgreSQL 28.68 MiB。
-- 提交 / 推送：`4056d5e`（`feat: render circuit solutions with recognized colors`，包含已验收的 `0953eee` 后端批次）；已推送 `origin/main`，生产源码与静态 release 为 `4056d5e`。
