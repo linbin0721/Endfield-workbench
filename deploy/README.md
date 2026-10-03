@@ -113,6 +113,17 @@ ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbenc
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
 
+EW-018 (`f2d3409`) reduces OCR detection scaling. Roll back only the API to the retained EW-012 image:
+
+```sh
+cd /root/project/EndfieldWorkbench/deploy
+docker tag endfield-workbench-api:rollback-f170d1e-ew018-20261003T184434Z endfield-workbench-api:latest
+docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps --force-recreate api
+curl -fsS http://127.0.0.1:18000/api/v1/health
+```
+
+The schema and static release are compatible with both images; no database restoration or frontend switch is needed. The pre-update dump is `backups/catalog-before-ew018-20261003T184434Z.dump` (`pg_restore --list` validated; an actual restoration was not tested).
+
 EW-012 (`f170d1e`) changed only the API OCR path. Roll it back to the previous API image without changing the static frontend or database:
 
 ```sh

@@ -4,9 +4,13 @@
 
 ## 当前委派
 
+无。
+
+## 近期完成
+
 ### EW-018：缩短截图 OCR 耗时
 
-- 状态：待验收；Codex 定方案、性能对照与独立验收，DSH 实现。
+- 状态：已验收；DSH 实现，Codex 独立验收并发布。
 - 目标：减少两种解谜的小区域文字检测开销，保持题面、库存、色板、置信度和可解性。
 - 范围：两种 disposable OCR worker 的检测分辨率配置、必要的定向测试和识别文档；不更改 API 契约。
 - 限制 / 约束：保留单 Uvicorn worker、计算/上传队列、子进程超时与回收、现有置信度/冲突/库存推导校验；不改求解算法、前端、数据库、代理或资源限额。私有图和详细证据继续仅在忽略目录。
@@ -22,8 +26,14 @@
 - 未完成项 / 风险：5 项跳过因旧 `samples/private/` 缺图；全样本对照、独立验收与发布由 Codex 完成。临时切换依赖固定 RapidOCR 1.4.4 内部属性，升级需重验。未提交、推送、部署或更新 STATUS/MEMORY。
 - 建议写入长期记忆：气球库存整区的 736px 例外及其依赖版本兼容性，由 Codex 验收决定。
 
+#### Codex 验收
 
-## 近期完成
+- 独立检查：全量后端 `703 passed, 19 skipped`；14 项未配置测试 PostgreSQL，5 项旧 `samples/private/` 缺图，公开示例真实 OCR 通过。OpenAPI 与已提交契约完全一致；超时回收、上传边界及置信度/冲突守卫仍通过。
+- 样本对照：63 张私图加公开示例共 64 张，无题面、库存、颜色、状态或已有题号回退；46 个完整题面均求解并通过独立校验，18 张完成态保持。四行库存回退已由库存整区 736 修复。电路题号从 38/42 提升到 39/42，唯一新增 `V40022` 已人工核对；新镜像三张用户原图的完整 disposable worker 输出与审计一致。
+- 公网实测：三张问题图各两次完整网页流程，均成功、零页面异常。`V40022` 从 9.276/6.677s 降至 6.742/5.928s，`WL-A2016` 从 8.641/8.492s 降至 7.576/6.441s，`WL-A2006` 从 8.178/8.128s 降至 6.494/6.877s；每图两次均值分别快 20.6%/18.2%/18.0%。新版识别任务为 3.895～4.944s；网络、模型加载与轮询仍有开销，不能保证任意截图都低于 8s，未重复 20 路新版压测。
+- 发布检查：Compose 构建/配置、本机与 HTTPS 健康、有效 TLS、HTTP 301、生产 Origin CORS 允许/陌生来源拒绝、`nginx -t` 通过；单 Uvicorn worker、回环端口和资源限额保持。API/数据库健康、重启 0；验收恢复时再次核对健康。原图和详细证据仅在忽略目录，临时容器均已退出。
+- 结论 / 提交：EW-018 已验收上线；`f2d3409caaa31cd2baaccda709baade939ca9a7c` 已正常推送 `origin/main`，API 镜像为 `sha256:f622ebbd…`，前端 release 为 `5b97992`。旧镜像标签 `rollback-f170d1e-ew018-20261003T184434Z` 和数据库备份 `catalog-before-ew018-20261003T184434Z.dump` 已保留，备份目录结构已用 `pg_restore --list` 检查，未做实际恢复。回滚命令见 `deploy/README.md`；本验收记录随后正常提交推送。近期完成保留 EW-018～EW-009 最近 10 个，EW-008 历史见 Git。
+
 
 ### EW-017：复现两种解谜超过 8 秒的延迟
 
@@ -241,32 +251,3 @@
 - 独立检查：复核组件与专用样式，确认两种入口复用同一未解题 stage，stage 内只保留题号、约束、棋盘和库存。独立运行 `npm run build`（61 modules）及 `git diff --check`；在公网 Edge 154 中分别检查截图与题号流程，并以 1440×900 和 390×844 目视复核。
 - 结论：EW-009 已验收并发布。公网 stage 的两种模式结构与文本完全一致，包含 16 格棋盘、1 个障碍、3 个固定格和 3 组库存；不含区域编号、必需/可选、题号位置、颜色名称等说明文字。外部提示和后续表单顺序正确，桌面与移动端均无横向溢出，也没有 console/runtime error。
 - 提交 / 推送：`abc4e8b`（`refactor: simplify circuit screenshot guide`）已推送 `origin/main`；生产静态 release 为 `/var/www/endfield-workbench/releases/abc4e8b`。后端、数据库、契约和 Nginx 均未修改。
-
-### EW-008：源石电路拼块整体填充
-
-- 状态：已验收
-- 目标：让答案棋盘中的每个库存形状呈现为一块连续、自然的整体，消除每格重复渐变造成的方块拼接感。
-- 范围：只调整源石电路成功答案的 SVG 拼块填充路径与渐变坐标；保留现有外轮廓、颜色来源、障碍、固定格、题面预览和交互流程。
-- 限制 / 约束：每个 placement 使用一个填充元素和覆盖该形状整体包围范围的连续渐变；不得恢复内部格线，不得合并相邻的不同 placement；不修改后端、契约、识别、求解、目录或部署配置。
-- 必要上下文：当前 `CircuitResult` 为一个 placement 的每个格子分别绘制 `<rect>`，通道渐变默认以各 rect 的 object bounding box 重复，导致明暗在每格重新开始。外轮廓已经由 `circuitPieceBoundarySegments` 正确计算。
-- 验收条件：直线、L/T/S 和凹形拼块内部没有格状明暗重复或发丝缝；每个拼块只使用一个整体填充路径；同色相邻的不同拼块仍由各自边界清楚分开；固定格和障碍不变；桌面与窄屏无溢出。
-- 验证要求：运行前端生产构建和 `git diff --check`；用模拟题面检查一个多格拼块只有一个填充 path、渐变为 `userSpaceOnUse` 且范围等于该拼块包围盒；完成桌面与 390px 浏览器截图供 Codex 审查。DSH 不读取 `set/`、不提交、不推送、不部署。
-
-#### DSH 回执
-
-- 实际改动：
-  - 在 `circuitDisplay.ts` 新增 `circuitPieceFill` 纯函数，为一个 placement 生成单一复合 SVG 填充 path 及整体 `x1/y1/x2/y2` 包围范围；填充与既有 `circuitPieceBoundarySegments` 共用同一个单元校验器，统一拒绝空集合、非整数/负坐标和重复单元，避免两套展示几何校验漂移。
-  - `CircuitResult` 先为各 placement 推导填充与外轮廓，再给每个 placement 定义独立的 `gradientUnits="userSpaceOnUse"` 线性渐变，渐变起止覆盖该 placement 的完整包围盒。每个 placement 只绘制一个填充 `path`，不再按单元绘制多个 `rect`；原有深浅两层外轮廓继续按 placement 独立绘制，相邻不同 placement 不合并。
-- 验证结果：
-  - 已忽略的纯函数脚本覆盖直线、L/T/S、凹形、整体 bounds、path 单元子路径数，以及空集合、负数、非整数和重复单元；fill 与 boundary 对同组非法输入均拒绝，检查通过。
-  - 模拟 API 的 Playwright 浏览器全流程通过：合成 4×4 题面共 3 个 placement，每组恰好 1 个 `path[data-circuit-piece-fill]`、0 个逐格 `rect`、2 个独立外轮廓 path；横向双格 placement 的渐变为 `userSpaceOnUse`，范围精确为 `(2,0) → (4,1)`。原有 6 次 solve、2 次活动任务取消、非法答案拒绘、色板来源、气球 smoke、焦点和竞态断言同时通过。
-  - 1440×900 与 390×844 均无横向溢出；截图保存在已忽略的 `deploy/.local-backups/ew008-desktop-1440x900.png` 和 `ew008-mobile-390x844.png`。目视确认横向双格和 L 形的明暗在整体形状上连续、没有逐格重复渐变或发丝缝，同色相邻的独立 placement 仍有清楚边界，固定格与障碍未变化。测试浏览器缺 CJK 字体导致文字呈方框，不影响图形审查。
-  - 最终常规 `npm run build` 通过（TypeScript + Vite，61 modules transformed）；`git diff --check` 通过；测试 preview 与浏览器子进程已清理。
-- 未完成项 / 风险 / 待决策事项：按范围未读取 `set/`、未修改后端/契约/识别/求解/目录/部署，未连接生产或部署；浏览器使用合成题面，生产真实题面的最终视觉仍由 Codex 发布前验收。
-- 建议写入长期记忆：无；每个 placement 使用一个 user-space 整体渐变填充、不同 placement 不合并的长期约束已记录在 EW-008 冻结任务中。
-
-#### Codex 验收
-
-- 独立检查：复核共用输入校验、复合填充 path、placement 独立渐变 ID 与 user-space bounds，确认固定格、障碍和两层外轮廓未改变。独立运行纯函数检查、`npm run build`（61 modules）和公网 Edge 154 浏览器；生产 V40020 的 4 个 placement 分别只有 1 个填充 path、0 个逐格 rect、2 个外轮廓 path，7/3/4/4 个单元子路径均落在对应整体渐变范围内。
-- 结论：EW-008 已验收并发布。桌面和 390px 实际页面中，多格拼块内部渐变连续且没有逐格重复或发丝缝；同色相邻的不同 placement 仍由各自边界分开，页面无横向溢出。
-- 提交 / 推送：`d8dc3bf`（`fix: render circuit pieces as unified shapes`）已推送 `origin/main`；生产静态 release 为 `/var/www/endfield-workbench/releases/d8dc3bf`。后端、数据库、契约和 Nginx 均未修改。
