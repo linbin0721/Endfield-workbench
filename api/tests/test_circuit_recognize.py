@@ -279,6 +279,8 @@ def test_worker_constructs_one_ocr_and_drops_internal_solution(
     assert calls[0][1] == {
         "intra_op_num_threads": 1,
         "inter_op_num_threads": 1,
+        "det_limit_type": "min",
+        "det_limit_side_len": worker.DET_LIMIT_SIDE_LEN,
     }
     assert calls[1][1] is image
     assert calls[1][2] is calls[0][2]

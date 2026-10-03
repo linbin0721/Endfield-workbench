@@ -24,6 +24,17 @@ CODE_REGIONS = (
     (-2.30, -0.80, -0.02, 0.80),
 )
 CODE_FULL_FRAME_MAX_SIDE = 1600
+# RapidOCR 1.4.4 raises the detector input short side to 736px by default
+# (``det_limit_type="min"``). The OCR crops here are small UI regions, so a
+# 512px short side keeps that upscaling (never disables it) and leaves the
+# max-side limit alone while reducing detection cost. The inventory region is
+# the one exception and runs through ``_stock_text`` below.
+DET_LIMIT_SIDE_LEN = 512
+# The whole-region stock boxes decide where every later lift/count crop lands.
+# A global 512px short side lost or conflicted two lifts on a four-row
+# inventory, so that single call restores RapidOCR's 736px default on the
+# shared engine instead of keeping a second model around.
+STOCK_DET_LIMIT_SIDE_LEN = 736
 
 
 def _rectangles(image: np.ndarray, threshold: int = 130) -> list[tuple[float, float, float]]:
@@ -194,13 +205,29 @@ def _question_code(ocr: RapidOCR, image: np.ndarray,
     return None, None, low_confidence or code_like
 
 
+def _stock_text(ocr: RapidOCR, stock: np.ndarray) -> tuple[list | None, list | None]:
+    """Read the whole inventory region at RapidOCR's default detector size.
+
+    ``rapidocr-onnxruntime==1.4.4`` reads ``text_det.limit_side_len`` on every
+    call, so the shared 512px engine can use 736px for this one region and be
+    restored afterwards, including when detection raises.
+    """
+    original = ocr.text_det.limit_side_len
+    try:
+        ocr.text_det.limit_side_len = STOCK_DET_LIMIT_SIDE_LEN
+        return ocr(stock)
+    finally:
+        ocr.text_det.limit_side_len = original
+
+
 def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
     board = _board(image)
     if board is None:
         height, width = image.shape[:2]
         progress_region = _crop(image, .25 * width, .12 * height, .75 * width, .40 * height)
         if progress_region.size:
-            progress, _ = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)(progress_region)
+            progress, _ = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1,
+                                   det_limit_type="min", det_limit_side_len=DET_LIMIT_SIDE_LEN)(progress_region)
             for _, value, confidence in progress or []:
                 match = re.fullmatch(r"\s*(\d{1,4})\s*/\s*(\d{1,4})\s*", value)
                 if match and confidence > .85 and int(match.group(1)) > 0:
@@ -210,7 +237,8 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
     issues: list[str] = []
     if any(cell is None for cell in cells):
         issues.append("未检测到外框的地块仍待确认，请逐格核对禁用格与可放置格。")
-    ocr = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)
+    ocr = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1,
+                   det_limit_type="min", det_limit_side_len=DET_LIMIT_SIDE_LEN)
     question_code, code_confidence, code_seen = _question_code(ocr, image, (left, top, right, bottom))
     if question_code is None and code_seen:
         issues.append("画面中的题号文字置信度不足 0.95，本次未用于目录；如需按题号复用请换一张更清晰的截图。")
@@ -245,7 +273,7 @@ def _recognize(image: np.ndarray) -> BalloonRecognitionResult:
         return BalloonRecognitionResult(outcome="draft", rows=rows, columns=columns, cells=cells,
                                         target_total_lift=target, question_code=question_code,
                                         question_code_confidence=code_confidence, issues=issues)
-    text, _ = ocr(stock)
+    text, _ = _stock_text(ocr, stock)
     labels: list[tuple[float, int, float]] = []
     details: list[tuple[float, float, int | None]] = []
     for box, value, confidence in text or []:

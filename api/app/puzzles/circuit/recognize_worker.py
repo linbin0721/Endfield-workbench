@@ -24,6 +24,11 @@ MAX_SOURCE_PIXELS = 20_000_000
 MAX_WORKING_SIDE = 3_200
 MAX_WORKING_PIXELS = 4_000_000
 SUPPORTED_FORMATS = frozenset({"PNG", "JPEG", "WEBP"})
+# RapidOCR 1.4.4 raises the detector input short side to 736px by default
+# (``det_limit_type="min"``). The OCR crops here are small UI regions, so a
+# 512px short side keeps that upscaling (never disables it) and leaves the
+# max-side limit alone while reducing detection cost.
+DET_LIMIT_SIDE_LEN = 512
 
 
 class _InvalidImage(ValueError):
@@ -112,7 +117,8 @@ def recognize_image(
 ) -> CircuitRecognitionResult:
     """Construct exactly one OCR engine and analyze one decoded image."""
     with contextlib.redirect_stdout(sys.stderr):
-        ocr = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)
+        ocr = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1,
+                       det_limit_type="min", det_limit_side_len=DET_LIMIT_SIDE_LEN)
         analysis = analyze_decoded_image(
             image,
             ocr,

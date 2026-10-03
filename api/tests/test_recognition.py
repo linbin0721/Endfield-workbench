@@ -3,6 +3,7 @@ import io
 import os
 from pathlib import Path
 import time
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 import numpy as np
@@ -103,6 +104,85 @@ def test_regular_rows_ignore_distant_same_size_outliers(outliers: tuple[tuple[in
     # Usable cells still come only from the bright outlines; plain tiles stay unknown.
     assert [index for index, cell in enumerate(cells) if cell == "usable"] == [4, 10]
     assert box == pytest.approx((100, 250, 440, 590), abs=3)
+
+
+def test_stock_text_uses_736_on_the_shared_engine_and_restores() -> None:
+    from app.puzzles.balloon import recognize_worker as worker
+
+    stock = np.zeros((40, 80, 3), dtype=np.uint8)
+    expected = ([([[0, 0], [8, 0], [8, 4], [0, 4]], "3级回收气球", .99)], None)
+
+    class FakeOCR:
+        def __init__(self) -> None:
+            self.text_det = SimpleNamespace(limit_side_len=512)
+            self.calls: list[tuple] = []
+
+        def __call__(self, image):
+            self.calls.append((image, self.text_det.limit_side_len))
+            return expected
+
+    ocr = FakeOCR()
+    assert worker._stock_text(ocr, stock) is expected
+    assert ocr.calls == [(stock, 736)]
+    assert ocr.text_det.limit_side_len == 512
+
+
+def test_stock_text_restores_detector_and_reraises_original_error() -> None:
+    from app.puzzles.balloon import recognize_worker as worker
+
+    failure = RuntimeError("detector failed")
+
+    class FakeOCR:
+        def __init__(self) -> None:
+            self.text_det = SimpleNamespace(limit_side_len=512)
+            self.calls: list[int] = []
+
+        def __call__(self, image):
+            self.calls.append(self.text_det.limit_side_len)
+            raise failure
+
+    ocr = FakeOCR()
+    with pytest.raises(RuntimeError) as caught:
+        worker._stock_text(ocr, np.zeros((4, 4, 3), dtype=np.uint8))
+    assert caught.value is failure
+    assert ocr.calls == [736]
+    assert ocr.text_det.limit_side_len == 512
+
+
+def test_recognize_reuses_one_engine_and_only_stock_uses_736(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.puzzles.balloon import recognize_worker as worker
+
+    created: list = []
+
+    class FakeOCR:
+        def __init__(self, **kwargs) -> None:
+            self.kwargs = kwargs
+            self.text_det = SimpleNamespace(limit_side_len=kwargs["det_limit_side_len"])
+            self.calls: list[int] = []
+            created.append(self)
+
+        def __call__(self, image):
+            self.calls.append(self.text_det.limit_side_len)
+            return None, None
+
+    monkeypatch.setattr(worker, "RapidOCR", FakeOCR)
+    result = worker._recognize(_synthetic_board_image())
+
+    assert len(created) == 1
+    ocr = created[0]
+    assert ocr.kwargs == {
+        "intra_op_num_threads": 1,
+        "inter_op_num_threads": 1,
+        "det_limit_type": "min",
+        "det_limit_side_len": 512,
+    }
+    # The stock region is the last call and the only one allowed to use 736.
+    assert len(ocr.calls) >= 2
+    assert ocr.calls[-1] == 736
+    assert ocr.calls[:-1] == [512] * (len(ocr.calls) - 1)
+    assert ocr.text_det.limit_side_len == 512
+    assert result.outcome == "draft"
+    assert result.inventory == []
 
 
 def _variant(original: bytes, kind: str) -> bytes:
