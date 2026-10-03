@@ -19,6 +19,9 @@ EndfieldWorkbench/
 │   │   ├── App.tsx             首页及 /balloon、/circuit、/325 路由
 │   │   ├── BalloonPage.tsx     浮空回收页面
 │   │   ├── CircuitPage.tsx     源石电路页面
+│   │   ├── ImageInput.tsx      两种解谜共用的选图、截屏、预览与裁剪
+│   │   ├── device.ts          电脑与手机/平板入口判断，独立于窗口宽度
+│   │   ├── screenCapture.ts   单帧窗口截图与媒体资源释放
 │   │   ├── CalculatorPage.tsx  325 挑战页面
 │   │   ├── calculator/         版本化数据、领域模型、属性复算与 Worker 搜索
 │   │   └── generated/          从 OpenAPI 生成的 API 类型

@@ -1,10 +1,33 @@
 # 当前任务与交接
 
-下一任务编号：`EW-016`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
+下一任务编号：`EW-017`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
 
 ## 当前委派
 
-无。
+### EW-016：电脑截图入口与移动端导入适配
+
+- 状态：待验收；DSH 已按定向审查完成三项修正并自查，Codex 独立审查、验证与发布。
+- 目标：浮空回收与源石电路在电脑显示“截取游戏窗口”，手机和平板隐藏该入口并优化相册导入及触控布局。
+- 范围：共享 `ImageInput.tsx`、少量设备判断/截图辅助模块及局部样式；必要时同步 `docs/frontend-flow.md`。沿用两条解谜路由和现有预览、裁剪、上传与求解逻辑。
+- 限制 / 约束：不新增桌面助手、依赖、后端接口或设备模式开关；不修改 325、识别器、求解器、数据库和生产代理。按钮按设备模式决定，不能用窗口宽度隐藏。选图/截屏只本地预览，仍由用户点击“识别并求解”上传。保持 12 MiB / 2000 万像素限制。
+- 必要上下文：Windows/macOS/Linux 默认电脑；Android/iPhone/iPad 默认移动，包含桌面 UA 的触控 iPad；不因 Windows 触屏电脑或缩小窗口变为移动。截图使用点击事件内的 `getDisplayMedia`，提示选择游戏窗口，音频关闭，获得真实视频帧后转 PNG，并立即停止所有 track。
+- 验收条件：电脑宽/窄窗口均有截图入口；手机和横竖屏平板的 DOM 均无截图按钮；不支持截图的电脑有禁用入口和选图/粘贴提示。成功、拒绝、无帧、源结束、清除与卸载均释放资源，迟到结果不能覆盖新选图；取消授权保留原预览。选图、拖放、粘贴、裁剪和两种解谜流程无回退，两端无横向溢出。
+- 验证要求：类型生成、生产构建、差异检查；独立浏览器验证桌面/窄桌面/iPhone/Android/iPad/桌面 UA iPad/触屏 Windows，真实媒体流帧与错误/竞态清理；发布后 HTTPS、CORS、两条解谜路由及实际 API 冒烟。自动化媒体测试与真实 Windows 游戏窗口验证应明确区分。
+- 委派约束：DSH 只修改授权文件并在本任务追加回执（实际改动、验证结果、未完成项/风险）；不提交、不推送、不部署，不更新 STATUS/MEMORY。
+
+#### DSH 回执
+
+- 实际改动（按定向审查三项）：
+  - 首轮已完成的 `device.ts` 设备判断、点击任务内 `getDisplayMedia`（window 首选 / 排除自身标签）、10 秒无帧上限、`drawImage` 后立即停 track、选择/裁剪/上传链路均未改动。
+  - `screenCapture.ts`：`withTimeout` 增加可选 `AbortSignal`。编码等待在预先 aborted 或期间取消时立即 reject，同时清除 timer 与 abort listener，尽快进入 `finally` 移除离屏 video；`drawImage` 后停止 track 的行为保持不变；迟到的 `toBlob` 结果只会落到已 settle 的 promise，被忽略且不写 UI。
+  - `ImageInput.tsx`：文件选择改为真实 `type="button"` 并通过 `fileInput.current?.click()` 打开，hidden file input 设 `tabIndex={-1}` 与 `aria-label`；电脑支持截图时“截取游戏窗口”为 primary、选图/更换为 secondary，不支持截图时选图保持 primary、截图按钮禁用并保持 secondary；移动主按钮文案保持“从相册选择”。
+  - 文案与局部样式：badge 统一为“图片仅本地预览”；移动提示简化为“先用设备截屏，再从相册选择图片。”，不再提示拖放或电脑截图；section 增加 `image-input-mobile` / `image-input-desktop`，移动设备（含桌面 UA 宽平板）触控区域 ≥44px、输入 `font-size:16px`，窄桌面（420px）截图按钮仍保留。
+- 验证结果：
+  - `npm run generate:api` 无差异；`VITE_API_BASE_URL=https://api.linbin.org/endfield npm run build` 通过；根目录 `git diff --check` 通过。
+  - 三项定向浏览器自查 44/44 通过：`toBlob` 不回调时点击“取消截屏”立即移除离屏 host，track 已 `ended`，迟到回调不产生预览、错误或异常；选图按钮用 Enter 与 Space 均能打开文件选择并载入图片；iPhone 13、Pixel 7、桌面 UA iPad 1024×768 的文案、badge、触控高度与 16px 输入符合要求，无横向溢出。
+  - 首轮 mock 媒体流自查脚本整体通过并已归档到 `deploy/.local-backups/ew016-dsh-checks/`（首轮计数记录不一致，不再单列项数）；那属于首轮实现自查，最终版本验收以 Codex 独立验证为准。
+- 未完成项 / 风险 / 待决策事项：真实游戏窗口帧、`displaySurface:"window"` 在选择器中的表现和 Windows 实机仍待独立浏览器验证；本机没有真实手机/平板，iOS 聚焦缩放与触控仅由模拟环境核对；未提交、未推送、未部署，未改动 STATUS/MEMORY。
+- 建议写入长期记忆：无。
 
 ## 近期完成
 

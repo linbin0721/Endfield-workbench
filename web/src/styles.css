@@ -124,3 +124,27 @@
 .circuit-svg-obstacle-cross{fill:none;stroke:#e4e9ec;stroke-width:.055;stroke-linecap:round}
 .circuit-svg-border{fill:none;stroke:#d5e1e7;stroke-width:.05;pointer-events:none}
 @media(max-width:560px){.circuit-color-token{font-size:.66rem;padding-right:6px}.circuit-preview-body{gap:11px}.circuit-piece-list{grid-template-columns:repeat(2,minmax(0,1fr))}.circuit-piece{padding:6px;gap:5px}.circuit-answer-svg{width:100%;max-height:none}.answer-panel{padding-inline:12px}}
+
+/* Import actions: album-first mobile copy, desktop window capture beside it. */
+.dropzone-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;width:100%;min-width:0}
+.dropzone-actions .button{min-height:44px;padding-inline:18px}
+.dropzone-note{width:100%}
+.capture-hint{margin:10px 0 0}
+.capture-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px;margin-top:12px;color:#9edbd5;font-size:.9rem;text-align:center;min-width:0}
+.capture-status .text-button{min-height:44px;padding:5px 4px}
+.image-meta span{min-width:0;overflow-wrap:anywhere}
+/* Device class, not viewport width: wide tablets keep >=44px touch targets and
+   16px inputs so iOS does not zoom a focused field. Narrow desktops stay on the
+   media query below and never lose the capture button. */
+.image-input-mobile .dropzone-actions{flex-direction:column;align-items:stretch}
+.image-input-mobile .dropzone-actions .button{width:100%;min-height:48px}
+.image-input-mobile .image-meta{flex-wrap:wrap}
+.image-input-mobile .image-source label,.image-input-mobile .crop-controls label{min-height:44px;align-items:center}
+.image-input-mobile input{font-size:16px}
+@media(max-width:560px){
+  .dropzone-actions{flex-direction:column;align-items:stretch}
+  .dropzone-actions .button{width:100%;min-height:48px}
+  .image-meta{flex-wrap:wrap}
+  .image-source label{min-height:44px;align-items:center}
+  .crop-controls label{min-height:44px}
+}
