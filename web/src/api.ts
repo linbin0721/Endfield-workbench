@@ -44,7 +44,57 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-export const getCapabilities = (signal?: AbortSignal) => request<Capability[]>("/api/v1/puzzles", { signal });
+// The capability lookup is a read-only probe that gates the whole page, so it
+// gets a bounded wait. Other requests keep their existing semantics: retrying
+// a write whose result is unknown could create a duplicate task.
+const CAPABILITIES_TIMEOUT_MS = 10_000;
+
+const abortedError = () => new DOMException("Aborted", "AbortError");
+const capabilitiesTimeout = () => new ApiError(0, "TIMEOUT", "连接解题服务超时，请重试。");
+const invalidCapabilities = () => new ApiError(0, "INVALID_RESPONSE", "解题服务返回了无法识别的能力信息，请重试。");
+
+export async function getCapabilities(signal?: AbortSignal): Promise<Capability[]> {
+  if (!API_BASE) throw new ApiError(0, "NO_API_URL", "解题服务尚未配置，请联系站点维护者。");
+  if (signal?.aborted) throw abortedError();
+  const controller = new AbortController();
+  let timedOut = false;
+  const forwardAbort = () => controller.abort();
+  signal?.addEventListener("abort", forwardAbort, { once: true });
+  const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, CAPABILITIES_TIMEOUT_MS);
+  try {
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE.replace(/\/$/, "")}/api/v1/puzzles`, { signal: controller.signal });
+    } catch {
+      if (signal?.aborted) throw abortedError();
+      if (timedOut) throw capabilitiesTimeout();
+      throw new ApiError(0, "NETWORK_ERROR", "无法连接解题服务。请检查网络或稍后重试。");
+    }
+    let body: unknown;
+    try {
+      // The same deadline covers the body: received headers alone are not a
+      // usable capability list.
+      body = await response.json();
+    } catch {
+      if (signal?.aborted) throw abortedError();
+      if (timedOut) throw capabilitiesTimeout();
+      body = null;
+    }
+    // A late response must never turn a timeout or a cancellation into success.
+    if (signal?.aborted) throw abortedError();
+    if (timedOut) throw capabilitiesTimeout();
+    if (!response.ok) {
+      const detail = body && typeof body === "object" && "error" in body ? (body as { error?: { code?: string; message?: string } }).error : undefined;
+      throw new ApiError(response.status, detail?.code || "HTTP_ERROR", detail?.message || `服务返回 ${response.status}。`);
+    }
+    if (!Array.isArray(body)) throw invalidCapabilities();
+    if (body.some((item: unknown) => item === null || typeof item !== "object")) throw invalidCapabilities();
+    return body as Capability[];
+  } finally {
+    window.clearTimeout(timer);
+    signal?.removeEventListener("abort", forwardAbort);
+  }
+}
 export const submitBalloon = (puzzle: BalloonPuzzle, signal?: AbortSignal) => request<BalloonTask>(
   "/api/v1/puzzles/balloon/solve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(puzzle), signal },
 );

@@ -318,6 +318,11 @@ export default function CircuitPage() {
                 ? "正在识别…" : submitting && operation === "solve" ? "正在提交求解…"
                   : operation === "solve" && busy.current ? "正在求解…" : "识别并求解"}
             </button>{busy.current && <button type="button" className="button secondary" onClick={cancel}>取消本次任务</button>}</div>
+            {/* The button stays disabled while the connection is unresolved, so
+                repeat the connection state next to it instead of only on top. */}
+            {service !== "ready" && <div className="service-status" role="status" aria-live="polite" data-service-hint={service}>
+              {service === "loading" ? "正在连接解题服务…" : <><span>连接解题服务失败：{serviceError}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>重试连接</button></>}
+            </div>}
             {task && <p className="task-status" role="status" aria-live="polite">{operation === "recognition" ? "识别" : "求解"}任务状态：{{ queued: "排队中", running: "处理中", succeeded: "已完成", failed: "失败", cancelled: "已取消" }[task.status]}</p>}
             {recognition && <div className="circuit-recognition-meta" role="status">
               {(recognition.notation || recognition.question_code) && <div className="notice">
