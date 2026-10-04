@@ -11,7 +11,7 @@
 ```text
 EndfieldWorkbench/
 ├── AGENTS.md                   项目说明与约束
-├── TASK.md                     当前交接与近期验收
+├── TASK.md                     任务交接、验收及完整历史
 ├── STATUS.md                   已核实的当前状态
 ├── MEMORY.md                   长期决策与兼容背景
 ├── web/                        前端应用
@@ -67,3 +67,8 @@ EndfieldWorkbench/
 - 前端改动至少运行类型生成和生产构建；后端改动运行相关 pytest；部署配置运行 `docker compose config`；Nginx 变更运行 `nginx -t`。私有样本缺失时必须明确报告跳过，不能声称真实截图识别已验证。
 - 前端发布使用带明确 `VITE_API_BASE_URL` 的生产构建和版本化静态目录；不得使用 Vite 开发服务器。发布后检查公网 HTTPS、CORS 和一次实际 API 请求。
 - 325 规则或数据变化须通过 `npm run test:calculator`，所有返回方案从原始物品重新复算；限时搜索未穷尽时不得声称无解或全局最优。数据版本、语义与扩展边界见 `docs/calculator-design.md`。
+
+## 本项目任务记录
+
+- 任务编号沿用 `EW-001` 起的递增编号，每个编号一个章节，按编号递增排列在 `TASK.md`；页首列下一编号及未结任务。
+- 查看近期交接使用 `tail -n 160 TASK.md`，按需扩大行数；查更早的具体任务可按编号定位。
