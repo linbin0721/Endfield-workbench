@@ -1,10 +1,59 @@
 # 当前任务与交接
 
-下一任务编号：`EW-021`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
+下一任务编号：`EW-022`。状态流转为“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
 
 ## 当前委派
 
-无。
+### EW-021：首页闲置后再次无法加载
+
+- 状态：进行中；静态发布兼容实现已由 Codex 验收，待生产验证；原直连故障待客户端证据。
+- 目标：排查不使用截图也发生的页面/API 等待；修复保留旧页面时 325 延迟资源丢失的独立发布缺口。
+- 范围：当前客户端与服务器请求对照、首页闲置及跨 release 的资源兼容、静态发布脚本和部署说明。
+- 限制 / 约束：不改算法、数据、API worker、数据库或其他站点；不能把资源 404 当作尚未捕获的浏览器连接超时根因。配置修改先备份、检查再 reload；保留全部 release 和既有 API 直连链路。
+- 必要上下文：前端 `a5961f8`，API `f2d3409`。用户重开 Edge 后仅停留首页，刷新持续等待，两种解谜不可提交且 325 没有功能；开启 VPN 刷新后全部恢复。旧 `5b97992` 的主包引用 `CalculatorPage-CVpWUgvo.js`，切换 current 后该资源返回 404，虽旧 release 仍在磁盘上。
+- 验收条件：区分客户端连接故障和发布兼容缺口；旧主包能在发布后加载其原有 325 依赖，当前包仍正常；未存在的资源仍返回 404，不能返回 HTML。保留旧 release 可回滚，更新命令维持跨版本资源可达。
+- 验证要求：旧页面加载 325 的修复前后浏览器对照、历史资源内容哈希/碰撞检查、隔离发布/回滚验证、当前生产页面/API/CORS/TLS 检查及 Nginx 语法。未复现的校园网/Windows Edge 原始故障明确保留。
+- DSH 主委派：新增仅标准库的 `deploy/publish_frontend.py`，维护一个跨 release 的 `/var/www/endfield-workbench/assets/` 哈希资源目录；允许 `--site-root` 指定隔离测试目录、`--dist` 指定构建目录、`--release` 指定安全 release 名。先校验全部已保留 release 和待发布 dist 的 assets：拒绝符号链接/不安全输入及同名不同内容，不覆盖任何已有资源；同名相同内容可复用。补全历史资源并先安装新 assets，完整创建独立新 release 后原子切换 current，打印原指向以供回滚；不得覆盖已有 release、删除历史或切换到不完整 release。只做必要实现，避免锁/清理/复杂编排；`deploy/README.md` 更新实际发布调用、静态 Nginx assets 专用 root（共享 assets）与回滚说明。DSH 不改生产 /var/www 或 /etc、不提交推送部署、不改 web/API/依赖、不启用 subagent；仅在本任务补回执。Codex 独立验证及实际迁移。
+
+#### DSH 回执
+
+- 实际改动：
+  - 新增 `deploy/publish_frontend.py`（仅标准库 `argparse`/`hashlib`/`os`/`pathlib`/`re`/`shutil`/`tempfile`）。CLI：`--release` 必填并校验为安全单段名称（字母数字开头、仅 `[A-Za-z0-9._-]`、≤64 字符），`--site-root` 默认 `/var/www/endfield-workbench`，`--dist` 默认项目 `web/dist`。
+  - 发布流程：先扫描共享 `assets/`、全部已保留 release 的 `assets/` 与待发布 dist（拒绝符号链接与非普通文件，dist 必须含 `index.html`），任一资源名内容哈希不一致立即列出碰撞并以“零写入”退出；同名同哈希记为可复用。随后把历史缺失资源和本次新资源安装到共享目录（同目录临时文件 + `os.link`，绝不覆盖已有文件），再把 dist 完整复制到新建 release 目录并逐文件哈希复核，最后经 `current.next` 用一次 `os.replace` 原子切换 `current`，打印 old/new 及可直接执行的 `ln -sfn … && mv -Tf …` 回滚命令。不删除任何 release 或资源，不覆盖已有 release，复制失败会移除本次刚创建的空 release。
+  - `deploy/README.md`：手动 `install`/`cp -a`/`ln -s`/`mv -Tf` 发布替换为 `python3 deploy/publish_frontend.py --release "$(git rev-parse --short=7 HEAD)"`，并列出脚本行为；新增“Static releases and the shared `/assets/` directory”小节，给出站点 `location /assets/` 示例（`root /var/www/endfield-workbench`、`try_files $uri =404`、`add_header Cache-Control "public, max-age=31536000, immutable"` 且不带 `always`），说明 HTML/SPA 回退/public 示例仍来自 `current`；新增“Rolling back a static release”小节；写明先完成首次脚本发布再启用 Nginx 资产目录的顺序。
+- 验证结果（全部在 `deploy/.local-backups/ew021-dsh-checks/` 隔离运行，`checks.py` 41/41 通过）：
+  - 两次发布及旧资产仍存在：首次发布把既有 `old0001` release 的历史资源导入共享目录；第二次发布后历史资源仍在、首个 release 逐文件哈希不变、`current` 由 relA 原子切到 relB。
+  - 同名相同可复用：复用资源安装前后 inode 与 mtime 完全不变，未被重写。
+  - 不同内容冲突不切换：脚本在写入前以 `asset collision` 失败；`current` 指向、共享目录清单、全部 release 目录和待建 release 均无变化，无残留 `.publish-*` 临时文件。
+  - 已有 release 不覆盖：同名 release 被拒绝，目录哈希不变；符号链接 dist 与 `../escape` 等不安全输入在写入前被拒绝。
+  - 旧 release 可回滚：直接执行脚本打印的 rollback 命令成功，`current` 回到 relA，共享目录同时可解析 relA 与 relB 的资源。
+  - 真实构建对照：以真实 `web/dist`（默认 `--dist`）发布，历史 `5b97992` 的 `CalculatorPage-CVpWUgvo.js`、`index-BlAYCcMq.js` 已导入共享目录，新 `index.html` 引用的全部 assets 都存在，新 release 与 dist 逐文件一致。
+  - 全新 site root（无 releases、无共享目录、无 current）：首次发布成功安装全部 assets，输出 `current: (none) -> …` 且不打印回滚命令。
+  - 生产只读核对：`/var/www/endfield-workbench/current` 仍指向 `a5961f8`，releases 清单不变，`/var/www/endfield-workbench/assets` 未创建；`git diff --check` 通过。
+  - 生产 13 个 release 的 assets 只读扫描：26 个不同资源名、0 个同名不同内容冲突，脚本首次迁移应可直接导入。
+- 未完成项 / 风险 / 待决策事项：
+  - 未修改生产 `/var/www` 或 `/etc/nginx`。共享目录尚不存在、站点 Nginx 仍是 `current/assets` 且带 `always`，需要 Codex 先运行一次脚本导入历史资源，再按 README 顺序替换 assets location 并 `nginx -t` / reload；在此之前旧页面的 325 延迟资源 404 缺口仍存在。
+  - 生产页面/API/CORS/TLS 检查与旧页面加载 325 的浏览器修复前后对照未执行，留给 Codex 发布后验证；未复现的校园网/Windows Edge 连接超时原样保留，不能宣称本修复解决该连接故障。
+  - 历史资源导入本身不是一次原子操作：若中途失败，已安装资源保留，重跑会跳过已有同名同内容资源。
+  - 未提交、未推送、未部署，未更新 STATUS/MEMORY，未启用 subagent。
+- 建议写入长期记忆：共享 assets 目录为跨 release 追加式、只增不删，站点 `/assets/` 必须使用独立 root 且缓存头不带 `always`（404 不能获得一年缓存），由 Codex 验收决定。
+
+#### DSH 复核修正回执（Codex 复核的三项发布安全问题）
+
+- 实际改动：
+  - `deploy/publish_frontend.py`：
+    - 新增 `make_directory()`：只为本次确实缺失的路径逐级创建 `0755`，已存在目录一律不 chmod。`install()` 用它创建共享 `assets/`，缺失的 `releases/` 也用它创建；新 release 目录改为 `os.mkdir(release_dir, 0o755)` 加 `os.chmod(0o755)`，与 `release already exists` 检查一致，竞争创建时直接失败而不是写入已存在目录。
+    - `install()` 在 `copyfile` 之后、`os.link` 之前显式 `os.chmod(temporary_path, 0o644)`，共享资产不再继承 `mkstemp` 的 `0600`，`www-data` 可读。
+    - 新增 `verify_reuse()`：已有路径必须是非符号链接的普通文件，且与预期内容 SHA256 一致才复用，否则立即 `SystemExit`。`install()` 的 `FileExistsError` 分支与安装主循环的已有文件分支统一走该校验；校验发生在创建 release 和切换 `current` 之前。
+    - 写入前显式校验 `<site-root>/releases`：符号链接或非目录立即以 `releases is not a regular directory` 退出，删除原来的 `releases.mkdir(exist_ok=True)`，不再沿链接把 release 写进外部目录。未增加锁或并发编排。
+  - `deploy/README.md`：脚本行为列表补充“资产文件 `0644`、新建共享/发布目录 `0755`”；静态发布小节说明 `www-data` 可读文件并遍历站点、`/assets/`、release 目录，且脚本不改已存在路径的模式；Nginx 变更备份固定为 `deploy/.local-backups/ew021-nginx-before.conf`，`cp` 前检查该路径不存在以免覆盖旧备份，并新增实际恢复命令。
+- 验证结果（`deploy/.local-backups/ew021-dsh-checks/checks-security.py`，48/48 通过，日志 `checks-security.out`；全部在隔离目录运行，未重跑先前 41 项）：
+  - 模式：`umask 077` 下全新发布，新建 `assets/`、`releases/`、release 目录均为 `0755`，安装资产为 `0644`；第二次发布复用资产仍 `0644` 且 inode 未变；预先存在的 `releases/`、`assets/`（`0700`）发布后保持 `0700`，证明只设置新建目录。
+  - 竞争复用：并发出现的同名普通文件内容一致时复用且不改写；内容不一致时以 `shared asset content differs from the build` 失败；符号链接、目录路径分别以 `shared asset is not a regular file` 失败；各分支均无 `.publish-*` 残留。
+  - 端到端竞争（包装进程注入 `os.link` 竞争）：内容不一致与符号链接两种竞争都使发布非零退出，`current` 保持原指向，未创建新 release 或 `current.next`，未遗留临时文件，且不修改竞争方文件/链接。
+  - `releases` 路径为符号链接或普通文件时均在写入前拒绝；链接目标外部目录为空，站点未创建 `current`、`current.next` 或共享 `assets/`。
+  - 生产只读核对：`/var/www/endfield-workbench/current` 指向未变，共享 `assets/` 仍未创建；`python3 -m py_compile deploy/publish_frontend.py` 与 `git diff --check` 通过。
+- 未完成项 / 风险 / 待决策事项：仍未提交、未推送、未部署，未修改生产 `/var/www` 或 `/etc/nginx`；README 的备份、恢复与 reload 命令尚未实际执行。脚本按复核要求不修复已存在资产的模式，因此旧版本脚本在隔离证据目录留下的 `0600` 资产不会被自动纠正；生产共享目录尚未创建，首次迁移由本版本脚本安装为 `0644`，不受影响。主循环对“扫描后到安装前”出现的已有普通文件只在来源不同时重新比对哈希，未引入锁，极小竞争窗口保持文档化的尽力而为边界。
 
 ## 近期完成
 

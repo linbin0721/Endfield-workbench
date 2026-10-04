@@ -105,13 +105,80 @@ docker compose -f compose.yaml -f compose.vps.yaml up -d --no-deps api
 cd ../web
 npm ci --include=dev
 VITE_API_BASE_URL=https://api.linbin.org/endfield npm run build
-release="$(git -C .. rev-parse --short=7 HEAD)"
-test ! -e "/var/www/endfield-workbench/releases/$release"
-install -d -m 0755 "/var/www/endfield-workbench/releases/$release"
-cp -a dist/. "/var/www/endfield-workbench/releases/$release/"
-ln -s "/var/www/endfield-workbench/releases/$release" /var/www/endfield-workbench/current.next
+
+cd ..
+python3 deploy/publish_frontend.py --release "$(git rev-parse --short=7 HEAD)"
+```
+
+`deploy/publish_frontend.py` uses only the Python standard library. `--release` is required, `--site-root` defaults to `/var/www/endfield-workbench`, and `--dist` defaults to `web/dist`. It validates every retained release and the new build before writing anything, then:
+
+- installs the new build's hashed assets into the shared `/var/www/endfield-workbench/assets/` directory and imports historical assets that are missing there; installed asset files are mode `0644` and newly created shared or release directories are mode `0755`; an existing asset is never overwritten, and a name that already exists must be identical content;
+- aborts on a same-name/different-content asset collision before any write, including collisions between two retained releases;
+- copies the complete build into `releases/<release>`, verifies the copy, and refuses to reuse an existing release directory;
+- atomically moves the `current` symlink and prints the previous target with a ready-to-run rollback command.
+
+It never deletes a release or a shared asset. Run it on the VPS host; it needs neither Docker nor npm.
+
+### Static releases and the shared `/assets/` directory
+
+Vite writes content-hashed files into `assets/`. A browser that already has a page open keeps requesting the files of the build it loaded, so serving `/assets/` from the `current` release returns 404 for every still-open older page after an update. The site therefore serves `/assets/` from the append-only `/var/www/endfield-workbench/assets/` directory, which holds the union of all releases' assets. `publish_frontend.py` imports the historical assets on its first run. Only the hashed assets are shared: `index.html`, the SPA fallback and public example files such as `balloon-screenshot-guide.png` still come from the release `current` points to.
+
+```nginx
+server {
+    server_name endfield.linbin.org;
+    root /var/www/endfield-workbench/current;
+    index index.html;
+
+    location /assets/ {
+        root /var/www/endfield-workbench;   # /assets/x -> /var/www/endfield-workbench/assets/x
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+}
+```
+
+TLS/listen lines are managed separately by Certbot and omitted here. `try_files $uri =404` keeps the SPA fallback out of `/assets/`, so a file that no release ever published stays a real 404 instead of returning `index.html` as JavaScript or CSS. `add_header` without `always` only decorates successful responses, so a 404 is not cached for a year; the hashed files themselves are immutable, so the one-year header is safe for them.
+
+Enable this `/assets/` location only after the first `publish_frontend.py` run has created and populated the shared directory, otherwise the path is empty. Files there are mode `0644` and directories are mode `0755`, so the Nginx worker user (`www-data`) can read the assets and traverse `/var/www/endfield-workbench`, `/assets/` and the release directories. The script does not change the mode of files or directories that already exist.
+
+Back up the site file before editing it. This migration uses `deploy/.local-backups/ew021-nginx-before.conf`; check that the backup path does not exist first so an older backup is never overwritten, then validate and reload:
+
+```sh
+cd /root/project/EndfieldWorkbench
+backup=deploy/.local-backups/ew021-nginx-before.conf
+if [ -e "$backup" ]; then echo "backup already exists: $backup" >&2; exit 1; fi
+cp /etc/nginx/sites-available/endfield.linbin.org "$backup"
+nginx -t
+systemctl reload nginx
+```
+
+To undo the change, restore that backup, validate, and reload again:
+
+```sh
+cd /root/project/EndfieldWorkbench
+cp deploy/.local-backups/ew021-nginx-before.conf \
+   /etc/nginx/sites-available/endfield.linbin.org
+nginx -t
+systemctl reload nginx
+```
+
+The repository does not manage `/etc/nginx`; on the VPS the site file is `/etc/nginx/sites-available/endfield.linbin.org`.
+
+### Rolling back a static release
+
+Each publish prints the previous target and the exact rollback command, for example:
+
+```sh
+ln -sfn /var/www/endfield-workbench/releases/5b97992 /var/www/endfield-workbench/current.next
 mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current
 ```
+
+Because every release stays on disk and every asset stays in the shared directory, the switch is one atomic rename and needs no rebuild. Any earlier release under `/var/www/endfield-workbench/releases/` can be restored the same way.
 
 EW-018 (`f2d3409`) reduces OCR detection scaling. Roll back only the API to the retained EW-012 image:
 
