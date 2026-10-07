@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { gameData } from "./calculator/data.ts";
+import EntityIcon from "./calculator/EntityIcon.tsx";
 import {
   ATTRIBUTE_NAMES,
   DEFAULT_REQUEST,
@@ -292,11 +293,14 @@ function SolutionCard({ solution, index, character, copyNotice, onCopy }: {
   const notice = copyNotice && copyNotice.solutionIndex === index ? copyNotice : null;
   return <article className="calc-solution" aria-labelledby={`calc-solution-${index}`}>
     <header className="calc-solution-head">
-      <div className="calc-solution-title">
-        <h3 id={`calc-solution-${index}`}>方案 {index + 1} · {character.name}</h3>
-        <p className="calc-solution-meta">
-          等级 Lv.{formatCount(build.level)} · 潜能 {formatCount(build.potential)}
-        </p>
+      <div className="calc-solution-title calc-entity-row">
+        <EntityIcon kind="characters" id={character.id} name={character.name} size={56} />
+        <div className="calc-entity-text">
+          <h3 id={`calc-solution-${index}`}>方案 {index + 1} · {character.name}</h3>
+          <p className="calc-solution-meta">
+            等级 Lv.{formatCount(build.level)} · 潜能 {formatCount(build.potential)}
+          </p>
+        </div>
       </div>
       <span className={`calc-match-badge${matched.size > 0 ? " reached" : ""}`}>
         同时达标 {matched.size} 项
@@ -309,11 +313,16 @@ function SolutionCard({ solution, index, character, copyNotice, onCopy }: {
     <div className="calc-gear">
       <section className="calc-gear-block" aria-label="武器与基质">
         <h4>武器与基质</h4>
-        <p className="calc-weapon-name">
-          <strong>{weapon?.name ?? "未知武器"}</strong>
-          {weapon && <span className="muted small">满级 Lv.{formatCount(weapon.level)}</span>}
-          {!weapon && <span className="calc-missing">本地数据中未找到该武器</span>}
-        </p>
+        <div className="calc-weapon-row calc-entity-row">
+          <EntityIcon kind="weapons" id={build.weapon?.id ?? ""} name={weapon?.name ?? "未知武器"} />
+          <div className="calc-entity-text">
+            <p className="calc-weapon-name">
+              <strong>{weapon?.name ?? "未知武器"}</strong>
+              {weapon && <span className="muted small">满级 Lv.{formatCount(weapon.level)}</span>}
+              {!weapon && <span className="calc-missing">本地数据中未找到该武器</span>}
+            </p>
+          </div>
+        </div>
         <ul className="calc-tags">
           <li>精炼 +{formatCount(build.weapon?.refinement)}</li>
           <li>基质基础词条{gemAttribute ? `（${gemAttribute}）` : ""} +{formatCount(build.weapon?.gemFirst)}</li>
@@ -327,12 +336,17 @@ function SolutionCard({ solution, index, character, copyNotice, onCopy }: {
           {entries.map(({ label, gear, item }, position) => {
             const setName = equipmentSetName(item);
             return <div className="calc-equip" key={`${gear.id}-${position}`}>
-              <p className="calc-equip-head">
-                <span className="calc-slot">{label}</span>
-                <strong>{equipmentDisplayName(gear, item)}</strong>
-                {gear.id && setName && <span className="muted small">套装：{setName}</span>}
-                {gear.id && !item && <span className="calc-missing">本地数据中未找到该装备</span>}
-              </p>
+              <div className="calc-entity-row">
+                {gear.id && <EntityIcon kind="equipment" id={gear.id} name={equipmentDisplayName(gear, item)} />}
+                <div className="calc-entity-text">
+                  <p className="calc-equip-head">
+                    <span className="calc-slot">{label}</span>
+                    <strong>{equipmentDisplayName(gear, item)}</strong>
+                    {gear.id && setName && <span className="muted small">套装：{setName}</span>}
+                    {gear.id && !item && <span className="calc-missing">本地数据中未找到该装备</span>}
+                  </p>
+                </div>
+              </div>
               {gear.id && (item
                 ? <ul className="calc-mod-list">{item.modifiers.map((modifier, modifierPosition) => {
                   const refinement = modifierRefinement(gear, modifierPosition);
@@ -562,9 +576,12 @@ export default function CalculatorPage() {
         <form className="calc-form" onSubmit={(event) => { event.preventDefault(); startSearch(); }}>
           <div className="calc-field">
             <label htmlFor="calc-character">干员</label>
-            <select id="calc-character" value={character.id} onChange={(event) => changeCharacter(event.target.value)}>
-              {gameData.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            <div className="calc-character-selection">
+              <EntityIcon kind="characters" id={character.id} name={character.name} eager />
+              <select id="calc-character" value={character.id} onChange={(event) => changeCharacter(event.target.value)}>
+                {gameData.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </div>
           </div>
           <div className="calc-form-grid">
             <div className="calc-field">
@@ -701,8 +718,9 @@ export default function CalculatorPage() {
         <li>结果会注明武器、两个基质词条、每件装备及其每条锤炼要求。</li>
         <li>基质数字为最低词条增级需求，第二词条不限；+0表示无需该项增级。</li>
       </ul>
-      <p className="muted small calc-source">数据来源：<a href={gameData.source} target="_blank" rel="noreferrer">{gameData.source}</a>
+      <p className="muted small calc-source">数据来源：<a href={gameData.source} target="_blank" rel="noopener noreferrer">{gameData.source}</a>
         {" · "}版本 {gameData.version}{" · "}数据更新 {gameData.sourceUpdatedAt}</p>
+      <p className="muted small calc-source">图标与数据来源为 <a href="https://www.akedata.wiki/" target="_blank" rel="noopener noreferrer">AKEndfield Wiki</a>；点击图标查看资料；游戏素材版权归鹰角及相关权利方，本站为非官方玩家工具。</p>
       <p className="muted small">基于公开数据，可能包含尚未拥有的物品；请在游戏内核对。</p>
       <p className="calc-other-tools">其他工具：<Link to="/balloon">浮空回收解谜</Link><Link to="/circuit">源石电路解谜</Link></p>
     </section>

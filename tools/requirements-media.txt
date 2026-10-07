@@ -1,0 +1,2 @@
+# Offline media import/audit only; not an API or browser dependency.
+Pillow==12.3.0

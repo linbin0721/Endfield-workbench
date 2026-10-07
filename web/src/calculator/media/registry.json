@@ -1,0 +1,1492 @@
+{
+  "characters": {
+    "chr_0002_endminm": {
+      "file": "icons/characters/chr_0002_endminm.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0002_endminm"
+    },
+    "chr_0013_aglina": {
+      "file": "icons/characters/chr_0013_aglina.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0013_aglina"
+    },
+    "chr_0003_endminf": {
+      "file": "icons/characters/chr_0003_endminf.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0003_endminf"
+    },
+    "chr_0004_pelica": {
+      "file": "icons/characters/chr_0004_pelica.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0004_pelica"
+    },
+    "chr_0020_meurs": {
+      "file": "icons/characters/chr_0020_meurs.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0020_meurs"
+    },
+    "chr_0038_purrche": {
+      "file": "icons/characters/chr_0038_purrche.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0038_purrche"
+    },
+    "chr_0005_chen": {
+      "file": "icons/characters/chr_0005_chen.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0005_chen"
+    },
+    "chr_0028_wulfa": {
+      "file": "icons/characters/chr_0028_wulfa.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0028_wulfa"
+    },
+    "chr_0029_pograni": {
+      "file": "icons/characters/chr_0029_pograni.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0029_pograni"
+    },
+    "chr_0032_lizhiyan": {
+      "file": "icons/characters/chr_0032_lizhiyan.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0032_lizhiyan"
+    },
+    "chr_0006_wolfgd": {
+      "file": "icons/characters/chr_0006_wolfgd.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0006_wolfgd"
+    },
+    "chr_0031_mifu": {
+      "file": "icons/characters/chr_0031_mifu.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0031_mifu"
+    },
+    "chr_0007_ikut": {
+      "file": "icons/characters/chr_0007_ikut.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0007_ikut"
+    },
+    "chr_0009_azrila": {
+      "file": "icons/characters/chr_0009_azrila.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0009_azrila"
+    },
+    "chr_0011_seraph": {
+      "file": "icons/characters/chr_0011_seraph.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0011_seraph"
+    },
+    "chr_0012_avywen": {
+      "file": "icons/characters/chr_0012_avywen.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0012_avywen"
+    },
+    "chr_0014_aurora": {
+      "file": "icons/characters/chr_0014_aurora.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0014_aurora"
+    },
+    "chr_0017_yvonne": {
+      "file": "icons/characters/chr_0017_yvonne.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0017_yvonne"
+    },
+    "chr_0025_ardelia": {
+      "file": "icons/characters/chr_0025_ardelia.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0025_ardelia"
+    },
+    "chr_0027_tangtang": {
+      "file": "icons/characters/chr_0027_tangtang.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0027_tangtang"
+    },
+    "chr_0015_lifeng": {
+      "file": "icons/characters/chr_0015_lifeng.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0015_lifeng"
+    },
+    "chr_0018_dapan": {
+      "file": "icons/characters/chr_0018_dapan.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0018_dapan"
+    },
+    "chr_0023_antal": {
+      "file": "icons/characters/chr_0023_antal.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0023_antal"
+    },
+    "chr_0016_laevat": {
+      "file": "icons/characters/chr_0016_laevat.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0016_laevat"
+    },
+    "chr_0019_karin": {
+      "file": "icons/characters/chr_0019_karin.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0019_karin"
+    },
+    "chr_0021_whiten": {
+      "file": "icons/characters/chr_0021_whiten.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0021_whiten"
+    },
+    "chr_0026_lastrite": {
+      "file": "icons/characters/chr_0026_lastrite.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0026_lastrite"
+    },
+    "chr_0022_bounda": {
+      "file": "icons/characters/chr_0022_bounda.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0022_bounda"
+    },
+    "chr_0034_typhoea": {
+      "file": "icons/characters/chr_0034_typhoea.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0034_typhoea"
+    },
+    "chr_0035_liino": {
+      "file": "icons/characters/chr_0035_liino.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0035_liino"
+    },
+    "chr_0024_deepfin": {
+      "file": "icons/characters/chr_0024_deepfin.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0024_deepfin"
+    },
+    "chr_0030_zhuangfy": {
+      "file": "icons/characters/chr_0030_zhuangfy.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0030_zhuangfy"
+    },
+    "chr_0033_camille": {
+      "file": "icons/characters/chr_0033_camille.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_character&id=chr_0033_camille"
+    }
+  },
+  "weapons": {
+    "wpn_claym_0003": {
+      "file": "icons/weapons/wpn_claym_0003.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0003"
+    },
+    "wpn_pistol_0004": {
+      "file": "icons/weapons/wpn_pistol_0004.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0004"
+    },
+    "wpn_claym_0004": {
+      "file": "icons/weapons/wpn_claym_0004.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0004"
+    },
+    "wpn_funnel_0008": {
+      "file": "icons/weapons/wpn_funnel_0010.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0008"
+    },
+    "wpn_sword_0014": {
+      "file": "icons/weapons/wpn_sword_0014.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0014"
+    },
+    "wpn_claym_0006": {
+      "file": "icons/weapons/wpn_claym_0006.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0006"
+    },
+    "wpn_claym_0007": {
+      "file": "icons/weapons/wpn_claym_0007.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0007"
+    },
+    "wpn_sword_0011": {
+      "file": "icons/weapons/wpn_sword_0011.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0011"
+    },
+    "wpn_claym_0008": {
+      "file": "icons/weapons/wpn_claym_0008.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0008"
+    },
+    "wpn_sword_0010": {
+      "file": "icons/weapons/wpn_sword_0010.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0010"
+    },
+    "wpn_claym_0009": {
+      "file": "icons/weapons/wpn_claym_0009.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0009"
+    },
+    "wpn_claym_0010": {
+      "file": "icons/weapons/wpn_claym_0010.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0010"
+    },
+    "wpn_claym_0011": {
+      "file": "icons/weapons/wpn_claym_0011.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0011"
+    },
+    "wpn_claym_0012": {
+      "file": "icons/weapons/wpn_claym_0012.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0012"
+    },
+    "wpn_claym_0013": {
+      "file": "icons/weapons/wpn_claym_0013.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0013"
+    },
+    "wpn_pistol_0005": {
+      "file": "icons/weapons/wpn_pistol_0005.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0005"
+    },
+    "wpn_claym_0014": {
+      "file": "icons/weapons/wpn_claym_0014.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0014"
+    },
+    "wpn_sword_0020": {
+      "file": "icons/weapons/wpn_sword_0020.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0020"
+    },
+    "wpn_claym_0015": {
+      "file": "icons/weapons/wpn_claym_0015.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0015"
+    },
+    "wpn_claym_0016": {
+      "file": "icons/weapons/wpn_claym_0016.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0016"
+    },
+    "wpn_sword_0022": {
+      "file": "icons/weapons/wpn_sword_0022.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0022"
+    },
+    "wpn_claym_0017": {
+      "file": "icons/weapons/wpn_claym_0017.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_claym_0017"
+    },
+    "wpn_sword_0021": {
+      "file": "icons/weapons/wpn_sword_0021.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0021"
+    },
+    "wpn_sword_0023": {
+      "file": "icons/weapons/wpn_sword_0023.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0023"
+    },
+    "wpn_funnel_0001": {
+      "file": "icons/weapons/wpn_funnel_0001.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0001"
+    },
+    "wpn_pistol_0011": {
+      "file": "icons/weapons/wpn_pistol_0011.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0011"
+    },
+    "wpn_funnel_0002": {
+      "file": "icons/weapons/wpn_funnel_0002.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0002"
+    },
+    "wpn_funnel_0003": {
+      "file": "icons/weapons/wpn_funnel_0003.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0003"
+    },
+    "wpn_funnel_0004": {
+      "file": "icons/weapons/wpn_funnel_0004.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0004"
+    },
+    "wpn_lance_0007": {
+      "file": "icons/weapons/wpn_lance_0007.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0007"
+    },
+    "wpn_funnel_0005": {
+      "file": "icons/weapons/wpn_funnel_0005.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0005"
+    },
+    "wpn_funnel_0006": {
+      "file": "icons/weapons/wpn_funnel_0006.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0006"
+    },
+    "wpn_funnel_0007": {
+      "file": "icons/weapons/wpn_funnel_0007.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0007"
+    },
+    "wpn_funnel_0009": {
+      "file": "icons/weapons/wpn_funnel_0009.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0009"
+    },
+    "wpn_funnel_0010": {
+      "file": "icons/weapons/wpn_funnel_0008.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0010"
+    },
+    "wpn_lance_0008": {
+      "file": "icons/weapons/wpn_lance_0008.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0008"
+    },
+    "wpn_funnel_0011": {
+      "file": "icons/weapons/wpn_funnel_0011.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0011"
+    },
+    "wpn_pistol_0001": {
+      "file": "icons/weapons/wpn_pistol_0001.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0001"
+    },
+    "wpn_funnel_0012": {
+      "file": "icons/weapons/wpn_funnel_0012.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0012"
+    },
+    "wpn_funnel_0013": {
+      "file": "icons/weapons/wpn_funnel_0013.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0013"
+    },
+    "wpn_funnel_0014": {
+      "file": "icons/weapons/wpn_funnel_0014.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0014"
+    },
+    "wpn_funnel_0015": {
+      "file": "icons/weapons/wpn_funnel_0015.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0015"
+    },
+    "wpn_funnel_0016": {
+      "file": "icons/weapons/wpn_funnel_0016.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0016"
+    },
+    "wpn_funnel_0017": {
+      "file": "icons/weapons/wpn_funnel_0017.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0017"
+    },
+    "wpn_funnel_0018": {
+      "file": "icons/weapons/wpn_funnel_0018.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0018"
+    },
+    "wpn_sword_0015": {
+      "file": "icons/weapons/wpn_sword_0015.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0015"
+    },
+    "wpn_sword_0019": {
+      "file": "icons/weapons/wpn_sword_0019.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0019"
+    },
+    "wpn_funnel_0019": {
+      "file": "icons/weapons/wpn_funnel_0019.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0019"
+    },
+    "wpn_sword_0005": {
+      "file": "icons/weapons/wpn_sword_0005.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0005"
+    },
+    "wpn_funnel_0020": {
+      "file": "icons/weapons/wpn_funnel_0020.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_funnel_0020"
+    },
+    "wpn_sword_0007": {
+      "file": "icons/weapons/wpn_sword_0007.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0007"
+    },
+    "wpn_lance_0003": {
+      "file": "icons/weapons/wpn_lance_0003.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0003"
+    },
+    "wpn_pistol_0007": {
+      "file": "icons/weapons/wpn_pistol_0007.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0007"
+    },
+    "wpn_lance_0004": {
+      "file": "icons/weapons/wpn_lance_0004.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0004"
+    },
+    "wpn_lance_0006": {
+      "file": "icons/weapons/wpn_lance_0006.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0006"
+    },
+    "wpn_lance_0009": {
+      "file": "icons/weapons/wpn_lance_0009.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0009"
+    },
+    "wpn_sword_0009": {
+      "file": "icons/weapons/wpn_sword_0009.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0009"
+    },
+    "wpn_lance_0010": {
+      "file": "icons/weapons/wpn_lance_0010.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0010"
+    },
+    "wpn_lance_0011": {
+      "file": "icons/weapons/wpn_lance_0011.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0011"
+    },
+    "wpn_lance_0012": {
+      "file": "icons/weapons/wpn_lance_0012.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0012"
+    },
+    "wpn_pistol_0009": {
+      "file": "icons/weapons/wpn_pistol_0009.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0009"
+    },
+    "wpn_lance_0013": {
+      "file": "icons/weapons/wpn_lance_0013.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0013"
+    },
+    "wpn_pistol_0008": {
+      "file": "icons/weapons/wpn_pistol_0008.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0008"
+    },
+    "wpn_lance_0014": {
+      "file": "icons/weapons/wpn_lance_0014.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0014"
+    },
+    "wpn_lance_0015": {
+      "file": "icons/weapons/wpn_lance_0015.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0015"
+    },
+    "wpn_lance_0016": {
+      "file": "icons/weapons/wpn_lance_0016.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_lance_0016"
+    },
+    "wpn_pistol_0002": {
+      "file": "icons/weapons/wpn_pistol_0002.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0002"
+    },
+    "wpn_pistol_0003": {
+      "file": "icons/weapons/wpn_pistol_0003.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0003"
+    },
+    "wpn_pistol_0006": {
+      "file": "icons/weapons/wpn_pistol_0006.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0006"
+    },
+    "wpn_pistol_0010": {
+      "file": "icons/weapons/wpn_pistol_0010.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0010"
+    },
+    "wpn_pistol_0012": {
+      "file": "icons/weapons/wpn_pistol_0012.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_pistol_0012"
+    },
+    "wpn_sword_0003": {
+      "file": "icons/weapons/wpn_sword_0003.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0003"
+    },
+    "wpn_sword_0006": {
+      "file": "icons/weapons/wpn_sword_0006.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0006"
+    },
+    "wpn_sword_0008": {
+      "file": "icons/weapons/wpn_sword_0008.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0008"
+    },
+    "wpn_sword_0012": {
+      "file": "icons/weapons/wpn_sword_0012.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0012"
+    },
+    "wpn_sword_0013": {
+      "file": "icons/weapons/wpn_sword_0013.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0013"
+    },
+    "wpn_sword_0016": {
+      "file": "icons/weapons/wpn_sword_0016.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0016"
+    },
+    "wpn_sword_0017": {
+      "file": "icons/weapons/wpn_sword_0017.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0017"
+    },
+    "wpn_sword_0018": {
+      "file": "icons/weapons/wpn_sword_0018.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0018"
+    },
+    "wpn_sword_0026": {
+      "file": "icons/weapons/wpn_sword_0026.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_weapon&id=wpn_sword_0026"
+    }
+  },
+  "equipment": {
+    "item_equip_t0_parts_tundra01_body_01": {
+      "file": "icons/equipment/item_equip_t0_parts_tundra01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t0_parts_tundra01_body_01"
+    },
+    "item_equip_t4_suit_combo_cd01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_hand_01"
+    },
+    "item_equip_t0_parts_tundra01_body_02": {
+      "file": "icons/equipment/item_equip_t0_parts_tundra01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t0_parts_tundra01_body_02"
+    },
+    "item_equip_t4_suit_attri01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_03"
+    },
+    "item_equip_t0_parts_tundra01_hand_01": {
+      "file": "icons/equipment/item_equip_t0_parts_tundra01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t0_parts_tundra01_hand_01"
+    },
+    "item_equip_t4_suit_pulse_cryst01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_pulse_cryst01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_pulse_cryst01_hand_01"
+    },
+    "item_equip_t0_parts_tundra01_hand_02": {
+      "file": "icons/equipment/item_equip_t0_parts_tundra01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t0_parts_tundra01_hand_02"
+    },
+    "item_equip_t2_suit_wisd01_edc_03": {
+      "file": "icons/equipment/item_equip_t2_suit_wisd01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_wisd01_edc_03"
+    },
+    "item_equip_t1_parts_tundra01_body_01": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_01"
+    },
+    "item_equip_t1_parts_tundra01_body_02": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_02"
+    },
+    "item_equip_t4_suit_atb01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_01"
+    },
+    "item_equip_t1_parts_tundra01_body_03": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_03"
+    },
+    "item_equip_t3_suit_agi01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_agi01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_agi01_body_01"
+    },
+    "item_equip_t3_suit_atk01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_02"
+    },
+    "item_equip_t4_suit_criti01_body_06": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_body_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_body_06"
+    },
+    "item_equip_t1_parts_tundra01_body_04": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_04"
+    },
+    "item_equip_t2_suit_wisd01_edc_01": {
+      "file": "icons/equipment/item_equip_t2_suit_wisd01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_wisd01_edc_01"
+    },
+    "item_equip_t1_parts_tundra01_body_05": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_05"
+    },
+    "item_equip_t4_suit_atk02_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_body_02"
+    },
+    "item_equip_t1_parts_tundra01_body_06": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_body_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_body_06"
+    },
+    "item_equip_t4_suit_criti01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_body_03"
+    },
+    "item_equip_t1_parts_tundra01_edc_01": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_edc_01"
+    },
+    "item_equip_t4_suit_heal01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_body_01"
+    },
+    "item_equip_t4_suit_phy01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_body_02"
+    },
+    "item_equip_t1_parts_tundra01_edc_02": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_edc_02"
+    },
+    "item_equip_t3_suit_usp01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_body_01"
+    },
+    "item_equip_t1_parts_tundra01_hand_01": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_hand_01"
+    },
+    "item_equip_t4_parts_wuling00_body_04": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_body_04"
+    },
+    "item_equip_t1_parts_tundra01_hand_02": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_hand_02"
+    },
+    "item_equip_t4_suit_atb01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_hand_03"
+    },
+    "item_equip_t4_suit_burst01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_edc_03"
+    },
+    "item_equip_t1_parts_tundra01_hand_03": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_hand_03"
+    },
+    "item_equip_t4_suit_atb01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_hand_02"
+    },
+    "item_equip_t1_parts_tundra01_hand_04": {
+      "file": "icons/equipment/item_equip_t1_parts_tundra01_hand_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_parts_tundra01_hand_04"
+    },
+    "item_equip_t4_parts_wuling00_body_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_body_01"
+    },
+    "item_equip_t1_suit_stragi01_body_01": {
+      "file": "icons/equipment/item_equip_t1_suit_stragi01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_stragi01_body_01"
+    },
+    "item_equip_t4_suit_criti01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_01"
+    },
+    "item_equip_t1_suit_stragi01_edc_01": {
+      "file": "icons/equipment/item_equip_t1_suit_stragi01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_stragi01_edc_01"
+    },
+    "item_equip_t4_suit_atb01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_03"
+    },
+    "item_equip_t1_suit_stragi01_edc_02": {
+      "file": "icons/equipment/item_equip_t1_suit_stragi01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_stragi01_edc_02"
+    },
+    "item_equip_t1_suit_stragi01_hand_01": {
+      "file": "icons/equipment/item_equip_t1_suit_stragi01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_stragi01_hand_01"
+    },
+    "item_equip_t4_suit_atb01_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_body_04"
+    },
+    "item_equip_t4_suit_poise01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_body_01"
+    },
+    "item_equip_t1_suit_wisdwill01_body_01": {
+      "file": "icons/equipment/item_equip_t1_suit_wisdwill01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_wisdwill01_body_01"
+    },
+    "item_equip_t3_suit_agi01_edc_03": {
+      "file": "icons/equipment/item_equip_t3_suit_agi01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_agi01_edc_03"
+    },
+    "item_equip_t1_suit_wisdwill01_edc_01": {
+      "file": "icons/equipment/item_equip_t1_suit_wisdwill01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_wisdwill01_edc_01"
+    },
+    "item_equip_t4_suit_attri01_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_05"
+    },
+    "item_equip_t1_suit_wisdwill01_edc_02": {
+      "file": "icons/equipment/item_equip_t1_suit_wisdwill01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_wisdwill01_edc_02"
+    },
+    "item_equip_t4_parts_wuling00_hand_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_hand_01"
+    },
+    "item_equip_t1_suit_wisdwill01_hand_01": {
+      "file": "icons/equipment/item_equip_t1_suit_wisdwill01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t1_suit_wisdwill01_hand_01"
+    },
+    "item_equip_t2_parts_tundra01_edc_01": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_edc_01"
+    },
+    "item_equip_t2_suit_str01_body_01": {
+      "file": "icons/equipment/item_equip_t2_suit_str01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_str01_body_01"
+    },
+    "item_equip_t2_parts_tundra01_edc_02": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_edc_02"
+    },
+    "item_equip_t3_suit_wisd01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_wisd01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_wisd01_edc_01"
+    },
+    "item_equip_t2_parts_tundra01_edc_03": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_edc_03"
+    },
+    "item_equip_t2_parts_tundra01_edc_04": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_edc_04"
+    },
+    "item_equip_t2_parts_tundra01_hand_01": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_hand_01"
+    },
+    "item_equip_t2_parts_tundra01_hand_02": {
+      "file": "icons/equipment/item_equip_t2_parts_tundra01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_parts_tundra01_hand_02"
+    },
+    "item_equip_t4_suit_usp02_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_03"
+    },
+    "item_equip_t2_suit_agi01_body_01": {
+      "file": "icons/equipment/item_equip_t2_suit_agi01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_agi01_body_01"
+    },
+    "item_equip_t4_suit_combo_cd01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_edc_04"
+    },
+    "item_equip_t4_suit_pulse_cryst01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_pulse_cryst01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_pulse_cryst01_body_01"
+    },
+    "item_equip_t2_suit_agi01_edc_01": {
+      "file": "icons/equipment/item_equip_t2_suit_agi01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_agi01_edc_01"
+    },
+    "item_equip_t2_suit_agi01_edc_02": {
+      "file": "icons/equipment/item_equip_t2_suit_agi01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_agi01_edc_02"
+    },
+    "item_equip_t3_parts_tundra01_hand_02": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_hand_02"
+    },
+    "item_equip_t2_suit_agi01_hand_01": {
+      "file": "icons/equipment/item_equip_t2_suit_agi01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_agi01_hand_01"
+    },
+    "item_equip_t4_suit_fire_natr01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_edc_01"
+    },
+    "item_equip_t2_suit_str01_edc_01": {
+      "file": "icons/equipment/item_equip_t2_suit_str01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_str01_edc_01"
+    },
+    "item_equip_t4_suit_attri01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_hand_01"
+    },
+    "item_equip_t2_suit_str01_edc_02": {
+      "file": "icons/equipment/item_equip_t2_suit_str01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_str01_edc_02"
+    },
+    "item_equip_t3_suit_str01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_str01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_str01_edc_01"
+    },
+    "item_equip_t4_suit_usp02_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_body_04"
+    },
+    "item_equip_t2_suit_str01_hand_01": {
+      "file": "icons/equipment/item_equip_t2_suit_str01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_str01_hand_01"
+    },
+    "item_equip_t4_suit_burst01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_hand_02"
+    },
+    "item_equip_t2_suit_will01_body_01": {
+      "file": "icons/equipment/item_equip_t2_suit_will01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_will01_body_01"
+    },
+    "item_equip_t3_suit_wisd01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_wisd01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_wisd01_body_01"
+    },
+    "item_equip_t4_parts_wuling00_body_05": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_body_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_body_05"
+    },
+    "item_equip_t4_suit_usp02_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_04"
+    },
+    "item_equip_t2_suit_will01_edc_01": {
+      "file": "icons/equipment/item_equip_t2_suit_will01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_will01_edc_01"
+    },
+    "item_equip_t4_parts_wuling00_edc_05": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_edc_05"
+    },
+    "item_equip_t2_suit_will01_edc_02": {
+      "file": "icons/equipment/item_equip_t2_suit_will01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_will01_edc_02"
+    },
+    "item_equip_t3_suit_str01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_str01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_str01_hand_01"
+    },
+    "item_equip_t2_suit_will01_hand_01": {
+      "file": "icons/equipment/item_equip_t2_suit_will01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_will01_hand_01"
+    },
+    "item_equip_t3_suit_will01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_will01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_will01_edc_01"
+    },
+    "item_equip_t4_suit_burst01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_hand_01"
+    },
+    "item_equip_t4_suit_phy01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_body_03"
+    },
+    "item_equip_t2_suit_wisd01_body_01": {
+      "file": "icons/equipment/item_equip_t2_suit_wisd01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_wisd01_body_01"
+    },
+    "item_equip_t4_suit_burst01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_body_02"
+    },
+    "item_equip_t4_suit_pulse_cryst01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_pulse_cryst01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_pulse_cryst01_edc_01"
+    },
+    "item_equip_t2_suit_wisd01_edc_02": {
+      "file": "icons/equipment/item_equip_t2_suit_wisd01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_wisd01_edc_02"
+    },
+    "item_equip_t2_suit_wisd01_hand_01": {
+      "file": "icons/equipment/item_equip_t2_suit_wisd01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t2_suit_wisd01_hand_01"
+    },
+    "item_equip_t4_suit_heal01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_hand_02"
+    },
+    "item_equip_t4_suit_phy01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_hand_03"
+    },
+    "item_equip_t3_parts_tundra01_body_01": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_body_01"
+    },
+    "item_equip_t4_suit_phy01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_edc_04"
+    },
+    "item_equip_t3_parts_tundra01_body_02": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_body_02"
+    },
+    "item_equip_t3_parts_tundra01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_edc_01"
+    },
+    "item_equip_t3_parts_tundra01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_edc_02"
+    },
+    "item_equip_t3_parts_tundra01_edc_03": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_edc_03"
+    },
+    "item_equip_t4_parts_wuling01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_edc_02"
+    },
+    "item_equip_t3_parts_tundra01_edc_04": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_edc_04"
+    },
+    "item_equip_t4_parts_wuling01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_edc_03"
+    },
+    "item_equip_t3_parts_tundra01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_parts_tundra01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_parts_tundra01_hand_01"
+    },
+    "item_equip_t3_suit_agi01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_agi01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_agi01_edc_01"
+    },
+    "item_equip_t4_suit_atk02_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_body_04"
+    },
+    "item_equip_t3_suit_agi01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_agi01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_agi01_edc_02"
+    },
+    "item_equip_t4_suit_fire_natr01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_hand_01"
+    },
+    "item_equip_t3_suit_agi01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_agi01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_agi01_hand_01"
+    },
+    "item_equip_t4_suit_pulse_cryst01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_pulse_cryst01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_pulse_cryst01_edc_03"
+    },
+    "item_equip_t3_suit_atk01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_body_01"
+    },
+    "item_equip_t4_suit_phy01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_edc_01"
+    },
+    "item_equip_t3_suit_atk01_body_02": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_body_02"
+    },
+    "item_equip_t4_suit_heal01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_edc_01"
+    },
+    "item_equip_t3_suit_atk01_body_03": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_body_03"
+    },
+    "item_equip_t4_parts_wuling00_edc_04": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_edc_04"
+    },
+    "item_equip_t3_suit_atk01_body_04": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_body_04"
+    },
+    "item_equip_t3_suit_atk01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_01"
+    },
+    "item_equip_t3_suit_atk01_edc_03": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_03"
+    },
+    "item_equip_t3_suit_atk01_edc_04": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_04"
+    },
+    "item_equip_t3_suit_atk01_edc_05": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_05"
+    },
+    "item_equip_t4_suit_crush_fracture_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_edc_01"
+    },
+    "item_equip_t3_suit_atk01_edc_06": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_edc_06"
+    },
+    "item_equip_t4_parts_wuling01_body_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_body_02"
+    },
+    "item_equip_t3_suit_atk01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_atk01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_atk01_hand_01"
+    },
+    "item_equip_t3_suit_str01_hand_02": {
+      "file": "icons/equipment/item_equip_t3_suit_str01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_str01_hand_02"
+    },
+    "item_equip_t3_suit_usp01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_hand_01"
+    },
+    "item_equip_t3_suit_str01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_str01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_str01_body_01"
+    },
+    "item_equip_t4_suit_criti01_edc_06": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_06"
+    },
+    "item_equip_t3_suit_str01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_str01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_str01_edc_02"
+    },
+    "item_equip_t4_suit_fire_natr01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_edc_02"
+    },
+    "item_equip_t3_suit_usp01_body_02": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_body_02"
+    },
+    "item_equip_t4_parts_wuling02_hand_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling02_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling02_hand_02"
+    },
+    "item_equip_t4_suit_usp02_edc_06": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_06"
+    },
+    "item_equip_t3_suit_usp01_edc_01": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_edc_01"
+    },
+    "item_equip_t4_suit_attri01_edc_06": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_06"
+    },
+    "item_equip_t3_suit_usp01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_edc_02"
+    },
+    "item_equip_t3_suit_usp01_edc_03": {
+      "file": "icons/equipment/item_equip_t3_suit_usp01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_usp01_edc_03"
+    },
+    "item_equip_t3_suit_will01_body_01": {
+      "file": "icons/equipment/item_equip_t3_suit_will01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_will01_body_01"
+    },
+    "item_equip_t3_suit_will01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_will01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_will01_edc_02"
+    },
+    "item_equip_t4_suit_atb01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_body_02"
+    },
+    "item_equip_t3_suit_will01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_will01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_will01_hand_01"
+    },
+    "item_equip_t4_suit_fire_natr01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_body_01"
+    },
+    "item_equip_t3_suit_wisd01_body_02": {
+      "file": "icons/equipment/item_equip_t3_suit_wisd01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_wisd01_body_02"
+    },
+    "item_equip_t4_suit_usp02_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_01"
+    },
+    "item_equip_t3_suit_wisd01_edc_02": {
+      "file": "icons/equipment/item_equip_t3_suit_wisd01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_wisd01_edc_02"
+    },
+    "item_equip_t3_suit_wisd01_hand_01": {
+      "file": "icons/equipment/item_equip_t3_suit_wisd01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t3_suit_wisd01_hand_01"
+    },
+    "item_equip_t4_parts_wuling00_body_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_body_02"
+    },
+    "item_equip_t4_parts_wuling01_body_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_body_01"
+    },
+    "item_equip_t4_parts_wuling00_body_03": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_body_03"
+    },
+    "item_equip_t4_suit_crush_fracture_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_hand_01"
+    },
+    "item_equip_t4_parts_wuling00_edc_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_edc_01"
+    },
+    "item_equip_t4_parts_wuling00_edc_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_edc_02"
+    },
+    "item_equip_t4_parts_wuling00_edc_03": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_edc_03"
+    },
+    "item_equip_t4_parts_wuling00_hand_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_hand_02"
+    },
+    "item_equip_t4_suit_expend_spell01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_expend_spell01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_expend_spell01_edc_02"
+    },
+    "item_equip_t4_parts_wuling00_hand_03": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_hand_03"
+    },
+    "item_equip_t4_parts_wuling00_hand_04": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_hand_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_hand_04"
+    },
+    "item_equip_t4_parts_wuling00_hand_05": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling00_hand_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling00_hand_05"
+    },
+    "item_equip_t4_parts_wuling01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_edc_01"
+    },
+    "item_equip_t4_parts_wuling01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_edc_04"
+    },
+    "item_equip_t4_parts_wuling01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_hand_01"
+    },
+    "item_equip_t4_suit_combo_cd01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_body_01"
+    },
+    "item_equip_t4_parts_wuling01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling01_hand_02"
+    },
+    "item_equip_t4_suit_phy01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_hand_02"
+    },
+    "item_equip_t4_parts_wuling02_body_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling02_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling02_body_01"
+    },
+    "item_equip_t4_suit_fire_natr01_hand_04": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_hand_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_hand_04"
+    },
+    "item_equip_t4_parts_wuling02_body_02": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling02_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling02_body_02"
+    },
+    "item_equip_t4_suit_fire_natr01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_hand_03"
+    },
+    "item_equip_t4_suit_usp02_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_hand_02"
+    },
+    "item_equip_t4_parts_wuling02_edc_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling02_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling02_edc_01"
+    },
+    "item_equip_t4_parts_wuling02_hand_01": {
+      "file": "icons/equipment/item_equip_t4_parts_wuling02_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_parts_wuling02_hand_01"
+    },
+    "item_equip_t4_suit_atb01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_body_01"
+    },
+    "item_equip_t4_suit_atb01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_body_03"
+    },
+    "item_equip_t4_suit_atk02_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_edc_05"
+    },
+    "item_equip_t4_suit_phy01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_body_01"
+    },
+    "item_equip_t4_suit_atb01_body_05": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_body_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_body_05"
+    },
+    "item_equip_t4_suit_fire_natr01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_body_02"
+    },
+    "item_equip_t4_suit_atb01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_02"
+    },
+    "item_equip_t4_suit_atb01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_04"
+    },
+    "item_equip_t4_suit_atb01_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_05"
+    },
+    "item_equip_t4_suit_poise01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_edc_04"
+    },
+    "item_equip_t4_suit_atb01_edc_06": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_edc_06.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_edc_06"
+    },
+    "item_equip_t4_suit_attri01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_body_03"
+    },
+    "item_equip_t4_suit_poise01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_edc_03"
+    },
+    "item_equip_t4_suit_atb01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atb01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atb01_hand_01"
+    },
+    "item_equip_t4_suit_atk02_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_edc_02"
+    },
+    "item_equip_t4_suit_atk02_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_body_01"
+    },
+    "item_equip_t4_suit_usp02_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_body_03"
+    },
+    "item_equip_t4_suit_atk02_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_body_03"
+    },
+    "item_equip_t4_suit_atk02_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_edc_01"
+    },
+    "item_equip_t4_suit_atk02_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_edc_03"
+    },
+    "item_equip_t4_suit_atk02_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_edc_04"
+    },
+    "item_equip_t4_suit_atk02_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_hand_01"
+    },
+    "item_equip_t4_suit_usp02_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_02"
+    },
+    "item_equip_t4_suit_atk02_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_atk02_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_atk02_hand_02"
+    },
+    "item_equip_t4_suit_attri01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_body_01"
+    },
+    "item_equip_t4_suit_criti01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_hand_03"
+    },
+    "item_equip_t4_suit_attri01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_body_02"
+    },
+    "item_equip_t4_suit_attri01_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_body_04"
+    },
+    "item_equip_t4_suit_attri01_body_05": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_body_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_body_05"
+    },
+    "item_equip_t4_suit_combo_cd01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_hand_02"
+    },
+    "item_equip_t4_suit_attri01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_02"
+    },
+    "item_equip_t4_suit_attri01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_04"
+    },
+    "item_equip_t4_suit_poise01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_hand_01"
+    },
+    "item_equip_t4_suit_attri01_edc_07": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_edc_07.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_edc_07"
+    },
+    "item_equip_t4_suit_attri01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_hand_02"
+    },
+    "item_equip_t4_suit_fire_natr01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_hand_02"
+    },
+    "item_equip_t4_suit_attri01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_attri01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_attri01_hand_03"
+    },
+    "item_equip_t4_suit_burst01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_body_01"
+    },
+    "item_equip_t4_suit_burst01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_body_03"
+    },
+    "item_equip_t4_suit_burst01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_edc_01"
+    },
+    "item_equip_t4_suit_burst01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_burst01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_burst01_edc_02"
+    },
+    "item_equip_t4_suit_combo_cd01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_body_02"
+    },
+    "item_equip_t4_suit_combo_cd01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_edc_01"
+    },
+    "item_equip_t4_suit_combo_cd01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_edc_02"
+    },
+    "item_equip_t4_suit_combo_cd01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_combo_cd01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_combo_cd01_edc_03"
+    },
+    "item_equip_t4_suit_pulse_cryst01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_pulse_cryst01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_pulse_cryst01_edc_02"
+    },
+    "item_equip_t4_suit_criti01_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_body_01"
+    },
+    "item_equip_t4_suit_criti01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_body_02"
+    },
+    "item_equip_t4_suit_criti01_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_body_04"
+    },
+    "item_equip_t4_suit_criti01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_02"
+    },
+    "item_equip_t4_suit_criti01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_03"
+    },
+    "item_equip_t4_suit_criti01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_04"
+    },
+    "item_equip_t4_suit_phy01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_hand_01"
+    },
+    "item_equip_t4_suit_criti01_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_edc_05"
+    },
+    "item_equip_t4_suit_criti01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_hand_01"
+    },
+    "item_equip_t4_suit_criti01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_hand_02"
+    },
+    "item_equip_t4_suit_criti01_hand_04": {
+      "file": "icons/equipment/item_equip_t4_suit_criti01_hand_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_criti01_hand_04"
+    },
+    "item_equip_t4_suit_crush_fracture_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_body_01"
+    },
+    "item_equip_t4_suit_crush_fracture_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_body_02"
+    },
+    "item_equip_t4_suit_crush_fracture_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_edc_02"
+    },
+    "item_equip_t4_suit_crush_fracture_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_crush_fracture_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_crush_fracture_hand_02"
+    },
+    "item_equip_t4_suit_expend_spell01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_expend_spell01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_expend_spell01_body_02"
+    },
+    "item_equip_t4_suit_expend_spell01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_expend_spell01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_expend_spell01_hand_02"
+    },
+    "item_equip_t4_suit_fire_natr01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_edc_03"
+    },
+    "item_equip_t4_suit_fire_natr01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_fire_natr01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_fire_natr01_edc_04"
+    },
+    "item_equip_t4_suit_heal01_body_02": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_body_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_body_02"
+    },
+    "item_equip_t4_suit_heal01_body_03": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_body_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_body_03"
+    },
+    "item_equip_t4_suit_heal01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_edc_02"
+    },
+    "item_equip_t4_suit_heal01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_edc_03"
+    },
+    "item_equip_t4_suit_poise01_hand_02": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_hand_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_hand_02"
+    },
+    "item_equip_t4_suit_heal01_edc_04": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_edc_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_edc_04"
+    },
+    "item_equip_t4_suit_heal01_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_edc_05"
+    },
+    "item_equip_t4_suit_heal01_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_hand_01"
+    },
+    "item_equip_t4_suit_heal01_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_heal01_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_heal01_hand_03"
+    },
+    "item_equip_t4_suit_phy01_body_04": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_body_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_body_04"
+    },
+    "item_equip_t4_suit_phy01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_edc_02"
+    },
+    "item_equip_t4_suit_phy01_edc_03": {
+      "file": "icons/equipment/item_equip_t4_suit_phy01_edc_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_phy01_edc_03"
+    },
+    "item_equip_t4_suit_poise01_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_edc_01"
+    },
+    "item_equip_t4_suit_poise01_edc_02": {
+      "file": "icons/equipment/item_equip_t4_suit_poise01_edc_02.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_poise01_edc_02"
+    },
+    "item_equip_t4_suit_spellburst_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_spellburst_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_spellburst_body_01"
+    },
+    "item_equip_t4_suit_spellburst_edc_01": {
+      "file": "icons/equipment/item_equip_t4_suit_spellburst_edc_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_spellburst_edc_01"
+    },
+    "item_equip_t4_suit_spellburst_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_spellburst_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_spellburst_hand_01"
+    },
+    "item_equip_t4_suit_usp02_body_01": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_body_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_body_01"
+    },
+    "item_equip_t4_suit_usp02_edc_05": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_edc_05.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_edc_05"
+    },
+    "item_equip_t4_suit_usp02_hand_01": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_hand_01.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_hand_01"
+    },
+    "item_equip_t4_suit_usp02_hand_03": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_hand_03.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_hand_03"
+    },
+    "item_equip_t4_suit_usp02_hand_04": {
+      "file": "icons/equipment/item_equip_t4_suit_usp02_hand_04.webp",
+      "detailUrl": "https://www.akedata.wiki/?plugin=v3_item&id=item_equip_t4_suit_usp02_hand_04"
+    }
+  }
+}

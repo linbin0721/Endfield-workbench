@@ -18,6 +18,7 @@
 | 搜索 | `search.ts` | 有界候选生成、目标投影、折半搜索、去重与排序；可替换算法 |
 | 执行 | `search.worker.ts` | 浏览器独立线程；页面取消时终止 Worker，旧结果不回流 |
 | 展示 | `CalculatorPage.tsx` | 输入、限制、方案和复制；按路由延迟加载，不占 OCR 队列 |
+| 媒体 | `media.ts`、`media/`、`EntityIcon.tsx` | 独立的图标/详情映射、来源锁与加载失败占位；不进入数值数据或 Worker |
 
 目标值通过 `SearchRequest.target` 传入，UI 第一版固定 325。后续库存约束、不同目标、收藏与自定义养成可扩展请求或新增策略；服务端存储应放独立模块，无需把静态数值存入题号目录。规则和数据分别有 `rulesVersion`、`schemaVersion`，变更时同步导入器、校验器与基准测试。新增更复杂 modifier 阶段需显式扩展，不能静默折为加法。
 
@@ -33,8 +34,30 @@
 
 ## 数据与验证
 
-- 数据来源：[AKEndfield Wiki](https://www.akedata.wiki/)，版本 `1.5.3/10506507-7`，源更新时间 2026-09-24。只提交归一化数值和名称，不提交原始大表、图片或外部脚本源码；输出记录各表 SHA-256。
+- 数值来源：[AKEndfield Wiki](https://www.akedata.wiki/)，版本 `1.5.3/10506507-7`，源更新时间 2026-09-24。数值快照只提交归一化属性和名称，不提交原始大表或外部脚本源码；输出记录各表 SHA-256。
 - 公式参考：[AKEDatabase 数值研究](https://github.com/NagiYume/AKEDatabase/blob/main/public/CH/research/终末地数据导论.md)；常驻属性语义交叉核对 [CEP 的面板计算源码](https://github.com/cmyyx/cep/blob/main/src/lib/planner/progression.ts)。独立实现，未复制其代码。
 - 更新数据：`python3 tools/import_calculator_data.py --cache deploy/.local-backups/calculator-tables --download`。修改固定版本与语义后运行下列验证，审核数量/数据差异，再发布。
 - 测试（Node.js 22.18+）：`cd web && npm run test:calculator`。余烬 P0 双属性、P2 三属性公开数据方案为固定基准；另覆盖合法等级、潜能累积、百分比、常驻套装、词条锤炼、武器类型与搜索限制。
 - 公开数据复算不等于已在游戏内穿戴验证。版本更新、活动装备和边界显示规则仍需实际游戏对照；页面展示数据版本并提示核对。
+
+## 图标与资料链接
+
+- 覆盖当前 33 干员、80 武器、258 装备。`media/registry.json` 按类别与游戏 ID 查找本地图片及资料链接；`media/provenance.json` 保存原始 URL、索引版本、逐图来源/输出哈希、编码参数及权利状态，不打包进入浏览器。
+- 原图来自 [AKEData 公开资产索引](https://data.akedata.wiki/asset-sync-index.json)。干员用 `charremoteicon/icon_{id}.png`；武器和装备必须读取与数值快照哈希一致的 `ItemTable.iconId`，不能直接拼自身 ID。例如爆破单元与骑士精神的图标 ID 互换，6 组装备共用图标 ID。371 个实体对应 365 个源路径，完整下载后有 341 种不同文件内容，Vite 会合并相同图片。
+- 仅将最长边 192px、保留透明背景的 WebP 缩略图纳入 Git；原 PNG 和完整来源表留在被忽略的缓存目录。Vite 使用 `?url&no-inline` 生成哈希资源；只在 `/325` 加载映射，图片按实际展示加载，沿用跨 release 的共享资源保留机制。
+- 点击图标在新标签页打开 AKEData 资料：干员 `v3_character`、武器 `v3_weapon`、装备单件 `v3_item`。`v3_equip` 是套装入口，不能用于单件 ID。缺映射显示无链接占位；图片加载失败仍保留名称与正确资料链接。
+- 游戏图片权利归鹰角及相关权利方；未独立确认这批图像的再分发许可，第三方源码许可证不适用于游戏素材。保留来源说明，不声称官方授权。官方政策参考：[二创与直播指南](https://endfield.gryphline.com/en-us/news/4497)。
+
+导入工具仅用于离线维护，不是生产 API 依赖：
+
+```bash
+python3 -m venv deploy/.local-backups/media-tools
+deploy/.local-backups/media-tools/bin/python -m pip install -r tools/requirements-media.txt
+# 日常离线审计：全量 ID、详情路径、解码、尺寸和 SHA-256。
+deploy/.local-backups/media-tools/bin/python tools/import_calculator_media.py
+# 明确更新：校验固定 ItemTable，锁定当前来源索引，下载并转换所需原图。
+deploy/.local-backups/media-tools/bin/python tools/import_calculator_media.py \
+  --refresh --cache deploy/.local-backups/calculator-media
+```
+
+更新数值版本后必须重新审核媒体映射。来源域的图片 URL 不是历史不可变路径；原图若不再匹配索引，导入直接失败，不能静默接收新图。旧图如不再被引用，审计会报告，删除前先审核差异。

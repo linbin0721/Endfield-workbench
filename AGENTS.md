@@ -24,6 +24,7 @@ EndfieldWorkbench/
 │   │   ├── screenCapture.ts   单帧窗口截图与媒体资源释放
 │   │   ├── CalculatorPage.tsx  325 挑战页面
 │   │   ├── calculator/         版本化数据、领域模型、属性复算与 Worker 搜索
+│   │   │   └── media/          325 本地图标、实体链接及来源/哈希记录，独立于数值计算
 │   │   └── generated/          从 OpenAPI 生成的 API 类型
 │   ├── public/                 静态素材与截图示例
 │   └── tests/                  325 计算与搜索测试
@@ -40,6 +41,7 @@ EndfieldWorkbench/
 │   └── export_openapi.py       契约导出入口
 ├── contracts/openapi.json      后端导出的 OpenAPI 契约
 ├── tools/import_calculator_data.py  325 公开数据导入入口
+├── tools/import_calculator_media.py  325 图标导入与全量离线审计
 ├── deploy/                     Compose、Caddy 基础与 VPS Nginx 部署配置
 │   ├── backups/                本地部署备份，Git 忽略
 │   └── .local-backups/         本地验证证据、缓存与调研资料，Git 忽略
@@ -67,6 +69,7 @@ EndfieldWorkbench/
 - 前端改动至少运行类型生成和生产构建；后端改动运行相关 pytest；部署配置运行 `docker compose config`；Nginx 变更运行 `nginx -t`。私有样本缺失时必须明确报告跳过，不能声称真实截图识别已验证。
 - 前端发布使用带明确 `VITE_API_BASE_URL` 的生产构建和版本化静态目录；不得使用 Vite 开发服务器。发布后检查公网 HTTPS、CORS 和一次实际 API 请求。
 - 325 规则或数据变化须通过 `npm run test:calculator`，所有返回方案从原始物品重新复算；限时搜索未穷尽时不得声称无解或全局最优。数据版本、语义与扩展边界见 `docs/calculator-design.md`。
+- 325 图标按固定来源表的 `iconId` 关联，媒体更新须通过 `tools/import_calculator_media.py` 审计；图标与来源记录不进入属性计算或 Worker，生产仅使用本站哈希资源。
 
 ## 本项目任务记录
 
