@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { gameData } from "./calculator/data.ts";
 import EntityIcon from "./calculator/EntityIcon.tsx";
+import { preloadCharacterAvatars } from "./calculator/avatarPreload.ts";
 import {
   ATTRIBUTE_NAMES,
   DEFAULT_REQUEST,
@@ -398,6 +399,7 @@ export default function CalculatorPage() {
   const level = levelValid ? parsedLevel : clamp(Number.isFinite(parsedLevel) ? Math.round(parsedLevel) : 1, 1, maxLevel);
 
   useEffect(() => { document.title = "325 挑战计算器 | 终末地工具台"; }, []);
+  useEffect(() => preloadCharacterAvatars(gameData.characters.map((item) => item.id), DEFAULT_CHARACTER?.id), []);
 
   const releaseWorker = useCallback(() => {
     runRef.current += 1;

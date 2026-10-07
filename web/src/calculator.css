@@ -8,9 +8,10 @@
 .calc-character-selection{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center;min-width:0}
 .calc-entity-row{display:flex;align-items:center;gap:12px;min-width:0}
 .calc-entity-text{flex:1;min-width:0;overflow-wrap:anywhere}
-.calc-entity-icon{display:flex;align-items:center;justify-content:center;width:64px;height:64px;flex:0 0 64px;border:1px solid #385762;border-radius:10px;background:#101a22;color:#a7dcd6;text-decoration:none;overflow:hidden}
+.calc-entity-icon{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:64px;flex:0 0 64px;border:1px solid #385762;border-radius:10px;background:#101a22;color:#a7dcd6;text-decoration:none;overflow:hidden}
 .calc-entity-icon-small{width:56px;height:56px;flex-basis:56px}
-.calc-entity-icon img{display:block;width:100%;height:100%;object-fit:contain}
+.calc-entity-icon img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;opacity:0}
+.calc-entity-icon img.calc-icon-image-ready{opacity:1}
 .calc-entity-icon:where(a):hover{border-color:#6cd2cd;background:#1b3038}
 .calc-entity-icon:where(a):focus-visible{outline:2px solid #70d4d2;outline-offset:3px}
 .calc-icon-placeholder{font-size:1.3rem;font-weight:700;line-height:1}
