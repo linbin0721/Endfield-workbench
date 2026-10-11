@@ -1,0 +1,123 @@
+{
+  "brand": "终末地工具台",
+  "loading": "正在加载…",
+  "nav": {
+    "ariaLabel": "主要导航",
+    "home": "首页",
+    "balloon": "浮空回收",
+    "circuit": "源石电路",
+    "calculator": "325挑战"
+  },
+  "language": {
+    "label": "界面语言",
+    "ariaLabel": "切换界面语言",
+    "switching": "正在切换语言…",
+    "error": "无法加载所选语言，已保留当前语言。",
+    "retry": "重试"
+  },
+  "footer": "非官方玩家工具，与游戏官方无关。",
+  "home": {
+    "title": "终末地工具台",
+    "eyebrow": "玩家工具 / WORKBENCH",
+    "heading": "选择要用的工具",
+    "intro": "选择解谜工具或养成计算器，进入对应页面。",
+    "statusAvailable": "可用",
+    "openTool": "进入工具",
+    "balloon": {
+      "name": "浮空回收",
+      "description": "上传截图自动识别棋盘与气球库存，或按题号查询已记录题面。"
+    },
+    "circuit": {
+      "name": "源石电路",
+      "description": "上传截图识别行列约束与库存拼块，或按题号查询已记录的正常变体。"
+    },
+    "calculator": {
+      "name": "325 挑战",
+      "description": "为干员寻找面板属性达到 325 的养成方案，支持多属性同时达标并优先展示。"
+    }
+  },
+  "notFound": {
+    "title": "页面未找到 | 终末地解谜助手",
+    "eyebrow": "404 / NOT FOUND",
+    "heading": "页面未找到",
+    "message": "这个地址没有对应的工具页面。",
+    "back": "返回首页"
+  },
+  "service": {
+    "querying": "正在查询服务能力…",
+    "unavailable": "服务不可用：{{message}}",
+    "retry": "重试连接",
+    "status": "服务状态：{{solving}} · {{recognition}}",
+    "solvingAvailable": "求解可用",
+    "solvingUnavailable": "求解暂不可用",
+    "recognitionAvailable": "图片识别可用",
+    "recognitionUnavailable": "图片识别暂不可用",
+    "connecting": "正在连接解题服务…",
+    "connectFailed": "连接解题服务失败：{{message}}"
+  },
+  "task": {
+    "label": "{{operation}}任务状态：{{status}}",
+    "recognition": "识别",
+    "solve": "求解",
+    "queued": "排队中",
+    "running": "处理中",
+    "succeeded": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消"
+  },
+  "image": {
+    "eyebrow": "01 / 图片",
+    "title": "导入画面",
+    "localOnlyBadge": "图片仅本地预览",
+    "introMobile": "先用设备截屏，再从相册选择图片。",
+    "introDesktop": "选择、拖放或粘贴截图，或直接截取游戏窗口。",
+    "uploadNote": "只有点击“识别并求解”后才会上传选定范围。",
+    "ocrNote": "当前识图仅验证简体中文游戏截图；切换界面语言不会改变识图语言。",
+    "fileInputLabel": "选择图片文件",
+    "chooseOther": "更换图片",
+    "chooseFromAlbum": "从相册选择",
+    "chooseFile": "选择图片",
+    "captureWindow": "截取游戏窗口",
+    "dropNote": "也可拖到这里，或在页面中粘贴",
+    "limits": "PNG / JPEG / WebP · ≤12 MB · ≤2000 万像素",
+    "captureUnsupported": "当前浏览器或环境无法截取窗口，请使用“选择图片”、拖放或在页面中粘贴。",
+    "captureCancel": "取消截屏",
+    "captureSelecting": "请在弹出的选择框中选择游戏窗口…",
+    "captureReading": "已选择来源，正在获取窗口画面…",
+    "errorType": "仅支持 PNG、JPEG 或 WebP 图片。",
+    "errorSize": "图片不能超过 12 MB；请先缩小文件。",
+    "errorPixels": "图片像素不能超过 2000 万；请先缩小图片。",
+    "errorDecode": "无法读取这张图片，请换一张清晰的 PNG、JPEG 或 WebP 图片。",
+    "errorCropSize": "裁剪后的 PNG 超过 12 MB，请缩小裁剪范围或改用原图。",
+    "errorCropPreview": "裁剪预览失败，请调整范围或更换图片。",
+    "errorCaptureUnsupported": "当前浏览器或环境不支持窗口截图，请使用“选择图片”、拖放或在页面中粘贴。",
+    "errorCapturePending": "窗口截图暂时无法启动，请关闭已有选择框、回到此页面后重试。",
+    "errorCaptureDenied": "未选择窗口或已取消截图，当前图片保持不变。",
+    "errorCaptureUnavailable": "无法读取所选窗口，请确认窗口未被最小化或受保护，然后重试。",
+    "errorCaptureNoFrame": "没有获取到窗口画面；请选择游戏窗口并保持其可见，然后重试。",
+    "errorCaptureEnded": "窗口共享已结束，未能截取画面；当前图片保持不变。",
+    "errorCaptureTooManyPixels": "截取画面超过 2000 万像素，请降低分辨率或改用选图。",
+    "errorCaptureTooLarge": "截取的 PNG 超过 12 MB，请缩小窗口或改用选图。",
+    "errorCaptureEncodeFailed": "无法生成 PNG 截图，请重试或改用选图。",
+    "errorCaptureFailed": "截图失败，请重试或改用选图。",
+    "meta": "{{name}} · {{width}}×{{height}}",
+    "clear": "清除图片",
+    "scopeLegend": "识别范围",
+    "scopeFull": "默认整图（自动定位）",
+    "scopeCrop": "手动裁剪",
+    "fullNote": "默认上传完整原图，不在浏览器裁剪。",
+    "cropNoteDefault": "请保留完整棋盘和右侧所有气球库存。",
+    "cropNoteCircuit": "请保留完整棋盘（含上方和左侧全部约束）以及右侧所有库存拼块。",
+    "cropFullNote": "手动裁剪为 100%，仍上传完整原图。",
+    "cropLegend": "裁剪范围（占原图百分比）",
+    "cropLeft": "左边距",
+    "cropTop": "上边距",
+    "cropWidth": "宽度",
+    "cropHeight": "高度",
+    "uploadCaption": "实际上传：{{width}}×{{height}} 像素{{suffix}}",
+    "uploadCropped": " · 裁剪输出",
+    "uploadFull": " · 完整原图",
+    "preparingCrop": "正在生成裁剪图…",
+    "previewAlt": "实际将上传的图片预览"
+  }
+}

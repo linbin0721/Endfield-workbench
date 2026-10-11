@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { useAppTranslation } from "./i18n";
 import {
   circuitColorStyle,
   circuitFallbackDisplayColor,
@@ -53,17 +54,16 @@ function CircuitGuidePiece({ cells, color }: {
 }
 
 export default function CircuitGuideExample({ mode }: Props) {
+  const { t } = useAppTranslation("circuit");
   const titleId = `circuit-guide-${mode}-title`;
   const screenshot = mode === "screenshot";
   return <section className="panel" aria-labelledby={titleId}>
-    <div className="section-heading"><div><span className="eyebrow">00 / 示例</span>
-      <h2 id={titleId}>{screenshot ? "截图范围示例" : "题号位置示例"}</h2></div>
-      <span className="badge">自制示意图</span>
+    <div className="section-heading"><div><span className="eyebrow">{t("examples.eyebrow")}</span>
+      <h2 id={titleId}>{screenshot ? t("examples.screenshotTitle") : t("examples.codeTitle")}</h2></div>
+      <span className="badge">{t("examples.badge")}</span>
     </div>
-    <p className="muted">{screenshot
-      ? "截图需完整包含 1 号棋盘和 2 号全部库存；3 号题号可选。"
-      : "1 号是棋盘，2 号是库存，3 号是棋盘左侧题号；按题号查询只需输入 3 号，无需上传截图。"}</p>
-    <figure className="circuit-guide" aria-label="未解题源石电路示意画面">
+    <p className="muted">{screenshot ? t("examples.screenshotIntro") : t("examples.codeIntro")}</p>
+    <figure className="circuit-guide" aria-label={t("examples.figureAria")}>
       <div className="circuit-guide-stage">
         <div className="circuit-guide-code-region circuit-guide-region guide-code">
           <b className="guide-marker" aria-hidden="true">3</b>

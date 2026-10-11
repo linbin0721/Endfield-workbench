@@ -1,4 +1,6 @@
+import type { TFunction } from "i18next";
 import type { CircuitPuzzle } from "./api";
+import { useAppTranslation, useMessages } from "./i18n";
 import { validateCircuitPuzzle } from "./circuit";
 import {
   circuitColorStyle,
@@ -17,10 +19,33 @@ type PieceShapeProps = {
   color: CircuitDisplayColor;
 };
 
+/**
+ * Circuit color names come from circuitDisplay.ts as canonical Chinese strings.
+ * They are normalized here, at the display boundary, so the calculation palette
+ * and its channel mapping stay untouched.
+ */
+const colorKeys: Record<string, string> = {
+  "红色": "colors.red",
+  "橙色": "colors.orange",
+  "黄色": "colors.yellow",
+  "绿色": "colors.green",
+  "青色": "colors.cyan",
+  "蓝色": "colors.blue",
+  "紫色": "colors.purple",
+  "品红色": "colors.magenta",
+  "未知颜色": "colors.unknown",
+};
+
+export function circuitColorLabel(t: TFunction, name: string): string {
+  const key = colorKeys[name];
+  return t(key ?? "colors.unknown");
+}
+
 export function CircuitColorToken({ color }: { color: CircuitDisplayColor }) {
+  const { t } = useAppTranslation("circuit");
   return <span className="circuit-color-token" style={circuitColorStyle(color)}>
     <i data-circuit-pattern={color.channel} aria-hidden="true" />
-    {color.name}
+    {circuitColorLabel(t, color.name)}
   </span>;
 }
 
@@ -40,33 +65,36 @@ export function CircuitPieceShape({ cells, color }: PieceShapeProps) {
 }
 
 export default function CircuitPuzzlePreview({ puzzle: value, displayPalette, compact = false }: Props) {
+  const { t } = useAppTranslation("circuit");
+  const { tm } = useMessages();
   const checked = validateCircuitPuzzle(value);
-  if (!checked.puzzle) return <p className="error-text circuit-preview-error" role="alert">{checked.error}</p>;
+  if (!checked.puzzle) return <p className="error-text circuit-preview-error" role="alert">{tm(checked.error, "error")}</p>;
   const puzzle = checked.puzzle;
   const palette = resolveCircuitDisplayPalette(puzzle, displayPalette);
   const blocked = new Set((puzzle.blocked_cells ?? []).map((cell) => `${cell.row},${cell.column}`));
   const fixed = new Map((puzzle.fixed_cells ?? []).map((cell) => [`${cell.row},${cell.column}`, cell.channel]));
   return <div className={`circuit-preview${compact ? " compact" : ""}`}>
-    <div className="circuit-targets" aria-label="各颜色行列约束">
+    <div className="circuit-targets" aria-label={t("preview.targetsLabel")}>
       {puzzle.channels.map((channel) => {
         const color = palette.colors[channel.index];
         return <div className="circuit-target" key={channel.index}>
           <CircuitColorToken color={color} />
-          <span><b>行</b> {channel.row_targets.join(" · ")}</span>
-          <span><b>列</b> {channel.column_targets.join(" · ")}</span>
+          <span><b>{t("preview.row")}</b> {channel.row_targets.join(" · ")}</span>
+          <span><b>{t("preview.column")}</b> {channel.column_targets.join(" · ")}</span>
         </div>;
       })}
     </div>
     <div className="circuit-preview-body">
       <div>
-        <p className="circuit-preview-label">{puzzle.rows}×{puzzle.columns} 棋盘</p>
+        <p className="circuit-preview-label">{t("preview.boardSize", { rows: puzzle.rows, columns: puzzle.columns })}</p>
         <div className="circuit-board" style={{ gridTemplateColumns: `repeat(${puzzle.columns}, minmax(0, 1fr))` }}>
           {Array.from({ length: puzzle.rows * puzzle.columns }, (_, index) => {
             const row = Math.floor(index / puzzle.columns), column = index % puzzle.columns;
             const key = `${row},${column}`, channel = fixed.get(key);
             const kind = blocked.has(key) ? "blocked" : channel != null ? "fixed" : "empty";
             const color = channel != null ? palette.colors[channel] : null;
-            const label = kind === "blocked" ? "障碍格" : color ? `${color.name}固定格` : "空格";
+            const label = kind === "blocked" ? t("preview.blocked")
+              : color ? t("preview.fixed", { color: circuitColorLabel(t, color.name) }) : t("preview.empty");
             return <span key={key} className={`circuit-cell ${kind}`}
               style={color ? circuitColorStyle(color) : undefined}
               data-circuit-pattern={color?.channel}
@@ -78,24 +106,24 @@ export default function CircuitPuzzlePreview({ puzzle: value, displayPalette, co
         </div>
       </div>
       <div className="circuit-pieces">
-        <p className="circuit-preview-label">库存形状（{puzzle.pieces.length} 组）</p>
+        <p className="circuit-preview-label">{t("preview.piecesLabel", { count: puzzle.pieces.length })}</p>
         <div className="circuit-piece-list">
           {puzzle.pieces.map((piece, index) => {
             const color = palette.colors[piece.channel];
             return <div className="circuit-piece" key={index}
-              aria-label={`${color.name}，${piece.cells.length} 格库存形状`}>
+              aria-label={t("preview.pieceAria", { color: circuitColorLabel(t, color.name), cells: piece.cells.length })}>
               <CircuitPieceShape cells={piece.cells} color={color} />
               <CircuitColorToken color={color} />
-              <small>{piece.cells.length} 格</small>
+              <small>{t("preview.cellCount", { cells: piece.cells.length })}</small>
             </div>;
           })}
         </div>
       </div>
     </div>
-    <div className="circuit-legend" aria-label="棋盘图例">
-      <span className="circuit-legend-item blocked">斜纹 = 障碍</span>
-      <span className="circuit-legend-item fixed">菱形 = 固定格</span>
-      {palette.usedFallback && <span className="muted">未保存原始颜色，当前使用高对比示意色</span>}
+    <div className="circuit-legend" aria-label={t("preview.legendLabel")}>
+      <span className="circuit-legend-item blocked">{t("preview.legendBlocked")}</span>
+      <span className="circuit-legend-item fixed">{t("preview.legendFixed")}</span>
+      {palette.usedFallback && <span className="muted">{t("preview.fallbackColors")}</span>}
     </div>
   </div>;
 }

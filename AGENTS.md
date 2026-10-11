@@ -16,13 +16,14 @@ EndfieldWorkbench/
 ├── MEMORY.md                   长期决策与兼容背景
 ├── web/                        前端应用
 │   ├── src/
-│   │   ├── App.tsx             首页及 /balloon、/circuit、/325 路由
+│   │   ├── App.tsx             /:locale 首页及 balloon、circuit、325 子路由；旧地址兼容
 │   │   ├── BalloonPage.tsx     浮空回收页面
 │   │   ├── CircuitPage.tsx     源石电路页面
 │   │   ├── ImageInput.tsx      两种解谜共用的选图、截屏、预览与裁剪
 │   │   ├── device.ts          电脑与手机/平板入口判断，独立于窗口宽度
 │   │   ├── screenCapture.ts   单帧窗口截图与媒体资源释放
 │   │   ├── CalculatorPage.tsx  325 挑战页面
+│   │   ├── i18n/               四语资源、语言路由、消息展示兼容与游戏名称来源
 │   │   ├── calculator/         版本化数据、领域模型、属性复算与 Worker 搜索
 │   │   │   └── media/          325 本地图标、实体链接及来源/哈希记录，独立于数值计算
 │   │   └── generated/          从 OpenAPI 生成的 API 类型
@@ -42,6 +43,7 @@ EndfieldWorkbench/
 ├── contracts/openapi.json      后端导出的 OpenAPI 契约
 ├── tools/import_calculator_data.py  325 公开数据导入入口
 ├── tools/import_calculator_media.py  325 图标导入与全量离线审计
+├── tools/import_calculator_names.py  同版本四语游戏名称导入与离线审计
 ├── deploy/                     Compose、Caddy 基础与 VPS Nginx 部署配置
 │   ├── backups/                本地部署备份，Git 忽略
 │   └── .local-backups/         本地验证证据、缓存与调研资料，Git 忽略
@@ -70,6 +72,7 @@ EndfieldWorkbench/
 - 前端发布使用带明确 `VITE_API_BASE_URL` 的生产构建和版本化静态目录；不得使用 Vite 开发服务器。发布后检查公网 HTTPS、CORS 和一次实际 API 请求。
 - 325 规则或数据变化须通过 `npm run test:calculator`，所有返回方案从原始物品重新复算；限时搜索未穷尽时不得声称无解或全局最优。数据版本、语义与扩展边界见 `docs/calculator-design.md`。
 - 325 图标按固定来源表的 `iconId` 关联，媒体更新须通过 `tools/import_calculator_media.py` 审计；图标与来源记录不进入属性计算或 Worker，生产仅使用本站哈希资源。
+- 界面文案同步简中/英/日/韩并通过 `web/` 的 `npm run test:i18n`；游戏名称更新另跑名称审计。语言切换不得重挂载工具或重提交任务，译文不参与业务判断；哈希语言 JSON 随共享 assets 保留。当前识图语言边界见 STATUS，设计见 `docs/i18n-design.md`。
 
 ## 本项目任务记录
 

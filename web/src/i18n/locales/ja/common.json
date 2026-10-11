@@ -1,0 +1,123 @@
+{
+  "brand": "エンドフィールド・ワークベンチ",
+  "loading": "読み込み中…",
+  "nav": {
+    "ariaLabel": "メインナビゲーション",
+    "home": "ホーム",
+    "balloon": "空中回収",
+    "circuit": "源石回路",
+    "calculator": "325チャレンジ"
+  },
+  "language": {
+    "label": "表示言語",
+    "ariaLabel": "表示言語を切り替え",
+    "switching": "言語を切り替えています…",
+    "error": "選択した言語を読み込めませんでした。現在の言語のまま表示しています。",
+    "retry": "再試行"
+  },
+  "footer": "非公式のプレイヤーツールです。ゲームの公式サービスとは関係ありません。",
+  "home": {
+    "title": "エンドフィールド・ワークベンチ",
+    "eyebrow": "プレイヤーツール / WORKBENCH",
+    "heading": "使うツールを選択",
+    "intro": "パズルツールまたは育成計算ツールを選んで、それぞれのページへ進んでください。",
+    "statusAvailable": "利用可能",
+    "openTool": "ツールを開く",
+    "balloon": {
+      "name": "空中回収",
+      "description": "スクリーンショットをアップロードすると、盤面と風船の在庫を自動で認識します。問題番号から記録済みの盤面を検索することもできます。"
+    },
+    "circuit": {
+      "name": "源石回路",
+      "description": "スクリーンショットから行・列の制約と在庫ピースを認識します。問題番号から記録済みの正常なパターンを検索することもできます。"
+    },
+    "calculator": {
+      "name": "325チャレンジ",
+      "description": "オペレーターのステータスを325に到達させる育成プランを検索します。複数のステータス同時達成にも対応し、優先的に表示します。"
+    }
+  },
+  "notFound": {
+    "title": "ページが見つかりません | エンドフィールド パズルツール",
+    "eyebrow": "404 / NOT FOUND",
+    "heading": "ページが見つかりません",
+    "message": "このアドレスに対応するツールページはありません。",
+    "back": "ホームへ戻る"
+  },
+  "service": {
+    "querying": "サービスの対応状況を確認中…",
+    "unavailable": "サービスを利用できません：{{message}}",
+    "retry": "再接続",
+    "status": "サービス状況：{{solving}} · {{recognition}}",
+    "solvingAvailable": "計算可能",
+    "solvingUnavailable": "計算不可",
+    "recognitionAvailable": "画像認識可能",
+    "recognitionUnavailable": "画像認識不可",
+    "connecting": "パズルサービスに接続中…",
+    "connectFailed": "接続に失敗しました：{{message}}"
+  },
+  "task": {
+    "label": "{{operation}}の処理状況：{{status}}",
+    "recognition": "認識",
+    "solve": "計算",
+    "queued": "待機中",
+    "running": "処理中",
+    "succeeded": "完了",
+    "failed": "失敗",
+    "cancelled": "キャンセル済み"
+  },
+  "image": {
+    "eyebrow": "01 / 画像",
+    "title": "画像を読み込む",
+    "localOnlyBadge": "端末内でプレビュー",
+    "introMobile": "端末でスクリーンショットを撮り、アルバムから選択してください。",
+    "introDesktop": "画像を選択・ドラッグ・貼り付けるか、ゲームウィンドウを撮影してください。",
+    "uploadNote": "「認識して解く」をクリックしたときだけ、選択範囲をアップロードします。",
+    "ocrNote": "画像認識は簡体字中国語のゲーム画面でのみ検証済みです。表示言語を切り替えても認識言語は変わりません。",
+    "fileInputLabel": "画像ファイルを選択",
+    "chooseOther": "画像を変更",
+    "chooseFromAlbum": "アルバムから選択",
+    "chooseFile": "画像を選択",
+    "captureWindow": "ゲームウィンドウを撮影",
+    "dropNote": "ここにドラッグするか、ページに貼り付けることもできます",
+    "limits": "PNG / JPEG / WebP · 12 MB以下 · 2000万画素以下",
+    "captureUnsupported": "この環境ではウィンドウを撮影できません。画像を選択・ドラッグ・貼り付けてください。",
+    "captureCancel": "撮影をキャンセル",
+    "captureSelecting": "選択画面でゲームウィンドウを選んでください…",
+    "captureReading": "撮影元を選択済み。画面を取得中…",
+    "errorType": "PNG、JPEG、WebP の画像のみ対応しています。",
+    "errorSize": "画像は12 MB以下にしてください。ファイルを縮小してからお試しください。",
+    "errorPixels": "画像は2000万画素以下にしてください。解像度を下げてからお試しください。",
+    "errorDecode": "画像を読み込めませんでした。鮮明な PNG、JPEG、WebP 画像でお試しください。",
+    "errorCropSize": "切り抜き後の PNG が12 MBを超えています。範囲を小さくするか原画像を使用してください。",
+    "errorCropPreview": "切り抜きプレビューに失敗しました。範囲を調整するか別の画像を選択してください。",
+    "errorCaptureUnsupported": "このブラウザーまたは環境はウィンドウ撮影に対応していません。画像を選択・ドラッグ・貼り付けてください。",
+    "errorCapturePending": "撮影を開始できません。開いている選択画面を閉じ、このページに戻って再試行してください。",
+    "errorCaptureDenied": "ウィンドウが未選択か、撮影をキャンセルしました。現在の画像は変更していません。",
+    "errorCaptureUnavailable": "ウィンドウを読み取れません。最小化されていないか、保護されていないか確認して再試行してください。",
+    "errorCaptureNoFrame": "画面を取得できませんでした。ゲームウィンドウを選択し、表示したまま再試行してください。",
+    "errorCaptureEnded": "撮影前にウィンドウ共有が終了しました。現在の画像は変更していません。",
+    "errorCaptureTooManyPixels": "撮影画面が2000万画素を超えています。解像度を下げるか画像を選択してください。",
+    "errorCaptureTooLarge": "撮影した PNG が12 MBを超えています。ウィンドウを小さくするか画像を選択してください。",
+    "errorCaptureEncodeFailed": "PNG 画像を作成できませんでした。再試行するか画像を選択してください。",
+    "errorCaptureFailed": "撮影に失敗しました。再試行するか画像を選択してください。",
+    "meta": "{{name}} · {{width}}×{{height}}",
+    "clear": "画像をクリア",
+    "scopeLegend": "認識範囲",
+    "scopeFull": "画像全体（自動検出）",
+    "scopeCrop": "手動切り抜き",
+    "fullNote": "ブラウザーで切り抜かず、原画像全体を送信します。",
+    "cropNoteDefault": "盤面全体と右側の全バルーン在庫を残してください。",
+    "cropNoteCircuit": "盤面全体、上側・左側の全条件、右側の全ピースを残してください。",
+    "cropFullNote": "切り抜き範囲が100%のため、原画像全体を送信します。",
+    "cropLegend": "切り抜き範囲（原画像に対する割合）",
+    "cropLeft": "左余白",
+    "cropTop": "上余白",
+    "cropWidth": "幅",
+    "cropHeight": "高さ",
+    "uploadCaption": "送信画像：{{width}}×{{height}} ピクセル{{suffix}}",
+    "uploadCropped": " · 切り抜き後",
+    "uploadFull": " · 原画像全体",
+    "preparingCrop": "切り抜き画像を作成中…",
+    "previewAlt": "実際に送信する画像のプレビュー"
+  }
+}

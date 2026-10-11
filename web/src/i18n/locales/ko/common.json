@@ -1,0 +1,123 @@
+{
+  "brand": "엔드필드 워크벤치",
+  "loading": "불러오는 중…",
+  "nav": {
+    "ariaLabel": "주요 메뉴",
+    "home": "홈",
+    "balloon": "부유 회수",
+    "circuit": "오리지늄 회로",
+    "calculator": "325 챌린지"
+  },
+  "language": {
+    "label": "인터페이스 언어",
+    "ariaLabel": "인터페이스 언어 전환",
+    "switching": "언어를 전환하는 중…",
+    "error": "선택한 언어를 불러오지 못했습니다. 현재 언어를 그대로 유지합니다.",
+    "retry": "다시 시도"
+  },
+  "footer": "비공식 플레이어 도구이며 게임 공식 서비스와 무관합니다.",
+  "home": {
+    "title": "엔드필드 워크벤치",
+    "eyebrow": "플레이어 도구 / WORKBENCH",
+    "heading": "사용할 도구 선택",
+    "intro": "퍼즐 도구 또는 육성 계산기를 선택해 해당 페이지로 이동하세요.",
+    "statusAvailable": "사용 가능",
+    "openTool": "도구 열기",
+    "balloon": {
+      "name": "부유 회수",
+      "description": "스크린샷을 업로드하면 보드와 풍선 재고를 자동으로 인식합니다. 문제 번호로 기록된 문제를 조회할 수도 있습니다."
+    },
+    "circuit": {
+      "name": "오리지늄 회로",
+      "description": "스크린샷에서 행·열 제약과 보유 조각을 인식합니다. 문제 번호로 기록된 정상 변형을 조회할 수도 있습니다."
+    },
+    "calculator": {
+      "name": "325 챌린지",
+      "description": "오퍼레이터의 능력치를 325까지 끌어올리는 육성안을 찾습니다. 여러 능력치 동시 달성도 지원하며 우선 표시합니다."
+    }
+  },
+  "notFound": {
+    "title": "페이지를 찾을 수 없습니다 | 엔드필드 퍼즐 도우미",
+    "eyebrow": "404 / NOT FOUND",
+    "heading": "페이지를 찾을 수 없습니다",
+    "message": "이 주소에 해당하는 도구 페이지가 없습니다.",
+    "back": "홈으로 돌아가기"
+  },
+  "service": {
+    "querying": "서비스 지원 상태 확인 중…",
+    "unavailable": "서비스 이용 불가: {{message}}",
+    "retry": "다시 연결",
+    "status": "서비스 상태: {{solving}} · {{recognition}}",
+    "solvingAvailable": "풀이 가능",
+    "solvingUnavailable": "풀이 불가",
+    "recognitionAvailable": "이미지 인식 가능",
+    "recognitionUnavailable": "이미지 인식 불가",
+    "connecting": "퍼즐 서비스 연결 중…",
+    "connectFailed": "연결 실패: {{message}}"
+  },
+  "task": {
+    "label": "{{operation}} 작업 상태: {{status}}",
+    "recognition": "인식",
+    "solve": "풀이",
+    "queued": "대기 중",
+    "running": "처리 중",
+    "succeeded": "완료",
+    "failed": "실패",
+    "cancelled": "취소됨"
+  },
+  "image": {
+    "eyebrow": "01 / 이미지",
+    "title": "이미지 불러오기",
+    "localOnlyBadge": "기기에서만 미리보기",
+    "introMobile": "기기에서 스크린샷을 찍은 후 앨범에서 선택해 주세요.",
+    "introDesktop": "이미지를 선택, 드래그, 붙여넣거나 게임 창을 캡처해 주세요.",
+    "uploadNote": "“인식 및 풀이”를 클릭할 때만 선택한 범위를 업로드합니다.",
+    "ocrNote": "이미지 인식은 간체 중국어 게임 화면에서만 검증되었습니다. 표시 언어를 바꿔도 인식 언어는 바뀌지 않습니다.",
+    "fileInputLabel": "이미지 파일 선택",
+    "chooseOther": "이미지 변경",
+    "chooseFromAlbum": "앨범에서 선택",
+    "chooseFile": "이미지 선택",
+    "captureWindow": "게임 창 캡처",
+    "dropNote": "여기에 드래그하거나 페이지에 붙여넣을 수도 있습니다",
+    "limits": "PNG / JPEG / WebP · 12 MB 이하 · 2000만 픽셀 이하",
+    "captureUnsupported": "이 환경에서는 창을 캡처할 수 없습니다. 이미지를 선택, 드래그하거나 붙여넣어 주세요.",
+    "captureCancel": "캡처 취소",
+    "captureSelecting": "선택 창에서 게임 창을 선택해 주세요…",
+    "captureReading": "캡처 대상을 선택했습니다. 화면을 가져오는 중…",
+    "errorType": "PNG, JPEG, WebP 이미지만 지원합니다.",
+    "errorSize": "이미지가 12 MB를 초과합니다. 파일 크기를 줄여 주세요.",
+    "errorPixels": "이미지가 2000만 픽셀을 초과합니다. 해상도를 줄여 주세요.",
+    "errorDecode": "이미지를 읽을 수 없습니다. 선명한 PNG, JPEG, WebP 이미지로 시도해 주세요.",
+    "errorCropSize": "잘라낸 PNG가 12 MB를 초과합니다. 범위를 줄이거나 원본을 사용해 주세요.",
+    "errorCropPreview": "자르기 미리보기에 실패했습니다. 범위를 조정하거나 다른 이미지를 선택해 주세요.",
+    "errorCaptureUnsupported": "현재 브라우저나 환경에서 창 캡처를 지원하지 않습니다. 이미지를 선택, 드래그하거나 붙여넣어 주세요.",
+    "errorCapturePending": "아직 캡처를 시작할 수 없습니다. 열린 선택 창을 닫고 이 페이지로 돌아와 다시 시도해 주세요.",
+    "errorCaptureDenied": "창을 선택하지 않았거나 캡처를 취소했습니다. 현재 이미지는 그대로 유지됩니다.",
+    "errorCaptureUnavailable": "창을 읽을 수 없습니다. 최소화되거나 보호된 창이 아닌지 확인하고 다시 시도해 주세요.",
+    "errorCaptureNoFrame": "화면을 가져오지 못했습니다. 게임 창을 선택하고 보이는 상태에서 다시 시도해 주세요.",
+    "errorCaptureEnded": "캡처 전에 창 공유가 종료되었습니다. 현재 이미지는 그대로 유지됩니다.",
+    "errorCaptureTooManyPixels": "캡처 화면이 2000만 픽셀을 초과합니다. 해상도를 낮추거나 이미지 선택을 이용해 주세요.",
+    "errorCaptureTooLarge": "캡처한 PNG가 12 MB를 초과합니다. 창을 줄이거나 이미지 선택을 이용해 주세요.",
+    "errorCaptureEncodeFailed": "PNG 스크린샷을 만들 수 없습니다. 다시 시도하거나 이미지 선택을 이용해 주세요.",
+    "errorCaptureFailed": "캡처에 실패했습니다. 다시 시도하거나 이미지 선택을 이용해 주세요.",
+    "meta": "{{name}} · {{width}}×{{height}}",
+    "clear": "이미지 지우기",
+    "scopeLegend": "인식 범위",
+    "scopeFull": "전체 이미지 (자동 탐지)",
+    "scopeCrop": "수동 자르기",
+    "fullNote": "브라우저에서 자르지 않고 원본 전체를 업로드합니다.",
+    "cropNoteDefault": "전체 보드와 오른쪽의 모든 풍선 재고를 남겨 주세요.",
+    "cropNoteCircuit": "전체 보드, 위쪽과 왼쪽의 모든 조건, 오른쪽의 모든 조각을 남겨 주세요.",
+    "cropFullNote": "자르기 범위가 100%이므로 원본 전체를 업로드합니다.",
+    "cropLegend": "자르기 범위 (원본 대비 %)",
+    "cropLeft": "왼쪽 여백",
+    "cropTop": "위쪽 여백",
+    "cropWidth": "너비",
+    "cropHeight": "높이",
+    "uploadCaption": "업로드 이미지: {{width}}×{{height}} 픽셀{{suffix}}",
+    "uploadCropped": " · 잘라낸 이미지",
+    "uploadFull": " · 전체 원본",
+    "preparingCrop": "잘라낸 이미지 생성 중…",
+    "previewAlt": "실제로 업로드할 이미지 미리보기"
+  }
+}

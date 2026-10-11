@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "1.5.3/10506507-7",
+  "source": "https://www.akedata.wiki/",
+  "retrievedAt": "2026-10-11T11:36:40+00:00",
+  "tables": {
+    "ItemTable": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/ItemTable.json",
+      "sha256": "e9294e8a1f281694dbc268d7318b04164f8fd3543ee8643684247e51366f8409",
+      "size": 2775786
+    },
+    "EquipSuitTable": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/EquipSuitTable.json",
+      "sha256": "ebf76a824eae0d72fec5fef528b36ded7dcd767c444240803c4345628c3d9631",
+      "size": 18133
+    },
+    "I18nTextTable_CN": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/I18nTextTable_CN.json",
+      "sha256": "eaca356e58c469c34bd2fab5a362195a58c1938eedb2d471b80ff0e0294d5921",
+      "size": 11904795
+    },
+    "I18nTextTable_EN": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/I18nTextTable_EN.json",
+      "sha256": "365c41ef29105f7bba59c83ba51088fc89e65a257dec0956178bbd5292b55d01",
+      "size": 12954262
+    },
+    "I18nTextTable_JP": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/I18nTextTable_JP.json",
+      "sha256": "a9a71490b2001334eaefa9f84ccf2cd36930374902261610fa5e8a138550789c",
+      "size": 14717286
+    },
+    "I18nTextTable_KR": {
+      "url": "https://data.akedata.wiki/public/1.5.3/10506507-7/TableCfg/I18nTextTable_KR.json",
+      "sha256": "6a1bc17d5d54ceeb1e3bd4c2a6abc0656e0393e67efbc3884582eee08eb0ef4a",
+      "size": 14689925
+    }
+  },
+  "outputs": {
+    "zh-CN": {
+      "sha256": "3b277eb35012bc564d913ca8d2a5f553b919ab81ff34ff8c936fb3a8a7a674be",
+      "size": 20966
+    },
+    "en": {
+      "sha256": "f487ba5e00926f55dce34ca4792d824a25b0ee327e8ac081ff98e5a254e3c2fa",
+      "size": 21770
+    },
+    "ja": {
+      "sha256": "63fad3f46252c87415d0b3f8e4c358182b9025208dc95d9c914f00a6157230fc",
+      "size": 22961
+    },
+    "ko": {
+      "sha256": "f4187b55d50b214f12922e39d3b49d08de37f1d9483af5e7a67dbf32ad3f98ad",
+      "size": 23062
+    }
+  },
+  "annotation": "Administrator gender suffixes are display disambiguators"
+}

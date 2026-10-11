@@ -7,13 +7,14 @@ import {
 } from "./api";
 import { puzzleFromCircuitCandidate } from "./circuit";
 import CircuitCatalogCandidates from "./CircuitCatalogCandidates";
+import { msg, useAppTranslation, useMessages, type MessageText } from "./i18n";
 
 type Props = {
   canQuery: boolean;
   canSolve: boolean;
   busy: boolean;
   onQueryStart: () => void;
-  onSolve: (puzzle: CircuitPuzzle, displayPalette: unknown, label: string) => void;
+  onSolve: (puzzle: CircuitPuzzle, displayPalette: unknown, source: MessageText) => void;
 };
 
 const dashes = "-֊־᐀᠆‐‑‒–—―−⸺⸻﹘﹣－";
@@ -26,22 +27,24 @@ function normalizeInput(value: string): string | null {
   return /^(?:V\d{5}|WL\d{4})$/.test(normalized) ? normalized : null;
 }
 
-function explain(error: unknown): string {
+function explain(error: unknown): MessageText {
   if (error instanceof ApiError) {
-    if (error.code === "INVALID_CODE") return "题号格式无效：请输入 V 加五位数字或 WL 加四位数字。";
-    if (error.code === "CATALOG_NOT_FOUND") return "目录中还没有这个题号的完整题面。请先用截图识别，或核对题号后重试。";
-    if (error.code === "CATALOG_UNAVAILABLE") return "题号目录暂时不可用，请稍后重试，或改用截图识别。";
-    if (error.code === "NETWORK_ERROR") return "无法连接解题服务，请检查网络后重试。";
+    if (error.code === "INVALID_CODE") return msg("query.errorInvalidCode", undefined, "circuit");
+    if (error.code === "CATALOG_NOT_FOUND") return msg("query.errorNotFound", undefined, "circuit");
+    if (error.code === "CATALOG_UNAVAILABLE") return msg("query.errorCatalogUnavailable", undefined, "circuit");
+    if (error.code === "NETWORK_ERROR") return msg("query.errorNetwork", undefined, "circuit");
     return error.message;
   }
-  return "查询未完成，请稍后重试。";
+  return msg("query.errorFailed", undefined, "circuit");
 }
 
 export default function CircuitCodeQuery({ canQuery, canSolve, busy, onQueryStart, onSolve }: Props) {
+  const { t } = useAppTranslation("circuit");
+  const { render } = useMessages();
   const [code, setCode] = useState("");
   const [entry, setEntry] = useState<CircuitCatalogEntry | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [error, setError] = useState<MessageText>("");
+  const [notice, setNotice] = useState<MessageText>("");
   const [loading, setLoading] = useState(false);
   const generation = useRef(0);
   const request = useRef<AbortController | null>(null);
@@ -55,7 +58,7 @@ export default function CircuitCodeQuery({ canQuery, canSolve, busy, onQueryStar
     event.preventDefault();
     const normalized = normalizeInput(code);
     if (!normalized) {
-      setError("请输入 V 加五位数字或 WL 加四位数字，例如 V40020 或 WL0020。");
+      setError(msg("query.emptyCode", undefined, "circuit"));
       return;
     }
     request.current?.abort();
@@ -70,15 +73,15 @@ export default function CircuitCodeQuery({ canQuery, canSolve, busy, onQueryStar
       setEntry(result);
       const candidates = result.candidates ?? [];
       if (candidates.length === 0) {
-        setError("目录中没有可用于求解的完整题面变体。");
+        setError(msg("query.noCandidates", undefined, "circuit"));
         return;
       }
       if (candidates.length === 1) {
         const checked = puzzleFromCircuitCandidate(candidates[0]);
         if (!checked.puzzle) { setError(checked.error); return; }
-        if (!canSolve) { setError("源石电路求解服务当前不可用，请稍后重试。"); return; }
-        setNotice(`题号 ${result.code} 只有一个题面变体，已自动提交求解。`);
-        onSolve(checked.puzzle, candidates[0].display_palette, `题号 ${result.code}`);
+        if (!canSolve) { setError(msg("query.solveUnavailable", undefined, "circuit")); return; }
+        setNotice(msg("query.autoSolve", { code: result.code }, "circuit"));
+        onSolve(checked.puzzle, candidates[0].display_palette, msg("answer.sourceCode", { code: result.code }, "circuit"));
       }
     } catch (caught) {
       if (controller.signal.aborted || version !== generation.current) return;
@@ -90,24 +93,24 @@ export default function CircuitCodeQuery({ canQuery, canSolve, busy, onQueryStar
   }
 
   return <section className="panel" aria-labelledby="circuit-code-title">
-    <div className="section-heading"><div><span className="eyebrow">按题号</span>
-      <h2 id="circuit-code-title">用题号直接取题</h2></div><span className="badge">目录复用</span></div>
-    <p className="muted">输入题号后读取目录中经过校验的题面。同一题号可能有多个正常变体，届时请根据约束、棋盘和库存选择。</p>
+    <div className="section-heading"><div><span className="eyebrow">{t("query.eyebrow")}</span>
+      <h2 id="circuit-code-title">{t("query.heading")}</h2></div><span className="badge">{t("query.badge")}</span></div>
+    <p className="muted">{t("query.description")}</p>
     <form className="code-form" onSubmit={(event) => void query(event)}>
-      <label htmlFor="circuit-question-code">题号</label>
+      <label htmlFor="circuit-question-code">{t("query.label")}</label>
       <div className="code-row">
-        <input id="circuit-question-code" name="circuit-question-code" value={code} placeholder="V40020 或 WL0020"
+        <input id="circuit-question-code" name="circuit-question-code" value={code} placeholder={t("query.placeholder")}
           autoComplete="off" spellCheck={false} onChange={(event) => setCode(event.target.value)} />
         <button type="submit" className="button primary" disabled={loading || busy || !canQuery}>
-          {loading ? "正在查询…" : "查询并求解"}
+          {loading ? t("query.loading") : t("query.submit")}
         </button>
       </div>
-      <p className="muted small">接受 V 加五位数字或 WL 加四位数字；装饰三角、连字符和空格会自动规范化。</p>
+      <p className="muted small">{t("query.help")}</p>
     </form>
-    {notice && <div className="notice" role="status">{notice}</div>}
-    {error && <div className="notice warning" role="alert">{error}</div>}
+    {notice && <div className="notice" role="status">{render(notice)}</div>}
+    {error && <div className="notice warning" role="alert">{render(error, "error")}</div>}
     {entry && (entry.candidates ?? []).length > 1 && <div className="catalog-entry">
-      <p><strong>{entry.code}</strong> · 正常题面变体 {(entry.candidates ?? []).length} 个</p>
+      <p>{t("query.entryLine", { code: entry.code, count: (entry.candidates ?? []).length })}</p>
       <CircuitCatalogCandidates key={`${entry.code}-${entry.updated_at}`} candidates={entry.candidates ?? []}
         code={entry.code} disabled={busy || !canSolve} onSolve={onSolve} />
     </div>}

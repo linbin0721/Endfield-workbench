@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { Link } from "react-router-dom";
 import { gameData } from "./calculator/data.ts";
 import EntityIcon from "./calculator/EntityIcon.tsx";
 import { preloadCharacterAvatars } from "./calculator/avatarPreload.ts";
+import { localizedName, localizePath, msg, useAppTranslation, useMessages, type MessageText } from "./i18n";
 import {
   ATTRIBUTE_NAMES,
   DEFAULT_REQUEST,
@@ -23,6 +25,8 @@ import "./calculator.css";
 const TARGET = DEFAULT_REQUEST.target;
 const POTENTIAL_CHOICES: (number | "any")[] = [0, 1, 2, 3, 4, 5, "any"];
 const REFINE_CHOICES = (max: number) => Array.from({ length: max + 1 }, (_, value) => value);
+/** Display order of the four stats; the domain keeps ATTRIBUTE_NAMES untouched. */
+const ATTRIBUTE_KEYS = ["strength", "agility", "intellect", "will"] as const;
 
 const characterById = new Map(gameData.characters.map((item) => [item.id, item]));
 const weaponById = new Map(gameData.weapons.map((item) => [item.id, item]));
@@ -38,8 +42,8 @@ type AdvancedLimits = {
   maxGemFirst: number;
   maxGemPassive: number;
 };
-type CopyNotice = { solutionIndex: number; ok: boolean; message: string } | null;
-type EquipmentEntry = { label: string; gear: GearSelection; item: Equipment | undefined };
+type CopyNotice = { solutionIndex: number; ok: boolean; message: MessageText } | null;
+type EquipmentEntry = { slot: number; accessory: number; gear: GearSelection; item: Equipment | undefined };
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
@@ -55,10 +59,10 @@ function formatCount(value: unknown, fallback = "?"): string {
   return typeof value === "number" && Number.isFinite(value) ? String(Math.trunc(value)) : fallback;
 }
 
-function formatDuration(milliseconds: unknown): string {
+function formatDuration(milliseconds: unknown, t: TFunction): string {
   if (typeof milliseconds !== "number" || !Number.isFinite(milliseconds) || milliseconds < 0) return "—";
-  if (milliseconds < 1000) return `${Math.round(milliseconds)} 毫秒`;
-  return `${(milliseconds / 1000).toFixed(1)} 秒`;
+  if (milliseconds < 1000) return t("duration.milliseconds", { value: Math.round(milliseconds) });
+  return t("duration.seconds", { value: (milliseconds / 1000).toFixed(1) });
 }
 
 function readVector(vector: unknown, index: number): number | null {
@@ -90,25 +94,39 @@ function orderEquipment(equipment: GearSelection[]): EquipmentEntry[] {
   entries.sort((left, right) => left.slot - right.slot || left.position - right.position);
   let accessories = 0;
   return entries.map(({ gear, item, slot }) => {
-    let label = `装备${slot + 1}`;
-    if (slot === 0) label = "护甲";
-    else if (slot === 1) label = "护手";
-    else if (slot === 2) { accessories += 1; label = `配件${accessories}`; }
-    return { label, gear, item };
+    let accessory = 0;
+    if (slot === 2) { accessories += 1; accessory = accessories; }
+    return { slot, accessory, gear, item };
   });
+}
+
+/** One shared slot label for the cards and for the copied text. */
+function slotLabel(entry: EquipmentEntry, t: TFunction): string {
+  if (entry.slot === 0) return t("slot.armor");
+  if (entry.slot === 1) return t("slot.gauntlet");
+  if (entry.slot === 2) return t("slot.accessory", { index: entry.accessory });
+  return t("slot.equipment", { index: entry.slot + 1 });
+}
+
+function characterDisplayName(character: Character): string {
+  return localizedName("characters", character.id, character.name);
+}
+
+function weaponDisplayName(weapon: Weapon | undefined, t: TFunction): string {
+  return weapon ? localizedName("weapons", weapon.id, weapon.name) : t("solution.unknownWeapon");
 }
 
 /** data.sets only holds the four resident four-axis sets; other equipment sets are left unlabelled.
  * Never fall back to the raw suit_* id in the UI or in copied text. */
 function equipmentSetName(item: Equipment | undefined): string {
   if (!item?.set) return "";
-  return setById.get(item.set)?.name ?? "";
+  return localizedName("sets", item.set, setById.get(item.set)?.name ?? "");
 }
 
 /** Unknown non-empty ids may be reported as missing data, but the technical id is never a display name. */
-function equipmentDisplayName(gear: GearSelection, item: Equipment | undefined): string {
-  if (!gear.id) return "未装备";
-  return item?.name ?? "未知装备";
+function equipmentDisplayName(gear: GearSelection, item: Equipment | undefined, t: TFunction): string {
+  if (!gear.id) return t("slot.unequipped");
+  return item ? localizedName("equipment", item.id, item.name) : t("slot.unknownItem");
 }
 
 /** evaluate.ts only emits ids present in data.sets; an unexpected id still must not leak as raw text. */
@@ -119,24 +137,33 @@ function activeSetLabels(activeSets: unknown): { names: string[]; unknown: numbe
     for (const id of activeSets) {
       if (typeof id !== "string") continue;
       const name = setById.get(id)?.name;
-      if (name) names.push(name); else unknown += 1;
+      if (name) names.push(localizedName("sets", id, name)); else unknown += 1;
     }
   }
   return { names, unknown };
 }
 
-/** The base gem affix uses the weapon's own attribute; -1 means the character's main attribute. */
-function gemAttributeName(weapon: Weapon | undefined, character: Character): string {
-  if (!weapon) return "";
-  const axis = weapon.attribute === -1 ? character.main : weapon.attribute;
-  return ATTRIBUTE_NAMES[axis] ?? "";
+function attributeName(index: number, t: TFunction): string {
+  const key = ATTRIBUTE_KEYS[index];
+  return key ? t(`attributes.${key}`) : "";
 }
 
-function modifierLabel(modifier: Modifier, character: Character): string {
-  if (modifier.scope === 1) return `${ATTRIBUTE_NAMES[character.main] ?? "主属性"}（主能力）`;
-  if (modifier.scope === 2) return `${ATTRIBUTE_NAMES[character.sub] ?? "副属性"}（副能力）`;
-  if (modifier.scope === 3) return "全属性";
-  return ATTRIBUTE_NAMES[modifier.attribute] ?? `属性 ${formatCount(modifier.attribute)}`;
+/** The base gem affix uses the weapon's own attribute; -1 means the character's main attribute. */
+function gemAttributeName(weapon: Weapon | undefined, character: Character, t: TFunction): string {
+  if (!weapon) return "";
+  const axis = weapon.attribute === -1 ? character.main : weapon.attribute;
+  return attributeName(axis, t);
+}
+
+function modifierLabel(modifier: Modifier, character: Character, t: TFunction): string {
+  if (modifier.scope === 1) {
+    return t("modifier.main", { attribute: attributeName(character.main, t) || t("attributes.mainFallback") });
+  }
+  if (modifier.scope === 2) {
+    return t("modifier.sub", { attribute: attributeName(character.sub, t) || t("attributes.subFallback") });
+  }
+  if (modifier.scope === 3) return t("modifier.all");
+  return attributeName(modifier.attribute, t) || t("modifier.unknown", { index: formatCount(modifier.attribute) });
 }
 
 /** Frozen contract: search.ts emits one refinement per equipment.modifiers element in array order.
@@ -182,9 +209,10 @@ function normalizeResult(value: unknown): { result: SearchResult | null; dropped
   };
 }
 
+/** Browser/worker exceptions stay raw; the display bridge localizes or falls back. */
 function describeError(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
-  return "未知错误";
+  return "";
 }
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -212,65 +240,84 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
-function solutionCopyText(solution: Solution, index: number, character: Character): string {
+/** Built at click time so the copied text always uses the language selected then. */
+function solutionCopyText(solution: Solution, index: number, character: Character, t: TFunction): string {
   const { build, evaluation } = solution;
   const lines: string[] = [];
-  lines.push(`325 挑战方案 ${index + 1} · ${character.name}`);
-  lines.push(`等级 Lv.${formatCount(build.level)} · 潜能 ${formatCount(build.potential)}`);
-  lines.push(`面板：${ATTRIBUTE_NAMES.map((name, position) =>
-    `${name} ${formatValue(readVector(evaluation.display, position))}`).join(" / ")}`);
+  lines.push(t("copy.title", { index: index + 1, name: characterDisplayName(character) }));
+  lines.push(t("copy.level", { level: formatCount(build.level), potential: formatCount(build.potential) }));
+  lines.push(t("copy.panel", { values: ATTRIBUTE_NAMES.map((_, position) =>
+    `${attributeName(position, t)} ${formatValue(readVector(evaluation.display, position))}`).join(" / ") }));
   const matched = matchedSet(evaluation);
-  lines.push(`同时达到 ${TARGET}：${matched.size} 项${matched.size > 0
-    ? `（${[...matched].map((position) => ATTRIBUTE_NAMES[position]).join("、")}）` : ""}`);
+  lines.push(t("copy.matched", { target: TARGET, count: matched.size, list: matched.size > 0
+    ? t("copy.matchedList", { names: [...matched].map((position) => attributeName(position, t)).join(t("listSeparator")) })
+    : "" }));
   const { names: setNames, unknown: unknownSets } = activeSetLabels(evaluation.activeSets);
   if (setNames.length > 0 || unknownSets > 0) {
     const parts = [...setNames];
-    if (unknownSets > 0) parts.push(`另有 ${unknownSets} 项未收录套装`);
-    lines.push(`激活套装：${parts.join("、")}`);
+    if (unknownSets > 0) parts.push(t("copy.unknownSets", { count: unknownSets }));
+    lines.push(t("copy.sets", { names: parts.join(t("listSeparator")) }));
   }
   lines.push("");
   const weapon = weaponById.get(build.weapon?.id ?? "");
-  const gemAttribute = gemAttributeName(weapon, character);
-  lines.push(`武器：${weapon?.name ?? "未知武器"}${weapon
-    ? `（满级 Lv.${formatCount(weapon.level)}）` : "（本地数据中未找到）"}`);
-  lines.push(`精炼 +${formatCount(build.weapon?.refinement)}` +
-    ` · 基质基础词条${gemAttribute ? `（${gemAttribute}）` : ""} +${formatCount(build.weapon?.gemFirst)}` +
-    ` · 基质技能词条 +${formatCount(build.weapon?.gemPassive)}`);
-  lines.push("基质数字为最低词条增级需求，第二词条不限；+0表示无需该项增级。");
+  const gemAttribute = gemAttributeName(weapon, character, t);
+  lines.push(t("copy.weapon", {
+    name: weaponDisplayName(weapon, t),
+    suffix: weapon ? t("copy.weaponMax", { level: formatCount(weapon.level) }) : t("copy.weaponMissing"),
+  }));
+  lines.push(t("copy.gem", {
+    refinement: formatCount(build.weapon?.refinement),
+    attribute: gemAttribute ? t("copy.gemAttribute", { attribute: gemAttribute }) : "",
+    gemFirst: formatCount(build.weapon?.gemFirst),
+    gemPassive: formatCount(build.weapon?.gemPassive),
+  }));
+  lines.push(t("copy.gemNote"));
   lines.push("");
-  lines.push("装备：");
-  for (const { label, gear, item } of orderEquipment(build.equipment)) {
-    if (!gear.id) {
-      lines.push(`  ${label}：未装备`);
+  lines.push(t("copy.gearHeading"));
+  for (const entry of orderEquipment(build.equipment)) {
+    const label = slotLabel(entry, t);
+    if (!entry.gear.id) {
+      lines.push(t("copy.gearUnequipped", { label }));
       continue;
     }
-    const setName = equipmentSetName(item);
-    lines.push(`  ${label}：${equipmentDisplayName(gear, item)}${setName ? `（套装：${setName}）` : ""}`);
-    if (!item) {
-      lines.push("    （本地数据中未找到该装备，无法列出锤炼词条）");
+    const setName = equipmentSetName(entry.item);
+    lines.push(t("copy.gearLine", {
+      label,
+      name: equipmentDisplayName(entry.gear, entry.item, t),
+      set: setName ? t("copy.gearSet", { name: setName }) : "",
+    }));
+    if (!entry.item) {
+      lines.push(t("copy.gearMissing"));
       continue;
     }
-    for (const [modifierPosition, modifier] of item.modifiers.entries()) {
-      const refinement = modifierRefinement(gear, modifierPosition);
-      lines.push(`    锤炼 +${refinement} → ${modifierLabel(modifier, character)} ${modifierValue(modifier, refinement)}`);
+    for (const [modifierPosition, modifier] of entry.item.modifiers.entries()) {
+      const refinement = modifierRefinement(entry.gear, modifierPosition);
+      lines.push(t("copy.modLine", {
+        refinement,
+        label: modifierLabel(modifier, character, t),
+        value: modifierValue(modifier, refinement),
+      }));
     }
   }
   lines.push("");
-  lines.push(`数据来源：${gameData.source} · 版本 ${gameData.version} · 数据更新 ${gameData.sourceUpdatedAt}`);
+  lines.push(t("copy.source", { source: gameData.source, version: gameData.version, date: gameData.sourceUpdatedAt }));
   return lines.join("\n");
 }
 
 function AttributeGrid({ evaluation }: { evaluation: Evaluation }) {
+  const { t } = useAppTranslation("calculator");
   const matched = matchedSet(evaluation);
   return <div className="calc-attributes">
     {ATTRIBUTE_NAMES.map((name, index) => {
       const value = readVector(evaluation.display, index);
       const reached = matched.has(index);
       const gap = value === null ? null : TARGET - value;
-      const state = reached ? `达到 ${TARGET}` : gap === null ? "数值缺失"
-        : gap > 0 ? `还差 ${formatValue(gap)}` : `高于 ${TARGET}`;
+      const state = reached ? t("attributeState.reached", { target: TARGET })
+        : gap === null ? t("attributeState.missing")
+          : gap > 0 ? t("attributeState.gap", { gap: formatValue(gap) })
+            : t("attributeState.above", { target: TARGET });
       return <div className={`calc-attribute${reached ? " matched" : ""}`} key={name}>
-        <span className="calc-attribute-name">{name}</span>
+        <span className="calc-attribute-name">{attributeName(index, t)}</span>
         <strong>{formatValue(value)}</strong>
         <span className="calc-attribute-state">{state}</span>
       </div>;
@@ -285,93 +332,99 @@ function SolutionCard({ solution, index, character, copyNotice, onCopy }: {
   copyNotice: CopyNotice;
   onCopy: () => void;
 }) {
+  const { t } = useAppTranslation("calculator");
+  const { render } = useMessages();
   const { build, evaluation } = solution;
   const matched = matchedSet(evaluation);
   const { names: setNames, unknown: unknownSets } = activeSetLabels(evaluation.activeSets);
   const weapon = weaponById.get(build.weapon?.id ?? "");
-  const gemAttribute = gemAttributeName(weapon, character);
+  const gemAttribute = gemAttributeName(weapon, character, t);
   const entries = orderEquipment(Array.isArray(build.equipment) ? build.equipment : []);
   const notice = copyNotice && copyNotice.solutionIndex === index ? copyNotice : null;
   return <article className="calc-solution" aria-labelledby={`calc-solution-${index}`}>
     <header className="calc-solution-head">
       <div className="calc-solution-title calc-entity-row">
-        <EntityIcon kind="characters" id={character.id} name={character.name} size={56} />
+        <EntityIcon kind="characters" id={character.id} name={characterDisplayName(character)} size={56} />
         <div className="calc-entity-text">
-          <h3 id={`calc-solution-${index}`}>方案 {index + 1} · {character.name}</h3>
+          <h3 id={`calc-solution-${index}`}>{t("solution.title", { index: index + 1, name: characterDisplayName(character) })}</h3>
           <p className="calc-solution-meta">
-            等级 Lv.{formatCount(build.level)} · 潜能 {formatCount(build.potential)}
+            {t("solution.meta", { level: formatCount(build.level), potential: formatCount(build.potential) })}
           </p>
         </div>
       </div>
       <span className={`calc-match-badge${matched.size > 0 ? " reached" : ""}`}>
-        同时达标 {matched.size} 项
+        {t("solution.badge", { count: matched.size })}
       </span>
     </header>
     <AttributeGrid evaluation={evaluation} />
-    {(setNames.length > 0 || unknownSets > 0) && <p className="calc-sets">激活套装：{setNames.map((name, position) =>
+    {(setNames.length > 0 || unknownSets > 0) && <p className="calc-sets">{t("solution.sets")}{setNames.map((name, position) =>
       <span key={`${name}-${position}`}>{name}</span>)}
-      {unknownSets > 0 && <span>另有 {unknownSets} 项未收录套装</span>}</p>}
+      {unknownSets > 0 && <span>{t("solution.unknownSets", { count: unknownSets })}</span>}</p>}
     <div className="calc-gear">
-      <section className="calc-gear-block" aria-label="武器与基质">
-        <h4>武器与基质</h4>
+      <section className="calc-gear-block" aria-label={t("solution.weaponSection")}>
+        <h4>{t("solution.weaponSection")}</h4>
         <div className="calc-weapon-row calc-entity-row">
-          <EntityIcon kind="weapons" id={build.weapon?.id ?? ""} name={weapon?.name ?? "未知武器"} />
+          <EntityIcon kind="weapons" id={build.weapon?.id ?? ""} name={weaponDisplayName(weapon, t)} />
           <div className="calc-entity-text">
             <p className="calc-weapon-name">
-              <strong>{weapon?.name ?? "未知武器"}</strong>
-              {weapon && <span className="muted small">满级 Lv.{formatCount(weapon.level)}</span>}
-              {!weapon && <span className="calc-missing">本地数据中未找到该武器</span>}
+              <strong>{weaponDisplayName(weapon, t)}</strong>
+              {weapon && <span className="muted small">{t("solution.weaponLevel", { level: formatCount(weapon.level) })}</span>}
+              {!weapon && <span className="calc-missing">{t("solution.weaponMissing")}</span>}
             </p>
           </div>
         </div>
         <ul className="calc-tags">
-          <li>精炼 +{formatCount(build.weapon?.refinement)}</li>
-          <li>基质基础词条{gemAttribute ? `（${gemAttribute}）` : ""} +{formatCount(build.weapon?.gemFirst)}</li>
-          <li>基质技能词条 +{formatCount(build.weapon?.gemPassive)}</li>
+          <li>{t("solution.refine", { value: formatCount(build.weapon?.refinement) })}</li>
+          <li>{t("solution.gemFirst", { attribute: gemAttribute ? t("copy.gemAttribute", { attribute: gemAttribute }) : "",
+            value: formatCount(build.weapon?.gemFirst) })}</li>
+          <li>{t("solution.gemPassive", { value: formatCount(build.weapon?.gemPassive) })}</li>
         </ul>
-        <p className="muted small calc-gem-note">基质数字为最低词条增级需求，第二词条不限；+0表示无需该项增级。</p>
+        <p className="muted small calc-gem-note">{t("solution.gemNote")}</p>
       </section>
-      <section className="calc-gear-block" aria-label="装备与锤炼">
-        <h4>装备与锤炼</h4>
+      <section className="calc-gear-block" aria-label={t("solution.gearSection")}>
+        <h4>{t("solution.gearSection")}</h4>
         <div className="calc-equip-list">
-          {entries.map(({ label, gear, item }, position) => {
-            const setName = equipmentSetName(item);
-            return <div className="calc-equip" key={`${gear.id}-${position}`}>
+          {entries.map((entry, position) => {
+            const setName = equipmentSetName(entry.item);
+            return <div className="calc-equip" key={`${entry.gear.id}-${position}`}>
               <div className="calc-entity-row">
-                {gear.id && <EntityIcon kind="equipment" id={gear.id} name={equipmentDisplayName(gear, item)} />}
+                {entry.gear.id && <EntityIcon kind="equipment" id={entry.gear.id}
+                  name={equipmentDisplayName(entry.gear, entry.item, t)} />}
                 <div className="calc-entity-text">
                   <p className="calc-equip-head">
-                    <span className="calc-slot">{label}</span>
-                    <strong>{equipmentDisplayName(gear, item)}</strong>
-                    {gear.id && setName && <span className="muted small">套装：{setName}</span>}
-                    {gear.id && !item && <span className="calc-missing">本地数据中未找到该装备</span>}
+                    <span className="calc-slot">{slotLabel(entry, t)}</span>
+                    <strong>{equipmentDisplayName(entry.gear, entry.item, t)}</strong>
+                    {entry.gear.id && setName && <span className="muted small">{t("solution.set", { name: setName })}</span>}
+                    {entry.gear.id && !entry.item && <span className="calc-missing">{t("solution.gearMissing")}</span>}
                   </p>
                 </div>
               </div>
-              {gear.id && (item
-                ? <ul className="calc-mod-list">{item.modifiers.map((modifier, modifierPosition) => {
-                  const refinement = modifierRefinement(gear, modifierPosition);
+              {entry.gear.id && (entry.item
+                ? <ul className="calc-mod-list">{entry.item.modifiers.map((modifier, modifierPosition) => {
+                  const refinement = modifierRefinement(entry.gear, modifierPosition);
                   return <li className="calc-mod" key={`${modifier.index}-${modifier.scope}-${modifier.attribute}-${modifierPosition}`}>
-                    <span>锤炼 +{refinement} · {modifierLabel(modifier, character)}</span>
+                    <span>{t("solution.modifier", { refinement, label: modifierLabel(modifier, character, t) })}</span>
                     <b>{modifierValue(modifier, refinement)}</b>
                   </li>;
                 })}</ul>
-                : <p className="muted small">无法列出锤炼词条。</p>)}
+                : <p className="muted small">{t("solution.modsUnavailable")}</p>)}
             </div>;
           })}
         </div>
       </section>
     </div>
     <div className="row-actions">
-      <button type="button" className="button quiet" onClick={onCopy}>复制方案</button>
+      <button type="button" className="button quiet" onClick={onCopy}>{t("solution.copy")}</button>
       {notice && <span className={notice.ok ? "calc-copy-ok" : "error-text"} role="status" aria-live="polite">
-        {notice.message}
+        {render(notice.message, "error")}
       </span>}
     </div>
   </article>;
 }
 
 export default function CalculatorPage() {
+  const { t, locale } = useAppTranslation("calculator");
+  const { render, tm } = useMessages();
   const [characterId, setCharacterId] = useState(DEFAULT_CHARACTER?.id ?? "");
   const [levelText, setLevelText] = useState(() => String(DEFAULT_REQUEST.level));
   const [potential, setPotential] = useState<number | "any">(DEFAULT_REQUEST.potential);
@@ -385,8 +438,8 @@ export default function CalculatorPage() {
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
-  const [error, setError] = useState("");
-  const [statusNote, setStatusNote] = useState("");
+  const [error, setError] = useState<MessageText>("");
+  const [statusNote, setStatusNote] = useState<MessageText>("");
   const [copyNotice, setCopyNotice] = useState<CopyNotice>(null);
   const workerRef = useRef<Worker | null>(null);
   const runRef = useRef(0);
@@ -398,7 +451,7 @@ export default function CalculatorPage() {
   const levelValid = levelText.trim() !== "" && Number.isInteger(parsedLevel) && parsedLevel >= 1 && parsedLevel <= maxLevel;
   const level = levelValid ? parsedLevel : clamp(Number.isFinite(parsedLevel) ? Math.round(parsedLevel) : 1, 1, maxLevel);
 
-  useEffect(() => { document.title = "325 挑战计算器 | 终末地工具台"; }, []);
+  useEffect(() => { document.title = t("title"); }, [t, locale]);
   useEffect(() => preloadCharacterAvatars(gameData.characters.map((item) => item.id), DEFAULT_CHARACTER?.id), []);
 
   const releaseWorker = useCallback(() => {
@@ -425,13 +478,13 @@ export default function CalculatorPage() {
     setCopyNotice(null);
   }, [releaseWorker]);
 
-  const failSearch = useCallback((worker: Worker, run: number, message: string) => {
+  const failSearch = useCallback((worker: Worker, run: number, message: MessageText) => {
     if (workerRef.current !== worker || runRef.current !== run) return;
     releaseWorker();
     busyRef.current = false;
     setRunning(false);
     setPhase("");
-    setError(message || "搜索失败，请重试。");
+    setError(message);
   }, [releaseWorker]);
 
   const finishSearch = useCallback((worker: Worker, run: number, payload: unknown) => {
@@ -442,7 +495,7 @@ export default function CalculatorPage() {
     setPhase("");
     const { result: normalized, dropped } = normalizeResult(payload);
     if (!normalized || dropped) {
-      setError("搜索返回的结果不完整，请重试。");
+      setError(msg("error.incompleteResult", undefined, "calculator"));
       return;
     }
     setResult(normalized);
@@ -466,17 +519,20 @@ export default function CalculatorPage() {
       limit: DEFAULT_REQUEST.limit,
     };
     let worker: Worker;
+    if (typeof Worker === "undefined") {
+      setError(msg("error.workerCreate", { message: msg("error.workerUnsupported", undefined, "calculator") }, "calculator"));
+      return;
+    }
     try {
-      if (typeof Worker === "undefined") throw new Error("当前浏览器不支持 Web Worker");
       worker = new Worker(new URL("./calculator/search.worker.ts", import.meta.url), { type: "module" });
     } catch (creationError) {
-      setError(`无法启动本地搜索线程：${describeError(creationError)}。请刷新页面或更换浏览器后重试。`);
+      setError(msg("error.workerCreate", { message: describeError(creationError) || msg("error.unknown", undefined, "calculator") }, "calculator"));
       return;
     }
     workerRef.current = worker;
     busyRef.current = true;
     setRunning(true);
-    setPhase("正在准备搜索…");
+    setPhase("");
     setError("");
     setResult(null);
     setStatusNote("");
@@ -492,28 +548,30 @@ export default function CalculatorPage() {
       }
       if (data.type === "done") { finishSearch(worker, run, data.result); return; }
       if (data.type === "error") {
-        failSearch(worker, run, typeof data.message === "string" ? data.message : "");
+        failSearch(worker, run, typeof data.message === "string" && data.message
+          ? data.message : msg("error.failed", undefined, "calculator"));
       }
     };
     worker.onerror = (event: ErrorEvent) => {
       event.preventDefault();
       failSearch(worker, run, event.message
-        ? `本地搜索线程出错：${event.message}`
-        : "本地搜索线程出错，请重试。");
+        ? msg("error.workerError", { message: event.message }, "calculator")
+        : msg("error.workerErrorGeneric", undefined, "calculator"));
     };
-    worker.onmessageerror = () => failSearch(worker, run, "搜索返回了无法解析的数据，请重试。");
+    worker.onmessageerror = () => failSearch(worker, run, msg("error.workerMessageParse", undefined, "calculator"));
     const message: WorkerRequest = { type: "search", request };
     try {
       worker.postMessage(message);
     } catch (postError) {
-      failSearch(worker, run, `无法提交搜索任务：${describeError(postError)}。请重试。`);
+      failSearch(worker, run, msg("error.workerPost", {
+        message: describeError(postError) || msg("error.unknown", undefined, "calculator") }, "calculator"));
     }
   }, [character, failSearch, finishSearch, level, levelValid, limits, potential, required, resetSearch]);
 
   const cancelSearch = () => {
     if (!busyRef.current) return;
     resetSearch();
-    setStatusNote("已取消本次搜索。");
+    setStatusNote(msg("cancelled", undefined, "calculator"));
   };
 
   const changeCharacter = (nextId: string) => {
@@ -553,97 +611,98 @@ export default function CalculatorPage() {
 
   const copySolution = async (index: number, solution: Solution) => {
     if (!character) return;
-    const copied = await writeClipboard(solutionCopyText(solution, index, character));
+    const copied = await writeClipboard(solutionCopyText(solution, index, character, t));
     setCopyNotice({
       solutionIndex: index,
       ok: copied,
-      message: copied ? "已复制方案到剪贴板。" : "复制失败，请手动选择文本，或允许浏览器访问剪贴板后重试。",
+      message: msg(copied ? "solution.copied" : "solution.copyFailed", undefined, "calculator"),
     });
   };
 
   if (!character) {
-    return <div className="notice warning" role="alert">本地养成数据没有可用的干员记录，无法使用计算器。</div>;
+    return <div className="notice warning" role="alert">{t("noData")}</div>;
   }
 
   const notes = result?.notes ?? [];
   return <>
     <div className="intro">
-      <span className="eyebrow">养成计算器 / 325</span>
-      <h1>325 挑战计算器</h1>
-      <p>寻找干员常驻面板属性达到 {TARGET} 的方案，优先展示多属性 {TARGET}。可以指定必须同时达标的属性。计算在浏览器本地完成。</p>
+      <span className="eyebrow">{t("eyebrow")}</span>
+      <h1>{t("heading")}</h1>
+      <p>{t("intro", { target: TARGET })}</p>
     </div>
     <div className="calc-workbench">
       <section className="panel calc-form-panel" aria-labelledby="calc-form-title">
-        <h2 id="calc-form-title">搜索条件</h2>
+        <h2 id="calc-form-title">{t("form.heading")}</h2>
         <form className="calc-form" onSubmit={(event) => { event.preventDefault(); startSearch(); }}>
           <div className="calc-field">
-            <label htmlFor="calc-character">干员</label>
+            <label htmlFor="calc-character">{t("form.character")}</label>
             <div className="calc-character-selection">
-              <EntityIcon kind="characters" id={character.id} name={character.name} eager />
+              <EntityIcon kind="characters" id={character.id} name={characterDisplayName(character)} eager />
               <select id="calc-character" value={character.id} onChange={(event) => changeCharacter(event.target.value)}>
-                {gameData.characters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {gameData.characters.map((item) => <option key={item.id} value={item.id}>
+                  {localizedName("characters", item.id, item.name)}</option>)}
               </select>
             </div>
           </div>
           <div className="calc-form-grid">
             <div className="calc-field">
-              <label htmlFor="calc-level">等级（1–{maxLevel}）</label>
+              <label htmlFor="calc-level">{t("form.level", { max: maxLevel })}</label>
               <input id="calc-level" type="number" inputMode="numeric" min={1} max={maxLevel} step={1}
                 value={levelText} onChange={(event) => changeLevel(event.target.value)} onBlur={normalizeLevel} />
-              {!levelValid && <span className="error-text small">请输入 1 到 {maxLevel} 之间的等级。</span>}
+              {!levelValid && <span className="error-text small">{t("form.levelInvalid", { max: maxLevel })}</span>}
             </div>
             <div className="calc-field">
-              <label htmlFor="calc-potential">潜能</label>
+              <label htmlFor="calc-potential">{t("form.potential")}</label>
               <select id="calc-potential" value={String(potential)} onChange={(event) => changePotential(event.target.value)}>
                 {POTENTIAL_CHOICES.map((choice) => <option key={String(choice)} value={String(choice)}>
-                  {choice === "any" ? "任意潜能（0–5）" : `潜能 ${choice}`}
+                  {choice === "any" ? t("form.potentialAny") : t("form.potentialValue", { value: choice })}
                 </option>)}
               </select>
             </div>
           </div>
           <div className="calc-target-row">
-            <span className="field-label">目标属性值</span>
+            <span className="field-label">{t("form.targetLabel")}</span>
             <strong className="calc-target">{TARGET}</strong>
-            <span className="muted small">固定值</span>
+            <span className="muted small">{t("form.targetFixed")}</span>
           </div>
           <fieldset className="calc-required">
-            <legend>必须同时达到 {TARGET} 的属性</legend>
-            <p className="muted small">不勾选时任意一项达到 {TARGET} 即可；勾选多项时方案必须同时满足，并按同时达标数量优先排列。</p>
+            <legend>{t("form.requiredLegend", { target: TARGET })}</legend>
+            <p className="muted small">{t("form.requiredHelp", { target: TARGET })}</p>
             <div className="calc-required-grid">
               {ATTRIBUTE_NAMES.map((name, index) => <label className="calc-check" key={name} htmlFor={`calc-required-${index}`}>
                 <input id={`calc-required-${index}`} type="checkbox" checked={required.includes(index)}
                   onChange={() => toggleRequired(index)} />
-                <span>{name}</span>
+                <span>{attributeName(index, t)}</span>
               </label>)}
             </div>
           </fieldset>
           <details className="calc-advanced">
-            <summary>高级选项（搜索上限）</summary>
-            <p className="muted small">上限越高，可选的养成组合越多，搜索需要的时间也越长。</p>
+            <summary>{t("form.advanced")}</summary>
+            <p className="muted small">{t("form.advancedHelp")}</p>
             <div className="calc-form-grid">
               <div className="calc-field">
-                <label htmlFor="calc-gear-refine">装备锤炼上限</label>
+                <label htmlFor="calc-gear-refine">{t("form.maxGearRefine")}</label>
                 <select id="calc-gear-refine" value={String(limits.maxGearRefine)}
                   onChange={(event) => changeLimit("maxGearRefine", event.target.value)}>
                   {REFINE_CHOICES(3).map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
               </div>
               <div className="calc-field">
-                <label htmlFor="calc-weapon-refine">武器精炼上限</label>
+                <label htmlFor="calc-weapon-refine">{t("form.maxWeaponRefine")}</label>
                 <select id="calc-weapon-refine" value={String(limits.maxWeaponRefine)}
                   onChange={(event) => changeLimit("maxWeaponRefine", event.target.value)}>
                   {REFINE_CHOICES(5).map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
               </div>
               <div className="calc-field">
-                <label htmlFor="calc-gem-first">基质基础词条上限</label>
+                <label htmlFor="calc-gem-first">{t("form.maxGemFirst")}</label>
                 <select id="calc-gem-first" value={String(limits.maxGemFirst)}
                   onChange={(event) => changeLimit("maxGemFirst", event.target.value)}>
                   {REFINE_CHOICES(6).map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
               </div>
               <div className="calc-field">
-                <label htmlFor="calc-gem-passive">基质技能词条上限</label>
+                <label htmlFor="calc-gem-passive">{t("form.maxGemPassive")}</label>
                 <select id="calc-gem-passive" value={String(limits.maxGemPassive)}
                   onChange={(event) => changeLimit("maxGemPassive", event.target.value)}>
                   {REFINE_CHOICES(3).map((value) => <option key={value} value={value}>{value}</option>)}
@@ -653,57 +712,56 @@ export default function CalculatorPage() {
           </details>
           <div className="row-actions">
             <button type="submit" className="button primary" disabled={running || !levelValid}>
-              {running ? "搜索中…" : "开始搜索"}
+              {running ? t("form.searching") : t("form.start")}
             </button>
-            {running && <button type="button" className="button secondary" onClick={cancelSearch}>取消搜索</button>}
+            {running && <button type="button" className="button secondary" onClick={cancelSearch}>{t("form.cancel")}</button>}
           </div>
         </form>
       </section>
       <div className="calc-output">
         {running && <section className="panel calc-progress" role="status" aria-live="polite">
           <span className="calc-spinner" aria-hidden="true" />
-          <p>正在搜索：{phase || "正在计算…"}</p>
-          <button type="button" className="button secondary" onClick={cancelSearch}>取消搜索</button>
+          <p>{t("progress.searching", { phase: phase ? tm(phase) : t("progress.preparing") })}</p>
+          <button type="button" className="button secondary" onClick={cancelSearch}>{t("form.cancel")}</button>
         </section>}
         {!running && error && <section className="panel calc-error" role="alert">
-          <h2>搜索未完成</h2>
-          <p className="error-text">{error}</p>
+          <h2>{t("error.title")}</h2>
+          <p className="error-text">{render(error, "error")}</p>
           <div className="row-actions">
-            <button type="button" className="button primary" disabled={!levelValid} onClick={startSearch}>重试搜索</button>
+            <button type="button" className="button primary" disabled={!levelValid} onClick={startSearch}>{t("error.retry")}</button>
           </div>
         </section>}
-        {!running && !error && statusNote && <p className="notice" role="status" aria-live="polite">{statusNote}</p>}
+        {!running && !error && statusNote && <p className="notice" role="status" aria-live="polite">{render(statusNote)}</p>}
         {!running && !error && !result && <section className="panel calc-empty">
-          <h2>搜索结果</h2>
-          <p className="muted">设置条件后点击“开始搜索”。</p>
+          <h2>{t("results.heading")}</h2>
+          <p className="muted">{t("results.emptyHint")}</p>
           <ul className="calc-notes">
-            <li>不勾选属性要求时，任意一项面板属性达到 {TARGET} 即算命中。</li>
-            <li>勾选多项时，方案必须同时满足所选属性，结果按同时达标数量优先排列。</li>
-            <li>搜索使用本地数据，不会上传干员、等级或装备信息。</li>
+            <li>{t("results.emptyNote1", { target: TARGET })}</li>
+            <li>{t("results.emptyNote2")}</li>
+            <li>{t("results.emptyNote3")}</li>
           </ul>
         </section>}
-        {!running && result && <section className="panel calc-results" aria-label="搜索结果">
+        {!running && result && <section className="panel calc-results" aria-label={t("results.panelLabel")}>
           <div className="calc-result-head">
-            <h2>搜索结果</h2>
+            <h2>{t("results.heading")}</h2>
             <div className="summary">
-              <span>用时 {formatDuration(result.elapsedMs)}</span>
-              <span>已评估 {formatCount(result.candidates, "0")} 个候选</span>
-              <span>{result.complete ? "已搜索完当前范围" : "限时搜索"}</span>
-              <span>方案 {result.results.length} 个（上限 {DEFAULT_REQUEST.limit}）</span>
+              <span>{t("results.elapsed", { duration: formatDuration(result.elapsedMs, t) })}</span>
+              <span>{t("results.evaluated", { count: formatCount(result.candidates, "0") })}</span>
+              <span>{t(result.complete ? "results.complete" : "results.limited")}</span>
+              <span>{t("results.solutionCount", { count: result.results.length, limit: DEFAULT_REQUEST.limit })}</span>
             </div>
           </div>
           {!result.complete && <div className="notice warning">
-            <p>限时搜索已结束，优先展示已找到的多属性方案，不保证全局最优。</p>
-            {result.results.length === 0 &&
-              <p>本次限时搜索没有返回方案，这不代表无解；可以调整等级、潜能或高级上限后重试。</p>}
+            <p>{t("results.timeoutNotice")}</p>
+            {result.results.length === 0 && <p>{t("results.timeoutEmpty")}</p>}
           </div>}
           {result.complete && result.results.length === 0 && <div className="notice">
-            当前条件下未找到符合 {TARGET} 的养成方案；搜索已穷尽当前范围内的组合，可以调整等级、潜能或高级上限后重试。
+            {t("results.completeEmpty", { target: TARGET })}
           </div>}
           {result.complete && result.results.length > 0 &&
-            <p className="muted small">已搜索完当前范围内的组合，方案按同时达到 {TARGET} 的属性数量优先排列。</p>}
+            <p className="muted small">{t("results.completeSorted", { target: TARGET })}</p>}
           {notes.length > 0 && <ul className="calc-notes">{notes.map((note, index) =>
-            <li key={`${index}-${note}`}>{note}</li>)}</ul>}
+            <li key={`${index}-${note}`}>{tm(note)}</li>)}</ul>}
           <div className="calc-solution-list">
             {result.results.map((solution, index) => <SolutionCard key={index} solution={solution} index={index}
               character={character} copyNotice={copyNotice} onCopy={() => void copySolution(index, solution)} />)}
@@ -712,19 +770,19 @@ export default function CalculatorPage() {
       </div>
     </div>
     <section className="panel calc-about" aria-labelledby="calc-about-title">
-      <h2 id="calc-about-title">计算说明</h2>
+      <h2 id="calc-about-title">{t("about.title")}</h2>
       <ul className="calc-notes">
-        <li>只计算非战斗常驻面板属性，不包含战斗内触发或限时增益。</li>
-        <li>按当前等级下合法的突破与能力节点全满计算，武器按满级计算。</li>
-        <li>同类型武器都可以选择；按部位选择可穿戴装备，两件配件可以相同。</li>
-        <li>结果会注明武器、两个基质词条、每件装备及其每条锤炼要求。</li>
-        <li>基质数字为最低词条增级需求，第二词条不限；+0表示无需该项增级。</li>
+        <li>{t("about.note1")}</li>
+        <li>{t("about.note2")}</li>
+        <li>{t("about.note3")}</li>
+        <li>{t("about.note4")}</li>
+        <li>{t("about.note5")}</li>
       </ul>
-      <p className="muted small calc-source">数据来源：<a href={gameData.source} target="_blank" rel="noopener noreferrer">{gameData.source}</a>
-        {" · "}版本 {gameData.version}{" · "}数据更新 {gameData.sourceUpdatedAt}</p>
-      <p className="muted small calc-source">图标与数据来源为 <a href="https://www.akedata.wiki/" target="_blank" rel="noopener noreferrer">AKEndfield Wiki</a>；点击图标查看资料；游戏素材版权归鹰角及相关权利方，本站为非官方玩家工具。</p>
-      <p className="muted small">基于公开数据，可能包含尚未拥有的物品；请在游戏内核对。</p>
-      <p className="calc-other-tools">其他工具：<Link to="/balloon">浮空回收解谜</Link><Link to="/circuit">源石电路解谜</Link></p>
+      <p className="muted small calc-source">{t("about.sourcePrefix")}<a href={gameData.source} target="_blank" rel="noopener noreferrer">{gameData.source}</a>
+        {" · "}{t("about.version", { version: gameData.version })}{" · "}{t("about.updated", { date: gameData.sourceUpdatedAt })}</p>
+      <p className="muted small calc-source">{t("about.iconSourcePrefix")}<a href="https://www.akedata.wiki/" target="_blank" rel="noopener noreferrer">{t("about.wiki")}</a>{t("about.iconSourceSuffix")}</p>
+      <p className="muted small">{t("about.disclaimer")}</p>
+      <p className="calc-other-tools">{t("about.otherTools")}<Link to={localizePath("/balloon", locale)}>{t("about.balloonLink")}</Link><Link to={localizePath("/circuit", locale)}>{t("about.circuitLink")}</Link></p>
     </section>
   </>;
 }

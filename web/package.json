@@ -8,11 +8,14 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host localhost",
     "test:calculator": "node --test tests/calculator.test.mjs",
+    "test:i18n": "node --test tests/i18n.test.mjs",
     "generate:api": "openapi-typescript ../contracts/openapi.json -o src/generated/api.ts"
   },
   "dependencies": {
+    "i18next": "^26.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^17.0.16",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {

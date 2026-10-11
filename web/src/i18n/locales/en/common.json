@@ -1,0 +1,123 @@
+{
+  "brand": "Endfield Workbench",
+  "loading": "Loading…",
+  "nav": {
+    "ariaLabel": "Main navigation",
+    "home": "Home",
+    "balloon": "Aero-Salvage",
+    "circuit": "Originium Circuitry",
+    "calculator": "325 Challenge"
+  },
+  "language": {
+    "label": "Interface language",
+    "ariaLabel": "Change interface language",
+    "switching": "Switching language…",
+    "error": "The selected language could not be loaded. The current language is unchanged.",
+    "retry": "Retry"
+  },
+  "footer": "Unofficial fan tool, not affiliated with the official game services.",
+  "home": {
+    "title": "Endfield Workbench",
+    "eyebrow": "PLAYER TOOLS / WORKBENCH",
+    "heading": "Choose a tool",
+    "intro": "Pick a puzzle tool or the build calculator to open its page.",
+    "statusAvailable": "Available",
+    "openTool": "Open tool",
+    "balloon": {
+      "name": "Aero-Salvage",
+      "description": "Upload a screenshot to detect the board and balloon stock automatically, or look up a recorded puzzle by its code."
+    },
+    "circuit": {
+      "name": "Originium Circuitry",
+      "description": "Upload a screenshot to detect the row and column constraints and available pieces, or look up recorded valid variants by code."
+    },
+    "calculator": {
+      "name": "325 Challenge",
+      "description": "Find builds that push an operator's stats to 325, with support for several stats reaching the target and priority display."
+    }
+  },
+  "notFound": {
+    "title": "Page not found | Endfield Puzzle Helper",
+    "eyebrow": "404 / NOT FOUND",
+    "heading": "Page not found",
+    "message": "There is no tool page at this address.",
+    "back": "Back to home"
+  },
+  "service": {
+    "querying": "Checking service availability…",
+    "unavailable": "Service unavailable: {{message}}",
+    "retry": "Reconnect",
+    "status": "Service: {{solving}} · {{recognition}}",
+    "solvingAvailable": "Solving available",
+    "solvingUnavailable": "Solving unavailable",
+    "recognitionAvailable": "Image recognition available",
+    "recognitionUnavailable": "Image recognition unavailable",
+    "connecting": "Connecting to the puzzle service…",
+    "connectFailed": "Could not connect: {{message}}"
+  },
+  "task": {
+    "label": "{{operation}} task: {{status}}",
+    "recognition": "Recognition",
+    "solve": "Solving",
+    "queued": "Queued",
+    "running": "Processing",
+    "succeeded": "Complete",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  "image": {
+    "eyebrow": "01 / IMAGE",
+    "title": "Import screenshot",
+    "localOnlyBadge": "Local preview only",
+    "introMobile": "Take a screenshot with your device, then select it from your photos.",
+    "introDesktop": "Select, drop or paste a screenshot, or capture the game window.",
+    "uploadNote": "The selected area is uploaded only when you click “Recognize and solve”.",
+    "ocrNote": "Screenshot recognition has only been verified for Simplified Chinese game screenshots. Changing the interface language does not change the recognition language.",
+    "fileInputLabel": "Choose image file",
+    "chooseOther": "Change image",
+    "chooseFromAlbum": "Choose from photos",
+    "chooseFile": "Choose image",
+    "captureWindow": "Capture game window",
+    "dropNote": "You can also drop here or paste into this page",
+    "limits": "PNG / JPEG / WebP · ≤12 MB · ≤20 megapixels",
+    "captureUnsupported": "Window capture is unavailable here. Choose, drop or paste an image instead.",
+    "captureCancel": "Cancel capture",
+    "captureSelecting": "Choose the game window in the dialog…",
+    "captureReading": "Source selected; capturing a frame…",
+    "errorType": "Only PNG, JPEG and WebP images are supported.",
+    "errorSize": "The image exceeds 12 MB. Reduce the file size first.",
+    "errorPixels": "The image exceeds 20 megapixels. Reduce its dimensions first.",
+    "errorDecode": "Could not read the image. Try a clear PNG, JPEG or WebP image.",
+    "errorCropSize": "The cropped PNG exceeds 12 MB. Crop a smaller area or use the original.",
+    "errorCropPreview": "Crop preview failed. Adjust the area or choose another image.",
+    "errorCaptureUnsupported": "This browser or environment does not support window capture. Choose, drop or paste an image.",
+    "errorCapturePending": "Capture cannot start yet. Close any existing selection dialog, return here and retry.",
+    "errorCaptureDenied": "No window selected or capture cancelled. Your current image is unchanged.",
+    "errorCaptureUnavailable": "Could not read the window. Check that it is not minimized or protected, then retry.",
+    "errorCaptureNoFrame": "No frame captured. Select the game window and keep it visible, then retry.",
+    "errorCaptureEnded": "Window sharing ended before capture. Your current image is unchanged.",
+    "errorCaptureTooManyPixels": "The capture exceeds 20 megapixels. Reduce the resolution or choose an image.",
+    "errorCaptureTooLarge": "The captured PNG exceeds 12 MB. Use a smaller window or choose an image.",
+    "errorCaptureEncodeFailed": "Could not create a PNG screenshot. Retry or choose an image.",
+    "errorCaptureFailed": "Capture failed. Retry or choose an image.",
+    "meta": "{{name}} · {{width}}×{{height}}",
+    "clear": "Clear image",
+    "scopeLegend": "Recognition area",
+    "scopeFull": "Full image (automatic detection)",
+    "scopeCrop": "Manual crop",
+    "fullNote": "Upload the complete original image without browser cropping.",
+    "cropNoteDefault": "Keep the entire board and all balloon stock on the right.",
+    "cropNoteCircuit": "Keep the entire board, all constraints above and to the left, and all pieces on the right.",
+    "cropFullNote": "Crop is 100%; the complete original will still be uploaded.",
+    "cropLegend": "Crop area (% of original image)",
+    "cropLeft": "Left margin",
+    "cropTop": "Top margin",
+    "cropWidth": "Width",
+    "cropHeight": "Height",
+    "uploadCaption": "Upload preview: {{width}}×{{height}} pixels{{suffix}}",
+    "uploadCropped": " · Cropped",
+    "uploadFull": " · Full original",
+    "preparingCrop": "Generating cropped image…",
+    "previewAlt": "Preview of the image that will be uploaded"
+  }
+}

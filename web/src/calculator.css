@@ -98,3 +98,7 @@
   .calc-required-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .calc-match-badge{font-size:.75rem}
 }
+
+/* Longer interface translations: keep badges and stat chips inside the card. */
+.calc-match-badge{white-space:normal;overflow-wrap:anywhere}
+.calc-tags li,.calc-attribute-name,.calc-attribute-state{min-width:0;overflow-wrap:anywhere}

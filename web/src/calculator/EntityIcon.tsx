@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAppTranslation } from "../i18n";
 import { getEntityMedia, type EntityKind } from "./media.ts";
 
 type EntityIconProps = {
@@ -65,14 +66,15 @@ function IconImage({ imageUrl, name, size, eager }: {
 
 /** Media is a presentation-only lookup; missing records never produce a guessed link. */
 export default function EntityIcon({ kind, id, name, size = 64, eager = false }: EntityIconProps) {
+  const { t } = useAppTranslation("calculator");
   if (!id) return null;
   const media = getEntityMedia(kind, id);
   const className = `calc-entity-icon${size === 56 ? " calc-entity-icon-small" : ""}`;
-  if (!media) return <span className={className} role="img" aria-label={`${name}：暂无图标`}>
+  if (!media) return <span className={className} role="img" aria-label={t("icon.missing", { name })}>
     <span className="calc-icon-placeholder" aria-hidden="true">{Array.from(name.trim())[0] ?? "?"}</span>
   </span>;
   return <a className={className} href={media.detailUrl} target="_blank" rel="noopener noreferrer"
-    aria-label={`${name}：查看资料（在新标签页打开）`} title={`${name} · 查看资料`}>
+    aria-label={t("icon.open", { name })} title={t("icon.title", { name })}>
     <IconImage key={`${kind}:${id}:${media.imageUrl}`} imageUrl={media.imageUrl}
       name={name} size={size} eager={eager} />
   </a>;

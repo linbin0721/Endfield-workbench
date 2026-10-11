@@ -7,6 +7,7 @@ import CodeQuery from "./CodeQuery";
 import GuideExample from "./GuideExample";
 import ImageInput, { type ImageSelection } from "./ImageInput";
 import Result from "./Result";
+import { msg, useAppTranslation, useMessages, type MessageText } from "./i18n";
 import { puzzleFromRecognition, type BalloonPuzzle, type BalloonSolveResult } from "./puzzle";
 
 type ServiceState = "loading" | "ready" | "error";
@@ -20,49 +21,55 @@ const pause = (milliseconds: number, signal: AbortSignal) => new Promise<void>((
   signal.addEventListener("abort", stop, { once: true });
 });
 
-function explain(error: unknown): string {
+const screenshotSource = () => msg("answer.sourceScreenshot", undefined, "balloon");
+
+function explain(error: unknown): MessageText {
   if (error instanceof ApiError) {
-    if (error.code === "QUEUE_FULL" || error.code === "UPLOAD_BUSY") return "当前任务较多，请稍后重试。";
-    if (error.code === "INVALID_REQUEST") return "服务未能接受这张图片，请换一张清晰完整的截图重试。";
-    if (error.code === "NOT_FOUND") return "任务已过期或服务重启，请重新识别。";
+    if (error.code === "QUEUE_FULL" || error.code === "UPLOAD_BUSY") return msg("failure.busy", undefined, "balloon");
+    if (error.code === "INVALID_REQUEST") return msg("failure.invalidRequest", undefined, "balloon");
+    if (error.code === "NOT_FOUND") return msg("failure.expired", undefined, "balloon");
     return error.message;
   }
-  return "请求未完成，请稍后重试。";
+  return msg("failure.request", undefined, "balloon");
 }
 
-function recognitionFailure(value: RecognitionResult): string {
+function recognitionFailure(value: RecognitionResult): MessageText {
   if (value.outcome === "no_board") {
+    // The placed-balloon guard still reads the raw issue text; only its display is translated.
     const placed = value.issues?.find((issue) => issue.includes("已有气球摆放"));
-    return placed || "未能从图片中定位完整棋盘。请上传包含完整棋盘和右侧所有气球库存的清晰截图重试。";
+    return placed || msg("failure.noBoard", undefined, "balloon");
   }
-  if (value.outcome === "invalid_image") return "图片无法读取、格式不支持或尺寸过大，请换一张清晰完整的截图重试。";
-  if (value.outcome === "timeout") return "图片识别超时，请换一张清晰完整的截图重试。";
-  return "图片识别失败，请稍后重试或换一张清晰完整的截图。";
+  if (value.outcome === "invalid_image") return msg("failure.invalidImage", undefined, "balloon");
+  if (value.outcome === "timeout") return msg("failure.timeout", undefined, "balloon");
+  return msg("failure.generic", undefined, "balloon");
 }
 
 export default function BalloonPage() {
+  const { t, locale } = useAppTranslation("balloon");
+  const { t: tc } = useAppTranslation("common");
+  const { render, tm } = useMessages();
   const [service, setService] = useState<ServiceState>("loading");
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
-  const [serviceError, setServiceError] = useState("");
+  const [serviceError, setServiceError] = useState<MessageText>("");
   const [mode, setMode] = useState<Mode | null>(null);
   const [task, setTask] = useState<Task | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [imageSelection, setImageSelection] = useState<ImageSelection | null>(null);
-  const [workError, setWorkError] = useState("");
+  const [workError, setWorkError] = useState<MessageText>("");
   const [recognitionNotes, setRecognitionNotes] = useState<string[]>([]);
   const [catalogMatch, setCatalogMatch] = useState<CatalogMatch | null>(null);
   const [choice, setChoice] = useState<CandidateChoice | null>(null);
   const [result, setResult] = useState<BalloonSolveResult | null>(null);
   const [submittedPuzzle, setSubmittedPuzzle] = useState<BalloonPuzzle | null>(null);
-  const [answerSource, setAnswerSource] = useState("");
+  const [answerSource, setAnswerSource] = useState<MessageText>(screenshotSource());
   const generation = useRef(0);
   const busy = useRef(false);
   const activeTaskId = useRef<string | null>(null);
   const pollController = useRef<AbortController | null>(null);
   const mounted = useRef(true);
 
-  useEffect(() => { document.title = "浮空回收 | 终末地解谜助手"; }, []);
+  useEffect(() => { document.title = t("title"); }, [t, locale]);
 
   const invalidate = useCallback(() => {
     generation.current++;
@@ -72,7 +79,7 @@ export default function BalloonPage() {
     activeTaskId.current = null;
     busy.current = false;
     setTask(null); setResult(null); setSubmittedPuzzle(null); setWorkError(""); setSubmitting(false); setOperation(null);
-    setRecognitionNotes([]); setCatalogMatch(null); setChoice(null); setAnswerSource("");
+    setRecognitionNotes([]); setCatalogMatch(null); setChoice(null); setAnswerSource(screenshotSource());
   }, []);
 
   useEffect(() => {
@@ -112,7 +119,7 @@ export default function BalloonPage() {
     balloon.supported_rule_versions.includes("center-torque-v1");
   const canRecognize = service === "ready" && balloon?.recognition_available === true;
 
-  async function beginSolve(puzzle: BalloonPuzzle, version: number, source = "截图识别") {
+  async function beginSolve(puzzle: BalloonPuzzle, version: number, source: MessageText = screenshotSource()) {
     if (!mounted.current || generation.current !== version) return;
     busy.current = true;
     setOperation("solve"); setTask(null); setResult(null); setWorkError(""); setSubmitting(true); setSubmittedPuzzle(puzzle);
@@ -147,10 +154,11 @@ export default function BalloonPage() {
               busy.current = false;
               const value = current.result as BalloonSolveResult | null;
               if (value && ["solved", "unsatisfiable", "timeout"].includes(value.outcome)) setResult(value);
-              else setWorkError("服务返回了无法识别的求解结果，请稍后重试。");
+              else setWorkError(msg("failure.solveResultUnknown", undefined, "balloon"));
             } else {
               const value = current.result as RecognitionResult | null;
               if (value?.outcome === "draft") {
+                // "推导" filtering reads the raw issues, never a translated string.
                 setRecognitionNotes((value.issues ?? []).filter((issue) => issue.includes("推导")));
                 setCatalogMatch(value.catalog ?? null);
                 const candidates = value.catalog?.candidates ?? [];
@@ -177,14 +185,14 @@ export default function BalloonPage() {
                   setChoice({ code: value.catalog!.code, candidates, matchedFingerprint: null });
                   return;
                 }
-                setWorkError(checked.error || "识别已完成，但求解服务当前不可用，请稍后重试。");
+                setWorkError(checked.error || msg("failure.solveUnavailable", undefined, "balloon"));
               } else {
                 busy.current = false;
-                setWorkError(value ? recognitionFailure(value) : "服务未返回有效识别结果，请重试。");
+                setWorkError(value ? recognitionFailure(value) : msg("failure.recognitionResultMissing", undefined, "balloon"));
               }
             }
-          } else if (current.status === "failed") { busy.current = false; setWorkError(current.error?.message || "任务失败，请稍后重试。"); }
-          else { busy.current = false; setWorkError("任务已取消。"); }
+          } else if (current.status === "failed") { busy.current = false; setWorkError(current.error?.message || msg("failure.taskFailed", undefined, "balloon")); }
+          else { busy.current = false; setWorkError(msg("failure.taskCancelled", undefined, "balloon")); }
           return;
         }
       } catch (error) {
@@ -227,7 +235,7 @@ export default function BalloonPage() {
     const previousOperation = operation;
     invalidate();
     setOperation(previousOperation);
-    setWorkError("已取消本次识别与求解。正在运行的服务任务可能仍需片刻结束。");
+    setWorkError(msg("failure.cancelled", undefined, "balloon"));
   };
 
   const switchMode = (next: Mode) => {
@@ -240,82 +248,92 @@ export default function BalloonPage() {
   };
 
   const codeConfidence = catalogMatch?.code_confidence != null
-    ? ` · 置信度 ${(catalogMatch.code_confidence * 100).toFixed(1)}%` : "";
+    ? t("confidence", { value: (catalogMatch.code_confidence * 100).toFixed(1) }) : "";
   const catalogIssues = catalogMatch?.issues ?? [];
-  const solveFromChoice = (puzzle: BalloonPuzzle, label: string) => {
+  const solveFromChoice = (puzzle: BalloonPuzzle, source: MessageText) => {
     if (busy.current) return;
-    void beginSolve(puzzle, generation.current, label);
+    void beginSolve(puzzle, generation.current, source);
   };
 
   return <>
-      <div className="intro"><span className="eyebrow">解谜工具 / BALLOON</span><h1>浮空回收解谜</h1>
-        <p>导入包含完整棋盘和右侧所有气球库存的清晰截图，点击一次识别并求解；也可以直接输入截图上的题号，复用目录中已验证的题面。</p>
+      <div className="intro"><span className="eyebrow">{t("eyebrow")}</span><h1>{t("heading")}</h1>
+        <p>{t("intro")}</p>
       </div>
-      <div className="mode-choices" role="group" aria-label="解题入口">
+      <div className="mode-choices" role="group" aria-label={t("modeGroupLabel")}>
         <button type="button" className={`mode-choice ${mode === "screenshot" ? "active" : ""}`}
           aria-expanded={mode === "screenshot"} aria-controls="screenshot-flow" onClick={() => switchMode("screenshot")}>
-          <span className="mode-choice-title">截图识别</span>
-          <span className="mode-choice-note">上传包含完整棋盘与库存的截图，识别并求解</span>
+          <span className="mode-choice-title">{t("mode.screenshotTitle")}</span>
+          <span className="mode-choice-note">{t("mode.screenshotNote")}</span>
         </button>
         <button type="button" className={`mode-choice ${mode === "code" ? "active" : ""}`}
           aria-expanded={mode === "code"} aria-controls="code-flow" onClick={() => switchMode("code")}>
-          <span className="mode-choice-title">按题号查询</span>
-          <span className="mode-choice-note">输入截图上的题号，复用目录中已验证的题面</span>
+          <span className="mode-choice-title">{t("mode.codeTitle")}</span>
+          <span className="mode-choice-note">{t("mode.codeNote")}</span>
         </button>
       </div>
       <div className="service-status" role="status" aria-live="polite">
-        {service === "loading" ? "正在查询服务能力…" : service === "error" ? <><span>服务不可用：{serviceError}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>重试连接</button></>
-          : balloon ? <span>服务状态：{balloon.solving_available ? "求解可用" : "求解暂不可用"} · {balloon.recognition_available ? "图片识别可用" : "图片识别暂不可用"}</span> : "服务未声明气球能力，暂不可提交。"}
+        {service === "loading" ? tc("service.querying") : service === "error" ? <><span>{tc("service.unavailable", { message: render(serviceError, "error") })}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>{tc("service.retry")}</button></>
+          : balloon ? <span>{tc("service.status", {
+            solving: tc(balloon.solving_available ? "service.solvingAvailable" : "service.solvingUnavailable"),
+            recognition: tc(balloon.recognition_available ? "service.recognitionAvailable" : "service.recognitionUnavailable"),
+          })}</span> : t("capabilityMissing")}
       </div>
       {mode && <div className={`content-grid ${result ? "" : "no-result"}`}>
         <div className="left-column">
           {mode === "screenshot" ? <div className="flow" id="screenshot-flow">
             <GuideExample />
             <ImageInput onChanged={changeImage} />
-            <section className="panel" aria-labelledby="recognize-title"><span className="eyebrow">识别与求解</span><h2 id="recognize-title">从图片得到答案</h2>
-              <p className="muted">只有点击后才上传当前预览的图片。库存数字不完整时不会凭空猜测；只有当目标总升力能唯一确定缺失的升力或数量时才会推导补齐，并在下方标明推导来源。其余缺失字段仍需换一张完整清晰的截图重试。</p>
+            <section className="panel" aria-labelledby="recognize-title"><span className="eyebrow">{t("recognize.eyebrow")}</span><h2 id="recognize-title">{t("recognize.heading")}</h2>
+              <p className="muted">{t("recognize.description")}</p>
+              <p className="muted small">{tc("image.ocrNote")}</p>
               <div className="row-actions"><button type="button" className="button primary" disabled={!canRecognize || !imageSelection || busy.current} onClick={() => void recognize()}>
-                {submitting && operation === "recognition" ? "正在上传…" : operation === "recognition" && busy.current ? "正在识别…" : submitting && operation === "solve" ? "正在提交求解…" : operation === "solve" && busy.current ? "正在求解…" : "识别并求解"}</button>
-                {busy.current && <button type="button" className="button secondary" onClick={cancel}>取消本次任务</button>}</div>
+                {submitting && operation === "recognition" ? t("recognize.uploading") : operation === "recognition" && busy.current ? t("recognize.recognizing") : submitting && operation === "solve" ? t("recognize.submittingSolve") : operation === "solve" && busy.current ? t("recognize.solving") : t("recognize.submit")}</button>
+                {busy.current && <button type="button" className="button secondary" onClick={cancel}>{t("recognize.cancel")}</button>}</div>
               {/* The button stays disabled while the connection is unresolved, so
                   repeat the connection state next to it instead of only on top. */}
               {service !== "ready" && <div className="service-status" role="status" aria-live="polite" data-service-hint={service}>
-                {service === "loading" ? "正在连接解题服务…" : <><span>连接解题服务失败：{serviceError}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>重试连接</button></>}
+                {service === "loading" ? tc("service.connecting") : <><span>{tc("service.connectFailed", { message: render(serviceError, "error") })}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>{tc("service.retry")}</button></>}
               </div>}
-              {task && <p className="task-status" role="status" aria-live="polite">{operation === "recognition" ? "识别" : "求解"}任务状态：{{ queued: "排队中", running: "处理中", succeeded: "已完成", failed: "失败", cancelled: "已取消" }[task.status]}</p>}
+              {task && <p className="task-status" role="status" aria-live="polite">{tc("task.label", {
+                operation: tc(operation === "recognition" ? "task.recognition" : "task.solve"),
+                status: tc(`task.${task.status}`),
+              })}</p>}
               {recognitionNotes.length > 0 && <div className="notice" role="status">
-                <strong>识别提示：</strong>{recognitionNotes.join(" ")}
+                <strong>{t("issueTitle")}</strong>{recognitionNotes.map((issue) => tm(issue)).join(" ")}
               </div>}
               {catalogMatch && <div className={`notice ${catalogMatch.available ? "" : "warning"}`} role="status">
-                <strong>题号目录：</strong>{catalogMatch.available
-                  ? <>题号 {catalogMatch.code}{codeConfidence} · {catalogStatusText(catalogMatch.status)} · {catalogMatch.complete ? "本次题面完整" : "本次题面不完整"}</>
-                  : <>暂不可用，本次仅按截图题面处理</>}
-                {catalogIssues.length > 0 && <ul>{catalogIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>}
+                <strong>{t("catalog.title")}</strong>{catalogMatch.available
+                  ? <>{t("catalog.line", { code: catalogMatch.code, confidence: codeConfidence,
+                    status: catalogStatusText(t, catalogMatch.status),
+                    completeness: t(catalogMatch.complete ? "catalog.complete" : "catalog.incomplete") })}</>
+                  : <>{t("catalog.unavailable")}</>}
+                {catalogIssues.length > 0 && <ul>{catalogIssues.map((issue) => <li key={issue}>{tm(issue)}</li>)}</ul>}
               </div>}
               {choice && <div className="notice catalog-choice" role="status">
-                <strong>题面选择：</strong>{choice.candidates.length > 1
-                  ? `题号 ${choice.code} 存在多个不同题面，均已保留；请核对后选择要使用的题面。`
-                  : `本次截图题面未通过目录校验，题号 ${choice.code} 在目录中有唯一可靠题面，可直接使用。`}
+                <strong>{t("choice.title")}</strong>{choice.candidates.length > 1
+                  ? t("choice.disputed", { code: choice.code })
+                  : t("choice.single", { code: choice.code })}
                 <CatalogCandidates key={`${choice.code}-${choice.matchedFingerprint ?? "none"}`} candidates={choice.candidates}
                   matchedFingerprint={choice.matchedFingerprint} code={choice.code}
                   disabled={busy.current || !canSolve} onSolve={solveFromChoice} />
               </div>}
-              {workError && <div className="notice warning" role="alert">{workError}</div>}
+              {workError && <div className="notice warning" role="alert">{render(workError, "error")}</div>}
             </section>
           </div> : <div className="flow" id="code-flow">
             <CodeGuideExample />
             <CodeQuery canQuery={service === "ready"} canSolve={canSolve} busy={busy.current}
               onQueryStart={invalidate} onSolve={solveFromChoice} />
-            {(task || workError || busy.current) && <section className="panel" aria-label="查询与求解状态">
-              {task && <p className="task-status" role="status" aria-live="polite">求解任务状态：{{ queued: "排队中", running: "处理中", succeeded: "已完成", failed: "失败", cancelled: "已取消" }[task.status]}</p>}
-              {workError && <div className="notice warning" role="alert">{workError}</div>}
-              {busy.current && <div className="row-actions"><button type="button" className="button secondary" onClick={cancel}>取消本次任务</button></div>}
+            {(task || workError || busy.current) && <section className="panel" aria-label={t("statusPanelLabel")}>
+              {task && <p className="task-status" role="status" aria-live="polite">{tc("task.label", {
+                operation: tc("task.solve"), status: tc(`task.${task.status}`) })}</p>}
+              {workError && <div className="notice warning" role="alert">{render(workError, "error")}</div>}
+              {busy.current && <div className="row-actions"><button type="button" className="button secondary" onClick={cancel}>{t("recognize.cancel")}</button></div>}
             </section>}
           </div>}
         </div>
-        {result && submittedPuzzle && <div className="right-column"><section className="panel answer-panel" aria-label="求解结果">
-          <span className="eyebrow">答案</span>
-          {answerSource && <p className="muted small">来源：{answerSource}</p>}
+        {result && submittedPuzzle && <div className="right-column"><section className="panel answer-panel" aria-label={t("answer.panelLabel")}>
+          <span className="eyebrow">{t("answer.eyebrow")}</span>
+          {answerSource && <p className="muted small">{t("answer.source", { source: render(answerSource) })}</p>}
           <Result result={result} puzzle={submittedPuzzle} /></section></div>}
       </div>}
   </>;

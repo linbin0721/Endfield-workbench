@@ -1,11 +1,13 @@
 import { useId } from "react";
 import type { CircuitPuzzle, CircuitSolveResult } from "./api";
+import { msg, useAppTranslation, useMessages, type MessageText } from "./i18n";
 import { deriveCircuitAnswer } from "./circuit";
 import {
   circuitPieceBoundarySegments,
   circuitPieceFill,
   resolveCircuitDisplayPalette,
 } from "./circuitDisplay";
+import { circuitColorLabel } from "./CircuitPuzzlePreview";
 
 type Props = {
   puzzle: CircuitPuzzle | unknown;
@@ -13,38 +15,39 @@ type Props = {
   result: CircuitSolveResult;
 };
 
-const invalidResult = (message: string) => <div className="notice warning" role="alert">
-  <strong>服务返回的答案无效。</strong> {message}
-</div>;
-
 export default function CircuitResult({ puzzle, displayPalette, result }: Props) {
+  const { t } = useAppTranslation("circuit");
+  const { tm } = useMessages();
   const svgId = useId().replace(/:/g, "");
+  const invalidResult = (message: MessageText) => <div className="notice warning" role="alert">
+    <strong>{t("result.invalidTitle")}</strong> {tm(message, "error")}
+  </div>;
   if (result === null || typeof result !== "object" || Array.isArray(result)) {
-    return invalidResult("响应结构无法识别，未绘制答案。");
+    return invalidResult(t("result.structureUnknown"));
   }
   const value = result as Partial<CircuitSolveResult>;
-  if (value.rule_version !== "line-count-v1") return invalidResult("规则版本与当前页面不一致，未绘制答案。");
+  if (value.rule_version !== "line-count-v1") return invalidResult(t("result.ruleMismatch"));
   if (value.outcome === "unsatisfiable") {
-    if (value.solution != null || value.limit_reason != null) return invalidResult("无解响应包含了不应出现的摆放或限额信息。");
+    if (value.solution != null || value.limit_reason != null) return invalidResult(t("result.unsatisfiableInvalid"));
     return <div className="notice warning" role="status">
-      <strong>按这个题面没有解。</strong> 求解器已经穷尽当前规则下的全部合法摆放。
+      <strong>{t("result.unsatisfiable")}</strong>
     </div>;
   }
   if (value.outcome === "timeout") {
     if (value.solution != null || (value.limit_reason !== "time" && value.limit_reason !== "work")) {
-      return invalidResult("计算限额响应结构不完整。");
+      return invalidResult(t("result.timeoutInvalid"));
     }
     return <div className="notice warning" role="status">
-      <strong>计算达到{value.limit_reason === "time" ? "时间" : "工作量"}上限。</strong> 搜索尚未穷尽，目前不能判断题面是否有解。
+      <strong>{t("result.timeout", { limit: t(value.limit_reason === "time" ? "result.limitTime" : "result.limitWork") })}</strong>
     </div>;
   }
-  if (value.outcome !== "solved") return invalidResult("结果状态无法识别。");
+  if (value.outcome !== "solved") return invalidResult(t("result.outcomeUnknown"));
   const checked = deriveCircuitAnswer(puzzle, value);
-  if (!checked.answer) return invalidResult(`${checked.error} 未绘制答案。`);
+  if (!checked.answer) return invalidResult(msg("result.notDrawn", { message: checked.error }, "circuit"));
   const { puzzle: normalized, cells, placements } = checked.answer;
   const palette = resolveCircuitDisplayPalette(normalized, displayPalette);
   if (palette.colors.length !== normalized.channels.length) {
-    return invalidResult("显示颜色无法与题面对应，未绘制答案。");
+    return invalidResult(t("result.paletteMismatch"));
   }
   const obstaclePatternId = `${svgId}-obstacle`;
   const placementDrawings = placements.map((placement) => ({
@@ -54,9 +57,9 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
   }));
 
   return <div className="circuit-solution">
-    <p className="success-line">答案已校验。连续色块代表一个库存形状；菱形是固定格，斜纹是障碍。</p>
+    <p className="success-line">{t("result.success")}</p>
     <svg className="circuit-answer-svg" viewBox={`0 0 ${normalized.columns} ${normalized.rows}`}
-      role="img" aria-label="源石电路完成棋盘" preserveAspectRatio="xMidYMid meet">
+      role="img" aria-label={t("result.boardAria")} preserveAspectRatio="xMidYMid meet">
       <defs>
         <pattern id={obstaclePatternId} width="0.24" height="0.24" patternUnits="userSpaceOnUse"
           patternTransform="rotate(45)">
@@ -89,7 +92,7 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
         width="0.91" height="0.91" rx="0.08" />)}
 
       {cells.filter((cell) => cell.kind === "blocked").map((cell) => <g
-        key={`blocked-${cell.row}-${cell.column}`} aria-label="障碍格">
+        key={`blocked-${cell.row}-${cell.column}`} aria-label={t("preview.blocked")}>
         <rect x={cell.column + 0.08} y={cell.row + 0.08} width="0.84" height="0.84" rx="0.09"
           fill={`url(#${obstaclePatternId})`} className="circuit-svg-obstacle" />
         <path d={`M${cell.column + 0.28} ${cell.row + 0.28}L${cell.column + 0.72} ${cell.row + 0.72}M${cell.column + 0.72} ${cell.row + 0.28}L${cell.column + 0.28} ${cell.row + 0.72}`}
@@ -100,7 +103,7 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
         const color = palette.colors[cell.channel!];
         const centerX = cell.column + 0.5, centerY = cell.row + 0.5;
         return <g key={`fixed-${cell.row}-${cell.column}`}
-          aria-label={`${color.name}固定格`}>
+          aria-label={t("preview.fixed", { color: circuitColorLabel(t, color.name) })}>
           <rect x={cell.column + 0.12} y={cell.row + 0.12} width="0.76" height="0.76" rx="0.13"
             fill={`url(#${svgId}-color-${color.channel})`} stroke={color.edge} strokeWidth="0.07" />
           <path d={`M${centerX} ${centerY - 0.22}L${centerX + 0.22} ${centerY}L${centerX} ${centerY + 0.22}L${centerX - 0.22} ${centerY}Z`}
@@ -115,7 +118,7 @@ export default function CircuitResult({ puzzle, displayPalette, result }: Props)
           `M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}`).join("");
         return <g key={placement.pieceIndex}
           data-circuit-placement={placement.pieceIndex}
-          aria-label={`${color.name}，${placement.cells.length} 格库存形状`}>
+          aria-label={t("preview.pieceAria", { color: circuitColorLabel(t, color.name), cells: placement.cells.length })}>
           <path d={fill.pathData} fill={`url(#${svgId}-piece-${placement.pieceIndex})`}
             data-circuit-piece-fill="" aria-hidden="true" />
           <path d={outline} fill="none" stroke={color.edge} strokeWidth="0.095"

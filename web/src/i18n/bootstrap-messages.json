@@ -1,0 +1,6 @@
+{
+  "zh-CN": { "error": "界面语言加载失败，请检查网络后重新加载。", "retry": "重新加载" },
+  "en": { "error": "The interface language could not be loaded. Check your connection and reload.", "retry": "Reload" },
+  "ja": { "error": "表示言語を読み込めませんでした。接続を確認して再読み込みしてください。", "retry": "再読み込み" },
+  "ko": { "error": "표시 언어를 불러오지 못했습니다. 연결을 확인한 후 새로고침해 주세요.", "retry": "새로고침" }
+}
