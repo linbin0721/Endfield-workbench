@@ -1,0 +1,57 @@
+@layer components {
+  .panel {
+    position: relative;
+    min-width: 0;
+    padding: var(--space-6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    background: var(--surface-panel);
+    backdrop-filter: blur(6px);
+  }
+
+  .strong {
+    background: var(--surface-panel-strong);
+  }
+
+  .corners {
+    position: absolute;
+    inset: 6px;
+    pointer-events: none;
+  }
+
+  .corners i {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    background:
+      linear-gradient(var(--text-muted), var(--text-muted)) center / 1px 100% no-repeat,
+      linear-gradient(var(--text-muted), var(--text-muted)) center / 100% 1px no-repeat;
+    opacity: 0.7;
+  }
+
+  .corners i:nth-child(1) {
+    top: 0;
+    left: 0;
+  }
+
+  .corners i:nth-child(2) {
+    top: 0;
+    right: 0;
+  }
+
+  .corners i:nth-child(3) {
+    bottom: 0;
+    left: 0;
+  }
+
+  .corners i:nth-child(4) {
+    right: 0;
+    bottom: 0;
+  }
+
+  @media (max-width: 560px) {
+    .panel {
+      padding: var(--space-4);
+    }
+  }
+}

@@ -1,0 +1,108 @@
+/*
+ * Semantic variables per surface. Any element (including Radix portal content
+ * mounted under <body>) that carries data-surface gets the full set, so popovers
+ * never depend on inheriting from <main>.
+ */
+@layer base {
+  [data-surface="dark"] {
+    color-scheme: dark;
+    --surface-page: #0f1114;
+    --surface-pattern: rgba(255, 255, 255, 0.035);
+    --surface-panel: rgba(30, 32, 37, 0.86);
+    --surface-panel-strong: rgba(40, 43, 49, 0.94);
+    --surface-row: rgba(255, 255, 255, 0.04);
+    --surface-row-hover: rgba(255, 255, 255, 0.08);
+    --border-subtle: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.22);
+
+    --text-primary: #f2f3f4;
+    --text-secondary: #b9bdc3;
+    --text-muted: #9ca1a9;
+
+    --accent: var(--yellow-400);
+    --accent-hover: var(--yellow-300);
+    --accent-pressed: var(--yellow-600);
+    --accent-text: var(--yellow-400);
+    --on-accent: var(--ink-900);
+
+    --control-bg: var(--ink-50);
+    --control-bg-hover: var(--white);
+    --control-bg-pressed: var(--ink-200);
+    --control-border: transparent;
+    --control-text: var(--ink-850);
+    --control-muted-bg: rgba(255, 255, 255, 0.1);
+    --control-muted-text: var(--text-secondary);
+    /* Edges of secondary controls and selected segments (>= 3:1 against panels). */
+    --control-outline: rgba(255, 255, 255, 0.45);
+    --segment-selected-border: transparent;
+
+    --danger: var(--red-400);
+    --success: var(--green-400);
+    --info: var(--blue-400);
+    --glow: var(--teal-400);
+
+    --popover-bg: var(--ink-100);
+    --popover-text: var(--ink-850);
+    --popover-hover: var(--white);
+    --popover-selected-bg: var(--ink-500);
+    --popover-selected-text: var(--white);
+    --popover-divider: rgba(0, 0, 0, 0.08);
+
+    --backdrop: rgba(5, 6, 8, 0.68);
+    --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+    /* Dark pages: a single yellow ring is clearly visible (>= 3:1 on every dark fill). */
+    --focus-ring: 0 0 0 2px var(--surface-page), 0 0 0 4px var(--yellow-400);
+  }
+
+  [data-surface="light"] {
+    color-scheme: light;
+    --surface-page: var(--ink-150);
+    --surface-pattern: rgba(0, 0, 0, 0.05);
+    --surface-panel: rgba(255, 255, 255, 0.8);
+    --surface-panel-strong: rgba(255, 255, 255, 0.95);
+    --surface-row: rgba(0, 0, 0, 0.035);
+    --surface-row-hover: rgba(0, 0, 0, 0.07);
+    --border-subtle: rgba(0, 0, 0, 0.1);
+    --border-strong: rgba(0, 0, 0, 0.28);
+
+    --text-primary: var(--ink-850);
+    --text-secondary: #3f4348;
+    --text-muted: #4f545b;
+
+    --accent: var(--yellow-400);
+    --accent-hover: var(--yellow-300);
+    --accent-pressed: var(--yellow-600);
+    /* Yellow text is unreadable on light fills; accents become a dark label next to a yellow mark. */
+    --accent-text: var(--ink-850);
+    --on-accent: var(--ink-900);
+
+    --control-bg: var(--white);
+    --control-bg-hover: var(--ink-50);
+    --control-bg-pressed: var(--ink-200);
+    --control-border: var(--ink-400);
+    --control-text: var(--ink-850);
+    --control-muted-bg: rgba(0, 0, 0, 0.07);
+    --control-muted-text: var(--text-secondary);
+    --control-outline: var(--ink-400);
+    --segment-selected-border: var(--ink-400);
+
+    --danger: var(--red-700);
+    --success: var(--green-700);
+    --info: var(--blue-700);
+    --glow: var(--teal-400);
+
+    --popover-bg: var(--white);
+    --popover-text: var(--ink-850);
+    --popover-hover: var(--ink-50);
+    --popover-selected-bg: var(--ink-600);
+    --popover-selected-text: var(--white);
+    --popover-divider: rgba(0, 0, 0, 0.08);
+
+    --backdrop: rgba(20, 22, 26, 0.5);
+    --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.22);
+
+    /* Yellow alone is ~1.2:1 on light fills, so a dark inner ring carries the contrast. */
+    --focus-ring: 0 0 0 2px var(--ink-900), 0 0 0 4px var(--yellow-400);
+  }
+}

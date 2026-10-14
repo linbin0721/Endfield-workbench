@@ -1,0 +1,74 @@
+@layer components {
+  .notice {
+    --tone: var(--info);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--tone);
+    border-radius: var(--radius-panel);
+    background: var(--surface-row);
+  }
+
+  .success {
+    --tone: var(--success);
+  }
+
+  .warning {
+    --tone: var(--accent-pressed);
+  }
+
+  .danger {
+    --tone: var(--danger);
+  }
+
+  .icon {
+    display: grid;
+    padding-top: 2px;
+    color: var(--tone);
+  }
+
+  .warning .icon {
+    color: var(--text-primary);
+  }
+
+  .body {
+    min-width: 0;
+  }
+
+  .title {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .text {
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .title + .text {
+    margin-top: 2px;
+  }
+
+  .action {
+    align-self: center;
+  }
+
+  @media (max-width: 560px) {
+    .notice {
+      grid-template-columns: auto 1fr;
+    }
+
+    .action {
+      grid-column: 1 / -1;
+    }
+  }
+}

@@ -1,0 +1,66 @@
+@layer components {
+  .header {
+    min-width: 0;
+    margin-bottom: var(--space-6);
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Decorative barcode strip. */
+  .code {
+    flex: none;
+    width: 34px;
+    height: 9px;
+    background: repeating-linear-gradient(
+      90deg,
+      currentColor 0 2px,
+      transparent 2px 3px,
+      currentColor 3px 4px,
+      transparent 4px 6px
+    );
+    opacity: 0.8;
+  }
+
+  .title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .slashes {
+    flex: none;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+  }
+
+  .body {
+    margin-top: var(--space-3);
+    max-width: 72ch;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 560px) {
+    .title {
+      font-size: var(--fs-2xl);
+    }
+  }
+}

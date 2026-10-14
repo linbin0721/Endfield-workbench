@@ -1,0 +1,113 @@
+@layer components {
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(5, 6, 8, 0.68);
+    backdrop-filter: blur(3px);
+    animation: fade var(--dur-fast) linear;
+  }
+
+  .content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 41;
+    display: grid;
+    width: min(640px, calc(100vw - 2 * var(--space-4)));
+    max-height: calc(100dvh - 2 * var(--space-4));
+    overflow: auto;
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-panel);
+    background: var(--ink-100);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-popover);
+    animation: open var(--dur-fast) var(--ease-out);
+  }
+
+  .content:focus-visible {
+    box-shadow: var(--shadow-popover), var(--focus-ring);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .title {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .slashes {
+    color: var(--text-muted);
+    font-family: var(--font-display);
+  }
+
+  .close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .close:hover {
+    background: var(--surface-row-hover);
+  }
+
+  .close svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .description {
+    margin: var(--space-4) var(--space-6) 0;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+
+  .body {
+    padding: var(--space-4) var(--space-6) var(--space-6);
+  }
+
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    background:
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 6px, transparent 6px 12px),
+      var(--ink-800);
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Matches the game's panel opening: blurred and faint to sharp in ~150ms. */
+  @keyframes open {
+    from {
+      opacity: 0;
+      filter: blur(6px);
+    }
+  }
+}
