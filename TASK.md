@@ -1,7 +1,7 @@
 # 任务交接与历史
 
-下一任务编号：`EW-026`。未结任务：`EW-021`（直连故障等待客户端证据）。
-状态流转：“待开始 → 进行中 → 待验收 → 已验收”；只有 Codex 验收后才算完成。
+下一任务编号：`EW-027`。未结任务：`EW-021`（直连故障等待客户端证据；用户 2026-10-14 决定暂缓）、`EW-026`（前端重做 B0，样张已部署，待用户确认风格）。
+状态流转：“待开始 → 进行中 → 待验收 → 已验收”。前端/UI/组件由 Claude 自审、自测并做交互验收；架构/后端/数据及宿主改动由 Codex 审查和测试；需要发布的任务在 Codex 完成合并、发布和集成验证并写入结论后才算完成。
 近期交接：`tail -n 160 TASK.md`。任务按编号递增排列，新任务追加到文末，已完成记录持续保留。
 历史任务中的旧约定反映当时情况；当前维护规则以 AGENTS.md 为准。
 
@@ -1173,3 +1173,39 @@
 - 结论 / 边界：EW-025 验收通过。只验证中文游戏截图在不同界面语言下仍可识别，国际截图 OCR 留后续；示例图片像素未翻译。未知提示保留本地化兜底和查看原文入口；用户校园网/Windows Edge 故障仍属于未结 EW-021，不能声称修复。
 - 提交 / 推送：功能提交 `7e40b51060d876d81ab0f3c61f68981343eb1bff`（`feat: add Chinese English Japanese and Korean interfaces`）已正常推送 main，发布 `/var/www/endfield-workbench/releases/7e40b51`；旧 `b1c70db` 和全部历史资源保留，共享 assets 为 401 份。最终 TASK/STATUS 记录另行提交推送；临时测试服务已关闭，原始表及浏览器证据不进入 Git。
 - 回滚：`ln -sfn /var/www/endfield-workbench/releases/b1c70db /var/www/endfield-workbench/current.next && mv -Tf /var/www/endfield-workbench/current.next /var/www/endfield-workbench/current`，不删除共享资源。
+
+### EW-026：前端重做 B0——设计系统与样张
+
+- 状态：待验收（2026-10-14 样张已部署；Claude 公网交互复核、共享构建和宿主集成验证通过，待用户确认风格）。
+- 负责人 / 验收：Claude 负责实现、前端自审、自测和交互验收；用户确认样张风格；Codex 负责推送分支和建 PR、核对共享构建与样张部署、squash 合并、部署样张、集成验证并写验收结论。前端代码不例行交叉复审。
+- 背景：用户 2026-10-14 要求把全部前端重做成终末地游戏风（原因：视觉风格、代码维护、扩展空间；交互流程不变），分五个任务 EW-026～EW-030 依次进行，每批一个 PR。需求、架构和 Codex 两轮审查意见见 `deploy/.local-backups/ui-redesign-refs/01-requirements-draft.md`、`02-architecture-plan.md`；截图和视频观察见同目录 `00-design-notes.md`（均在 Git 忽略的本地调研目录）。
+- 目标：建立设计变量（深、浅两种底面）、焦点、字体和动效，以及样张需要的基础组件；做出独立样张页，供用户确认风格。
+- 范围：`web/src/ui/`（tokens、surfaces、base；Button、Select、SegmentedControl、Panel、SectionTitle、PageHeader、Notice/Toast、ItemCard、Dialog、SuccessReveal 和少量自绘图标）；样张入口 `web/design/` 和 `web/vite.design.config.ts`；`package.json` 和锁文件新增按需的 `@radix-ui/react-*` 包与 `@fontsource/barlow`。
+- 限制 / 约束：正式入口、现有页面、路由、i18n 机制、API、数值与 Worker 不变；新的 base 样式不接入正式入口；正式构建不包含样张；样张只用本地演示数据，不请求生产接口；不使用官方 Logo、字体或纹理原图。字体为自托管 Barlow latin 500/700，预算按冷加载实际下载的 WOFF2 统计，不超过 60 KB；未请求的 WOFF 备用文件不计入（Claude 于 2026-10-14 确认原定口径）。
+- 工作树：`/root/project/EndfieldWorkbench/.worktrees/ew-026-design-system`，分支 `ew-026/design-system`，基线 `main@867eb1d4a1bdc59f280cb2ac180e2980305b8236`，集成目标 `main`（Codex squash 合并）。`/.worktrees/` 已写入公共 Git 目录 `info/exclude`，未改 `.gitignore`。
+- 部署：样张由 Codex 部署到独立站点根，新增 `https://endfield.linbin.org/design-preview/` 映射（noindex、HTML 不缓存、哈希资源长期缓存、缺失资源返回真实 404）；正式站 current、assets 和 API 转发不动，EW-030 删除样张。本批正式站不发布。
+- 验收条件：用户确认样张的配色、组件和动效；深浅两种底面以及弹出层的底面一致；焦点在两种底面上的非文字对比度至少 3:1，文字至少 4.5:1（大字至少 3:1）；开启减少动态效果后动画关闭；四语长文本在 320/375/768/1440px 下不溢出；正式构建的首页冷加载 JS/CSS 与基线 `7e40b51` 相比没有增量。
+- 验证要求：类型生成无差异、正式构建、样张构建（`build:design`）、`test:i18n`、`test:calculator`；用 claude-browser 在本地完成截图、键盘焦点和对比度检查；Codex 核对依赖锁文件在 VPS 上的构建和样张发布配置，并验证公网样张地址。
+
+#### Claude 负责人回执
+
+- 提交：分支 `ew-026/design-system`，提交 `3574de0c25682545f8973ca6ea64a3bcbf04393e`（基线 `867eb1d`，单个提交，未推送；推送、PR、合并由 Codex 执行）。PR 正文草稿在 `deploy/.local-backups/ui-redesign-refs/ew026-pr.md`。
+- 实际改动：新增 `web/src/ui/`（层序、tokens、深浅两种 surface、按底面区分的焦点环、动效 token 与减少动效、自托管 Barlow latin 500/700；Surface/SurfaceScope；Button、Select、SegmentedControl、Panel、SectionTitle、PageHeader、Notice、Toast、ItemCard、Dialog、SuccessReveal/SuccessGlow 和自绘图标）；新增独立样张 `web/design/`、`web/vite.design.config.ts`、`web/tsconfig.design.json`，`package.json` 增加 `dev:design`/`build:design` 脚本和 4 个依赖，`.gitignore` 增加 `dist-design/`。正式入口不引用 `src/ui`。
+- 自审：前端代码逐文件复查，无调试残留；新组件用 `@layer components`，焦点环不做过渡；分段开关只在 Enter/Space/点击时切换，点已选项不会清空。
+- 实际自测：`tsc -p tsconfig.design.json`（src + design）通过；`npm run build` 产物与 `867eb1d` 基线 `diff -r` 逐字节一致；`build:design` 输出 `dist-design/index.html`，资源路径以 `/design-preview/` 开头，woff2 两个共约 45 KB；`test:i18n` 7/7、`test:calculator` 15/15、`generate:api` 无差异。claude-browser 本地预览：四语 × 320/375/768/1440px 无横向溢出；浅色区下拉列表挂在 body 下且带 `data-surface="light"`；深色页打开的弹窗为浅色、页脚深色、弹窗内下拉为浅色；Esc 依次关闭后焦点回到触发按钮；减少动效时 `--dur-*` 为 0ms，动画直接到终态。对比度按实际混合色计算：文字 ≥4.5:1，焦点环 ≥12:1，浅色底面控件边缘与选中分段 ≥3:1。
+- 自测中发现并已修复：语言切换"EN"被挤成两行；按钮焦点环带过渡；浅色底面次要文字、控件边缘和选中分段对比度不足；减少动效时长 token 未生效。
+- 未验证 / 待验收：VPS 上依赖锁文件构建、样张独立站点部署与公网复核（Codex）；样张风格的最终确认（用户）。本地 npm 11 对 esbuild postinstall 有 install-scripts 提示，构建不受影响，VPS 构建待 Codex 核对。
+- 下一步：Codex 合并并部署样张后，Claude 在公网复核，再请用户确认风格；如需调整，在 EW-027 开始前另行修改。
+
+#### Codex 共享核对与样张发布验收
+
+- 核对范围：依赖/锁文件、独立样张构建与现有发布脚本的配合、宿主 Nginx 和公网集成；前端/UI/组件采用 Claude 的自审、自测和交互验收回执，未例行重复审查。
+- 构建：独立工作树 `/root/project/EndfieldWorkbench/.worktrees/ew-026-codex-integration`，分支 `ew-026/codex-integration`，基线为交接提交 `3574de0`。宿主 Node `24.21.0` / npm `11.19.0` 干净 `npm ci --include=dev --no-audit --no-fund` 成功；新增44个锁定包，既有包版本未变，无新增安装脚本。esbuild 的既有 install-scripts 提示未阻断构建，未批准脚本或修改 npm 策略。`build:design`、明确 `VITE_API_BASE_URL=https://api.linbin.org/endfield` 的正式构建、类型生成无差异、i18n 7/7 和 calculator 15/15 全部通过。
+- 正式站隔离与预算：372个正式构建文件与线上 `7e40b51` 逐字节一致，首页 JS/CSS gzip 增量为0。样张输出单独的 HTML 和6份资源；公网桌面/手机冷加载都只下载两份 WOFF2，共44,796 bytes，符合60KB预算；另两份 WOFF 备用39,284 bytes 未被请求。
+- 提交与 PR：分支提交 `3574de0c25682545f8973ca6ea64a3bcbf04393e` 已推送；[PR #1](https://github.com/linbin0721/Endfield-workbench/pull/1) 的正文包含 Claude“自审和自测已完成”及实际宿主检查。PR 无配置的 CI 检查，合并前为 CLEAN/MERGEABLE；按明确授权以 squash 合并为 `34afa0fdf95ce580c8b82c699514182c007f64c7`。合并树与已验证提交逐字节一致，主工作树仅快进，保留 `.claude/` 和未提交任务记录。
+- 样张部署：`https://endfield.linbin.org/design-preview/`，独立 release `/var/www/endfield-workbench-design/releases/34afa0f`，独立 `current` 和 `assets`。使用现有 `publish_frontend.py --site-root ... --dist ...`，不修改发布脚本。Nginx 只添加 `/design-preview` 补斜杠301、资源和静态样张三条规则；先备份，再独立语法预检、实际 `nginx -t` 和平滑 reload，均通过。HTML no-store/no-cache、X-Robots-Tag noindex/nofollow、6份资源公网哈希与 immutable/MIME、5种缺失路径真实404且不回落 SPA/不带 immutable 均通过。
+- 公网与生产保留：样张1440×900、390×844无溢出、页面异常、失败资源或 API 请求；正式四页面浏览器加载正常。20条新旧路由 HTML 与原版哈希一致，TLS有效、HTTP301、回环/公网健康、CORS允许/拒绝及预检通过；`WL-A2014` 仅一次 solve 写请求，实际返回 solved。正式 current 仍为 `7e40b51`，372个 release 文件、401份历史资源本机哈希未变，36份历史JS/CSS公网哈希匹配；API/DB容器ID、启动时间、重启计数、健康和端口与发布前一致。本批不重跑未改动的截图 OCR，不能把题号求解写成真实截图回归。
+- 证据与权限：构建日志、产物核对、公网HTTP与浏览器脚本/报告、桌面/手机整页截图在 `deploy/.local-backups/ui-redesign-refs/ew026-integration/`（Git忽略）。宿主配置和发布前基线留在独立受限管理区；没有把私有管理资料放入业务目录。已在实际Claude容器以UID60001核实7342项文件/目录均可有效读写，集成工作树/元数据/证据目录及主树新增UI/样张目录的创建、修改、删除通过；新目录保留默认ACL，结果见同目录权限报告。
+- Claude 公网复核：回执 `dd2caaeb` 确认容器侧重定向/缓存/noindex/404正确；claude-browser 1440×900冷加载只请求本站JS/CSS和两份WOFF2，无接口请求、控制台错误或警告。浅色区下拉及深色区打开的浅色弹窗底面正确，Esc关闭后焦点返回触发器；桌面及320×720日语无横向溢出，四个语言分段单行。前端侧可交用户确认风格。
+- 结论 / 下一步：共享构建、样张发布、宿主集成验证及Claude公网交互复核通过；EW-026 整体待用户确认风格，未标记全部验收完成，EW-027 暂不开始。记录由 Codex 单独提交推送，原始调研/截图/日志不入 Git。
+- 回滚：首次样张发布无前一 release；需要撤回时只恢复本次备份的本站 Nginx 配置，`nginx -t` 后平滑 reload，保留样张产物以便复查；恢复前核对配置未有后续改动。正式站 current 和历史 assets 不切换、不删除。EW-030 按约定移除样张并使原地址明确404或410。
