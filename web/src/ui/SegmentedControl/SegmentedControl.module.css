@@ -1,0 +1,61 @@
+@layer components {
+  .root {
+    display: inline-flex;
+    max-width: 100%;
+    padding: 3px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: var(--control-muted-bg);
+  }
+
+  .block {
+    display: flex;
+    width: 100%;
+  }
+
+  .block .item {
+    flex: 1 1 0;
+  }
+
+  /* Inline switches size to their labels; full-width ones split the track evenly. */
+  .item {
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: calc(var(--control-height) - 8px);
+    padding: var(--space-1) var(--space-5);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--control-muted-text);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-instant) linear,
+      color var(--dur-instant) linear;
+  }
+
+  .sm .item {
+    min-height: calc(var(--control-height-sm) - 6px);
+    padding-inline: var(--space-4);
+    font-size: var(--fs-sm);
+  }
+
+  .item:hover:not(:disabled):not([data-state="on"]) {
+    background: var(--surface-row-hover);
+    color: var(--text-primary);
+  }
+
+  .item[data-state="on"] {
+    border-color: var(--segment-selected-border);
+    background: var(--control-bg);
+    color: var(--control-text);
+  }
+
+  .item:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+}

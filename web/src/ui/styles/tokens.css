@@ -1,0 +1,96 @@
+/*
+ * Primitive design values. Components never read these directly; they use the
+ * semantic variables from surfaces.css so both surfaces stay in sync.
+ */
+@layer base {
+  :root {
+    /* Accent: the single highlight colour taken from the game UI. */
+    --yellow-300: #fff54d;
+    --yellow-400: #fff200;
+    --yellow-600: #d9ce00;
+
+    --ink-950: #0b0c0e;
+    --ink-900: #111316;
+    --ink-850: #17191c;
+    --ink-800: #1e2025;
+    --ink-700: #2a2d33;
+    --ink-600: #3a3e45;
+    --ink-500: #4a4e55;
+    --ink-400: #6b7078;
+    --ink-300: #9ca1a9;
+    --ink-200: #c9cdd2;
+    --ink-150: #d4d6d8;
+    --ink-100: #e7e8ea;
+    --ink-50: #f3f4f5;
+    --white: #ffffff;
+
+    --red-400: #f0564c;
+    --red-700: #b42318;
+    --green-400: #8cd43f;
+    --green-700: #3a7010;
+    --blue-400: #4da3ff;
+    --blue-700: #1b5fbf;
+    --teal-400: #2fd3b0;
+
+    /* Rarity bars (6 to 3 stars). */
+    --rarity-6: #f28c28;
+    --rarity-5: #f5c531;
+    --rarity-4: #a970f0;
+    --rarity-3: #44a8f0;
+
+    --font-cjk-sc: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC";
+    --font-cjk-ja: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP";
+    --font-cjk-ko: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR";
+    --font-sans: system-ui, -apple-system, "Segoe UI", var(--font-cjk-sc), sans-serif;
+    --font-display: "Barlow", var(--font-sans);
+
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.8125rem;
+    --fs-md: 0.9375rem;
+    --fs-lg: 1.0625rem;
+    --fs-xl: 1.25rem;
+    --fs-2xl: 1.625rem;
+    --fs-3xl: 2.125rem;
+    --fs-display: 2.75rem;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+
+    --radius-panel: 2px;
+    --radius-sm: 4px;
+    --radius-pill: 999px;
+
+    --control-height: 44px;
+    --control-height-sm: 36px;
+
+    /* Motion, measured from the game (see docs/ui notes): fast UI, slow only for success. */
+    --dur-instant: 80ms;
+    --dur-fast: 150ms;
+    --dur-base: 250ms;
+    --dur-slow: 450ms;
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  :root:lang(ja) {
+    --font-sans: system-ui, -apple-system, "Segoe UI", var(--font-cjk-ja), sans-serif;
+  }
+
+  :root:lang(ko) {
+    --font-sans: system-ui, -apple-system, "Segoe UI", var(--font-cjk-ko), sans-serif;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-instant: 0ms;
+      --dur-fast: 0ms;
+      --dur-base: 0ms;
+      --dur-slow: 0ms;
+    }
+  }
+}

@@ -1,0 +1,109 @@
+@layer components {
+  .reveal {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .band {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(13, 15, 18, 0.9);
+    transform-origin: center;
+    animation: open-x 130ms var(--ease-out) both;
+  }
+
+  [data-surface="light"] .band {
+    background: rgba(23, 25, 28, 0.9);
+  }
+
+  .hairline {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 242, 0, 0.55) 20% 80%, transparent);
+    transform-origin: center;
+    animation: open-x 400ms var(--ease-out) 130ms both;
+  }
+
+  .title {
+    margin: 0;
+    color: var(--ink-50);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    animation: fade-in var(--dur-fast) linear 60ms both;
+  }
+
+  .underline {
+    width: min(160px, 60%);
+    height: 3px;
+    margin-top: var(--space-1);
+    background: var(--yellow-400);
+    transform-origin: center;
+    animation: open-x 350ms var(--ease-out) 100ms both;
+  }
+
+  .detail {
+    margin: var(--space-2) 0 0;
+    color: var(--ink-300);
+    font-size: var(--fs-sm);
+    text-align: center;
+    animation: fade-in var(--dur-fast) linear 200ms both;
+  }
+
+  .glowFrame {
+    position: relative;
+  }
+
+  .glow {
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    border: 1px solid var(--white);
+    box-shadow: 0 0 36px 6px var(--glow), inset 0 0 28px 2px var(--glow);
+    animation: glow var(--dur-slow) var(--ease-out) both;
+  }
+
+  @keyframes open-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Peak at once, glow decays in ~150ms, the white outline lingers to ~300ms. */
+  @keyframes glow {
+    0% {
+      opacity: 1;
+    }
+
+    35% {
+      box-shadow: 0 0 12px 1px var(--glow), inset 0 0 8px 0 var(--glow);
+    }
+
+    65% {
+      opacity: 0.8;
+      box-shadow: none;
+    }
+
+    100% {
+      opacity: 0;
+      box-shadow: none;
+    }
+  }
+}

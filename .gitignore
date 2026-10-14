@@ -14,6 +14,7 @@ venv/
 # Node / Vite
 node_modules/
 dist/
+dist-design/
 .vite/
 *.tsbuildinfo
 npm-debug.log*
