@@ -121,12 +121,11 @@
     color: var(--text-secondary);
   }
 
-  /* The board area is always a dark "screen", whatever the theme. */
-  .screen {
+  /* The board area follows the theme like the rest of the page. */
+  .boardArea {
     padding: var(--space-3);
     border: 1px solid var(--border-subtle);
-    background: var(--surface-page);
-    color: var(--text-primary);
+    background: var(--surface-row);
   }
 
   .board {
@@ -148,13 +147,17 @@
   }
 
   .blocked {
-    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 4px, transparent 4px 9px);
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-primary) 12%, transparent) 0 4px,
+      transparent 4px 9px
+    );
   }
 
   .filled {
     border-color: rgba(47, 211, 176, 0.7);
     background: rgba(47, 211, 176, 0.22);
-    color: var(--ink-50);
+    color: var(--text-primary);
   }
 
   .bigNumber {
