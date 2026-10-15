@@ -10,7 +10,6 @@ import { SectionTitle } from "../src/ui/SectionTitle/SectionTitle";
 import { SegmentedControl } from "../src/ui/SegmentedControl/SegmentedControl";
 import { Select } from "../src/ui/Select/Select";
 import { SuccessGlow, SuccessReveal } from "../src/ui/SuccessReveal/SuccessReveal";
-import { Surface } from "../src/ui/surface";
 import { ThemeToggle } from "../src/ui/ThemeToggle/ThemeToggle";
 import { Toast } from "../src/ui/Toast/Toast";
 import { COPY, LOCALES, LOCALE_LABELS, type Locale } from "./copy";
@@ -112,8 +111,7 @@ export function DesignPreview() {
               <SectionTitle aside={<Button variant="ghost" size="sm" onClick={() => setSolveCount((n) => n + 1)}>{t.replay}</Button>}>
                 {t.resultTitle}
               </SectionTitle>
-              {/* Board, screenshot and answer areas stay a dark "screen" in both themes. */}
-              <Surface surface="dark" className={styles.screen}>
+              <div className={styles.boardArea}>
                 <SuccessReveal key={`reveal-${solveCount}`} title={t.solved} detail={t.solvedDetail} />
                 <SuccessGlow playKey={solveCount}>
                   <div className={styles.board} role="img" aria-label={t.resultTitle}>
@@ -142,7 +140,7 @@ export function DesignPreview() {
                     </label>
                   </Dialog>
                 </div>
-              </Surface>
+              </div>
             </Panel>
 
             <Panel>
