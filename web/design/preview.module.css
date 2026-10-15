@@ -1,7 +1,21 @@
 @layer components {
   .page {
     min-height: 100vh;
-    background: var(--ink-900);
+    background-color: var(--surface-page);
+  }
+
+  /* Faint contour lines (dark) and a fine grid (light), drawn here; no game textures. */
+  :global(html[data-surface="dark"]) .page {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='320' viewBox='0 0 480 320'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.045' stroke-width='1'%3E%3Cpath d='M0 60 C80 20 160 100 240 60 S400 20 480 60'/%3E%3Cpath d='M0 120 C90 80 170 160 250 120 S410 80 480 120'/%3E%3Cpath d='M0 180 C70 140 150 220 230 180 S390 140 480 180'/%3E%3Cpath d='M0 240 C100 200 180 280 260 240 S420 200 480 240'/%3E%3Cpath d='M0 300 C80 260 160 340 240 300 S400 260 480 300'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  :global(html[data-surface="light"]) .page {
+    background-image:
+      linear-gradient(var(--surface-pattern) 1px, transparent 1px),
+      linear-gradient(90deg, var(--surface-pattern) 1px, transparent 1px),
+      linear-gradient(180deg, #e2e3e5, #cfd1d4);
+    background-size: 96px 96px, 96px 96px, auto;
+    background-attachment: fixed;
   }
 
   .topbar {
@@ -11,10 +25,10 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3) var(--space-4);
-    padding: var(--space-3) max(var(--space-4), calc((100vw - 1240px) / 2));
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) max(var(--space-4), calc((100vw - 1240px) / 2));
     border-bottom: 1px solid var(--border-subtle);
-    background: rgba(15, 17, 20, 0.92);
+    background: var(--surface-panel-strong);
     backdrop-filter: blur(8px);
   }
 
@@ -43,21 +57,11 @@
   }
 
   .band {
-    padding: var(--space-10) var(--space-4) var(--space-10);
-    background-color: var(--surface-page);
+    padding: var(--space-10) var(--space-4);
   }
 
-  /* Faint contour lines, drawn here; no game textures are used. */
-  .darkBand {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='320' viewBox='0 0 480 320'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.045' stroke-width='1'%3E%3Cpath d='M0 60 C80 20 160 100 240 60 S400 20 480 60'/%3E%3Cpath d='M0 120 C90 80 170 160 250 120 S410 80 480 120'/%3E%3Cpath d='M0 180 C70 140 150 220 230 180 S390 140 480 180'/%3E%3Cpath d='M0 240 C100 200 180 280 260 240 S420 200 480 240'/%3E%3Cpath d='M0 300 C80 260 160 340 240 300 S400 260 480 300'/%3E%3C/g%3E%3C/svg%3E");
-  }
-
-  .lightBand {
-    background-image:
-      linear-gradient(var(--surface-pattern) 1px, transparent 1px),
-      linear-gradient(90deg, var(--surface-pattern) 1px, transparent 1px),
-      linear-gradient(180deg, #e2e3e5, #cfd1d4);
-    background-size: 96px 96px, 96px 96px, auto;
+  .secondBand {
+    border-top: 1px solid var(--border-subtle);
   }
 
   .inner {
@@ -117,11 +121,19 @@
     color: var(--text-secondary);
   }
 
+  /* The board area is always a dark "screen", whatever the theme. */
+  .screen {
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-page);
+    color: var(--text-primary);
+  }
+
   .board {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 4px;
-    margin-top: var(--space-4);
+    margin-top: var(--space-3);
   }
 
   .cell {

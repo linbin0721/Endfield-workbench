@@ -1,0 +1,29 @@
+@layer components {
+  .button {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color var(--dur-instant) linear;
+  }
+
+  .button:hover:not(:disabled) {
+    background: var(--surface-row-hover);
+  }
+
+  .button:active:not(:disabled) {
+    background: var(--control-muted-bg);
+  }
+
+  .button svg {
+    width: 22px;
+    height: 22px;
+  }
+}

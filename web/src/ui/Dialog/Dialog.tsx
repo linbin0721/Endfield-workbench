@@ -1,8 +1,10 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import type { ComponentProps, ReactNode } from "react";
 import { Button } from "../Button/Button";
+import { IconButton } from "../IconButton/IconButton";
 import { CloseIcon } from "../icons";
 import { Surface, SurfaceScope } from "../surface";
+import { useSiteSurface } from "../theme";
 import styles from "./Dialog.module.css";
 
 type DialogProps = {
@@ -19,22 +21,23 @@ type DialogProps = {
 };
 
 /**
- * Game-style modal: a light panel with a "// title" header and a dark action
- * strip. It always uses the light surface regardless of the page, and sets it
- * explicitly because the content is portalled to <body>.
+ * Game-style modal: a panel with a "// title" header and a dark action strip.
+ * It follows the site theme (not a local dark "screen" it was opened from);
+ * the surface is set explicitly because the content is portalled to <body>.
  */
 export function Dialog({ open, onOpenChange, trigger, title, description, closeLabel, children, footer }: DialogProps) {
+  const surface = useSiteSurface();
   return <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
     {trigger ? <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger> : null}
     <RadixDialog.Portal>
       <RadixDialog.Overlay className={styles.overlay} />
-      <RadixDialog.Content data-surface="light" className={styles.content}>
-        <SurfaceScope surface="light">
+      <RadixDialog.Content data-surface={surface} className={styles.content}>
+        <SurfaceScope surface={surface}>
           <div className={styles.header}>
             <RadixDialog.Title className={styles.title}>
               <span className={styles.slashes} aria-hidden="true">//</span>{title}
             </RadixDialog.Title>
-            <RadixDialog.Close className={styles.close} aria-label={closeLabel}><CloseIcon /></RadixDialog.Close>
+            <RadixDialog.Close asChild><IconButton label={closeLabel} icon={<CloseIcon />} /></RadixDialog.Close>
           </div>
           {description
             ? <RadixDialog.Description className={styles.description}>{description}</RadixDialog.Description>
