@@ -48,6 +48,7 @@
     --popover-selected-text: var(--white);
     --popover-divider: rgba(0, 0, 0, 0.08);
 
+    --dialog-bg: var(--ink-800);
     --backdrop: rgba(5, 6, 8, 0.68);
     --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.45);
 
@@ -99,6 +100,7 @@
     --popover-selected-text: var(--white);
     --popover-divider: rgba(0, 0, 0, 0.08);
 
+    --dialog-bg: var(--ink-100);
     --backdrop: rgba(20, 22, 26, 0.5);
     --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.22);
 

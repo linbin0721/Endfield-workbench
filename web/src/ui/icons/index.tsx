@@ -33,4 +33,6 @@ export const InfoIcon = (props: IconProps) => <Icon {...props}><circle cx="10" c
 export const WarningIcon = (props: IconProps) => <Icon {...props}><path d="M10 3.5l7 12.5H3z" /><path d="M10 8.5v3.5M10 14v.1" /></Icon>;
 export const ImageIcon = (props: IconProps) => <Icon {...props}><rect x="3" y="4" width="14" height="12" rx="1" /><path d="M3.5 13.5l4-4 3 3 2-2 4 4" /><circle cx="13" cy="7.5" r="1" /></Icon>;
 export const CaptureIcon = (props: IconProps) => <Icon {...props}><rect x="3" y="4" width="14" height="10" rx="1" /><path d="M7.5 17h5M10 14v3" /><path d="M6 7h2M6 7v2M14 11h-2M14 11V9" /></Icon>;
-export const ArrowRightIcon = (props: IconProps) => <Icon {...props}><path d="M4 10h11.5M11 5.5l4.5 4.5-4.5 4.5" /></Icon>;
+export const SunIcon = (props: IconProps) => <Icon {...props}><circle cx="10" cy="10" r="3.5" /><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /></Icon>;
+export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" /></Icon>;
+export const ArrowRightIcon =(props: IconProps) => <Icon {...props}><path d="M4 10h11.5M11 5.5l4.5 4.5-4.5 4.5" /></Icon>;
