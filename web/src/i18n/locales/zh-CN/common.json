@@ -1,12 +1,17 @@
 {
   "brand": "终末地工具台",
   "loading": "正在加载…",
+  "loadError": "页面加载失败，请检查网络后重试。",
   "nav": {
     "ariaLabel": "主要导航",
     "home": "首页",
     "balloon": "浮空回收",
     "circuit": "源石电路",
-    "calculator": "325挑战"
+    "calculator": "325挑战",
+    "menu": "打开菜单",
+    "menuTitle": "菜单",
+    "close": "关闭菜单",
+    "skip": "跳到正文"
   },
   "language": {
     "label": "界面语言",
@@ -15,25 +20,34 @@
     "error": "无法加载所选语言，已保留当前语言。",
     "retry": "重试"
   },
+  "theme": {
+    "toDark": "切换到暗色主题",
+    "toLight": "切换到亮色主题"
+  },
   "footer": "非官方玩家工具，与游戏官方无关。",
   "home": {
     "title": "终末地工具台",
     "eyebrow": "玩家工具 / WORKBENCH",
     "heading": "选择要用的工具",
     "intro": "选择解谜工具或养成计算器，进入对应页面。",
+    "watermark": "WORKBENCH",
+    "readout": "TOOLS {{total}} / ONLINE",
     "statusAvailable": "可用",
     "openTool": "进入工具",
     "balloon": {
       "name": "浮空回收",
-      "description": "上传截图自动识别棋盘与气球库存，或按题号查询已记录题面。"
+      "description": "上传截图自动识别棋盘与气球库存，或按题号查询已记录题面。",
+      "tag": "PUZZLE SOLVER"
     },
     "circuit": {
       "name": "源石电路",
-      "description": "上传截图识别行列约束与库存拼块，或按题号查询已记录的正常变体。"
+      "description": "上传截图识别行列约束与库存拼块，或按题号查询已记录的正常变体。",
+      "tag": "PUZZLE SOLVER"
     },
     "calculator": {
       "name": "325 挑战",
-      "description": "为干员寻找面板属性达到 325 的养成方案，支持多属性同时达标并优先展示。"
+      "description": "为干员寻找面板属性达到 325 的养成方案，支持多属性同时达标并优先展示。",
+      "tag": "BUILD PLANNER"
     }
   },
   "notFound": {
@@ -41,7 +55,8 @@
     "eyebrow": "404 / NOT FOUND",
     "heading": "页面未找到",
     "message": "这个地址没有对应的工具页面。",
-    "back": "返回首页"
+    "back": "返回首页",
+    "tools": "可用工具"
   },
   "service": {
     "querying": "正在查询服务能力…",

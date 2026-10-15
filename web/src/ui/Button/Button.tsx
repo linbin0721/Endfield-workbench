@@ -12,6 +12,29 @@ type ButtonProps = ComponentPropsWithRef<"button"> & {
   block?: boolean;
 };
 
+export function buttonClassName({ variant = "primary", size = "md", block = false, className }: {
+  variant?: ButtonVariant;
+  size?: "md" | "sm";
+  block?: boolean;
+  className?: string;
+} = {}): string {
+  return [styles.button, styles[variant], styles[size], block ? styles.block : "", className ?? ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Inside of a capsule button, for links that must look like one
+ * (`<Link className={buttonClassName()}><ButtonContent>…</ButtonContent></Link>`).
+ */
+export function ButtonContent({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
+  return <>
+    <span className={styles.rule} aria-hidden="true" />
+    <span className={styles.label}>{children}</span>
+    <span className={styles.icon} aria-hidden="true">{icon ?? <ChevronRightIcon />}</span>
+  </>;
+}
+
 /**
  * Game-style capsule button: a short rule, the label, then a round icon.
  * Disabled buttons switch to an outlined state with a "not allowed" icon
@@ -28,15 +51,9 @@ export function Button({
   children,
   ...rest
 }: ButtonProps) {
-  const classes = [styles.button, styles[variant], styles[size], block ? styles.block : "", className ?? ""]
-    .filter(Boolean)
-    .join(" ");
-  const capsule = variant !== "ghost";
-  return <button type={type} className={classes} disabled={disabled} {...rest}>
-    {capsule ? <span className={styles.rule} aria-hidden="true" /> : null}
-    <span className={styles.label}>{children}</span>
-    {capsule
-      ? <span className={styles.icon} aria-hidden="true">{disabled ? <BanIcon /> : icon ?? <ChevronRightIcon />}</span>
-      : null}
+  return <button type={type} className={buttonClassName({ variant, size, block, className })} disabled={disabled} {...rest}>
+    {variant === "ghost"
+      ? <span className={styles.label}>{children}</span>
+      : <ButtonContent icon={disabled ? <BanIcon /> : icon}>{children}</ButtonContent>}
   </button>;
 }

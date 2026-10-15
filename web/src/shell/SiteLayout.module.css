@@ -1,0 +1,208 @@
+@layer components {
+  .shell {
+    --gutter: var(--space-6);
+    --shell-max: 1320px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--surface-page);
+  }
+
+  /* Fine survey grid fading out below the fold. */
+  .shell::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 720px;
+    background-image:
+      linear-gradient(var(--surface-pattern) 1px, transparent 1px),
+      linear-gradient(90deg, var(--surface-pattern) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, #000 30%, transparent);
+    pointer-events: none;
+  }
+
+  .skip {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 60;
+    padding: var(--space-2) var(--space-4);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    text-decoration: none;
+    transform: translateY(-200%);
+  }
+
+  .skip:focus-visible {
+    transform: none;
+  }
+
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-bar);
+    backdrop-filter: blur(12px) saturate(1.2);
+  }
+
+  /* A short yellow segment and a tick ruler on the bar's lower edge. */
+  .bar::before,
+  .bar::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    pointer-events: none;
+  }
+
+  .bar::before {
+    left: 0;
+    width: 96px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .bar::after {
+    right: 0;
+    width: min(240px, 30vw);
+    height: 6px;
+    background: repeating-linear-gradient(90deg, var(--border-strong) 0 1px, transparent 1px 6px);
+  }
+
+  .barInner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    max-width: var(--shell-max);
+    min-height: 64px;
+    margin: 0 auto;
+    padding: var(--space-2) var(--gutter);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    color: var(--text-primary);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+
+  /* Long names (English, Japanese) wrap to a second line instead of being cut. */
+  .brandName {
+    min-width: 0;
+    max-width: 11em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+
+  /* Two classes, so they beat the single-class display of the wrapped components. */
+  .barInner .mobileOnly {
+    display: none;
+  }
+
+  .main {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    max-width: var(--shell-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--gutter) var(--space-10);
+  }
+
+  /* Programmatic focus from the skip link: no ring around the whole page. */
+  .main:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .footer {
+    position: relative;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+  }
+
+  .footer::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 96px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .footerInner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-6);
+    max-width: var(--shell-max);
+    margin: 0 auto;
+    padding: var(--space-5) var(--gutter);
+  }
+
+  .footerBrand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-weight: 700;
+  }
+
+  .footerMark {
+    width: 20px;
+    height: 20px;
+  }
+
+  .footerNote {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 1099px) {
+    .barInner .desktopOnly {
+      display: none;
+    }
+
+    .barInner .mobileOnly {
+      display: grid;
+    }
+
+    .barInner {
+      gap: var(--space-2);
+      min-height: 56px;
+      padding-left: var(--space-2);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .shell {
+      --gutter: var(--space-4);
+    }
+
+    .brand {
+      gap: var(--space-2);
+      font-size: var(--fs-md);
+      letter-spacing: 0.02em;
+    }
+
+    .main {
+      padding-top: var(--space-6);
+    }
+  }
+}

@@ -1,0 +1,84 @@
+@layer components {
+  .nav {
+    min-width: 0;
+  }
+
+  .list {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+    pointer-events: none;
+  }
+
+  .animated {
+    transition:
+      transform var(--dur-base) var(--ease-out),
+      width var(--dur-base) var(--ease-out),
+      opacity var(--dur-fast) linear;
+  }
+
+  .tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--control-height);
+    padding: 0 var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color var(--dur-instant) linear;
+  }
+
+  /* Hover: a hairline grows under the label. */
+  .tab::after {
+    content: "";
+    position: absolute;
+    right: var(--space-4);
+    bottom: 6px;
+    left: var(--space-4);
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .tab:hover {
+    color: var(--text-primary);
+  }
+
+  .tab:hover::after {
+    transform: scaleX(1);
+  }
+
+  .tab[aria-current="page"] {
+    color: var(--on-accent);
+  }
+
+  .tab[aria-current="page"]::after {
+    display: none;
+  }
+
+  .icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+  }
+}

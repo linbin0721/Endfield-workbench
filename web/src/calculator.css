@@ -1,4 +1,5 @@
 /* 325 challenge calculator. Loaded from CalculatorPage.tsx; rules stay scoped to calc-* class names. */
+@layer legacy {
 .calc-workbench{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-bottom:18px}
 .calc-form-panel,.calc-output,.calc-results,.calc-solution,.calc-equip,.calc-gear-block{min-width:0}
 .calc-form{display:grid;gap:16px;min-width:0}
@@ -102,3 +103,4 @@
 /* Longer interface translations: keep badges and stat chips inside the card. */
 .calc-match-badge{white-space:normal;overflow-wrap:anywhere}
 .calc-tags li,.calc-attribute-name,.calc-attribute-state{min-width:0;overflow-wrap:anywhere}
+}

@@ -44,7 +44,19 @@
     font-size: var(--fs-sm);
   }
 
+  .leading {
+    display: grid;
+    flex: none;
+    margin-right: calc(-1 * var(--space-1));
+  }
+
+  .leading svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .value {
+    flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

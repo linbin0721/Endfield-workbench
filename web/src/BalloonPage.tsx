@@ -1,3 +1,5 @@
+// Pre-redesign page styles (legacy layer), loaded with the page chunk.
+import "./styles.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, cancelTask, getCapabilities, getTask, submitBalloon, submitRecognition,
   type Capability, type CatalogCandidate, type CatalogMatch, type RecognitionResult, type Task } from "./api";

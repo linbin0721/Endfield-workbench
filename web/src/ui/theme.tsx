@@ -37,6 +37,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const setTheme = useCallback((next: ThemeName) => {
+    // Applied right away so a view transition can capture the new theme.
+    document.documentElement.dataset.surface = next;
     setThemeState(next);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, next);

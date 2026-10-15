@@ -1,10 +1,13 @@
+// Design tokens first: base.css declares the cascade layer order for every later stylesheet.
+import "./ui/styles";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { I18nProvider, detectPreferredLocale, initializeI18n } from "./i18n";
 import bootstrapMessages from "./i18n/bootstrap-messages.json";
-import "./styles.css";
+import { renderBootError } from "./shell/bootError";
+import { ThemeProvider } from "./ui/theme";
 
 const container = document.getElementById("root")!;
 
@@ -13,9 +16,11 @@ void initializeI18n().then(() => {
   ReactDOM.createRoot(container).render(
     <React.StrictMode>
       <BrowserRouter>
-        <I18nProvider>
-          <App />
-        </I18nProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <App />
+          </I18nProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </React.StrictMode>,
   );
@@ -24,15 +29,5 @@ void initializeI18n().then(() => {
   const messages = bootstrapMessages[locale];
   document.documentElement.lang = locale;
   document.title = messages.error;
-  const notice = document.createElement("section");
-  notice.className = "notice warning";
-  notice.setAttribute("role", "alert");
-  const text = document.createElement("p");
-  text.textContent = messages.error;
-  const retry = document.createElement("button");
-  retry.className = "button primary";
-  retry.textContent = messages.retry;
-  retry.onclick = () => window.location.reload();
-  notice.append(text, retry);
-  container.replaceChildren(notice);
+  renderBootError(container, messages);
 });

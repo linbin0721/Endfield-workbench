@@ -1,43 +1,38 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, useParams } from "react-router-dom";
-import BalloonPage from "./BalloonPage";
-import CircuitPage from "./CircuitPage";
-import HomePage from "./HomePage";
-import NotFoundPage from "./NotFoundPage";
-import SiteLayout from "./SiteLayout";
-import {
-  localizePath,
-  loadNamespaces,
-  matchLocaleSegment,
-  stripLocalePrefix,
-  useAppTranslation,
-  useLocale,
-  type Namespace,
-} from "./i18n";
+import HomePage from "./features/home/HomePage";
+import { localizePath, matchLocaleSegment, stripLocalePrefix, useLocale } from "./i18n";
+import { LegacyFrame } from "./shell/LegacyFrame";
+import { LoadingState } from "./shell/LoadingState";
+import NotFoundPage from "./shell/NotFoundPage";
+import SiteLayout from "./shell/SiteLayout";
+import { ToolResources } from "./shell/ToolResources";
+import { TOOLS, type ToolEntry, type ToolId } from "./tools/registry";
 
-/** Only the /325 route pulls in the calculator page, its data.json bundle and calculator.css. */
-const CalculatorPage = lazy(() => import("./CalculatorPage"));
+/**
+ * Each tool page is its own chunk, so the home page loads none of them; the
+ * 325 chunk also carries its data and calculator.css. ToolResources starts the
+ * download together with the language bundles.
+ */
+const PAGE_LOADERS: Record<ToolId, () => Promise<{ default: ComponentType }>> = {
+  balloon: () => import("./BalloonPage"),
+  circuit: () => import("./CircuitPage"),
+  calculator: () => import("./CalculatorPage"),
+};
 
-/** Wait on entry to a tool; never replace a mounted tool during a switch. */
-function ToolResources({ namespaces, children }: { namespaces: Namespace[]; children: ReactNode }) {
-  const { locale } = useLocale();
-  const { t } = useAppTranslation("common");
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [retry, setRetry] = useState(0);
-  const namespaceKey = namespaces.join(",");
-  useEffect(() => {
-    let active = true;
-    void loadNamespaces(locale, namespaceKey.split(",") as Namespace[]).then(() => {
-      if (active) { setReady(true); setFailed(false); }
-    }).catch(() => { if (active) setFailed(true); });
-    return () => { active = false; };
-  }, [locale, namespaceKey, retry]);
-  if (ready) return children;
-  return <p className="notice" role={failed ? "alert" : "status"}>
-    {failed ? t("language.error") : t("loading")}
-    {failed && <button type="button" className="text-button" onClick={() => { setFailed(false); setRetry(value => value + 1); }}>{t("language.retry")}</button>}
-  </p>;
+/** Created once at module level, so a language switch never remounts a page. */
+const TOOL_PAGES: Record<ToolId, ComponentType> = {
+  balloon: lazy(PAGE_LOADERS.balloon),
+  circuit: lazy(PAGE_LOADERS.circuit),
+  calculator: lazy(PAGE_LOADERS.calculator),
+};
+
+/** Pages that are not migrated yet keep the old styles inside a LegacyFrame. */
+function ToolRoute({ tool }: { tool: ToolEntry }) {
+  const Page = TOOL_PAGES[tool.id];
+  return <ToolResources key={tool.id} namespaces={tool.namespaces} preload={PAGE_LOADERS[tool.id]}>
+    <Suspense fallback={<LoadingState />}><LegacyFrame><Page /></LegacyFrame></Suspense>
+  </ToolResources>;
 }
 
 /**
@@ -68,20 +63,13 @@ function LegacyRedirect() {
 }
 
 export default function App() {
-  const { t } = useAppTranslation("common");
   return <Routes>
     <Route element={<SiteLayout />}>
       <Route index element={<LegacyRedirect />} />
-      <Route path="balloon" element={<LegacyRedirect />} />
-      <Route path="circuit" element={<LegacyRedirect />} />
-      <Route path="325" element={<LegacyRedirect />} />
+      {TOOLS.map((tool) => <Route key={tool.id} path={tool.segment} element={<LegacyRedirect />} />)}
       <Route path=":locale" element={<LocaleRoute />}>
         <Route index element={<HomePage />} />
-        <Route path="balloon" element={<ToolResources key="balloon" namespaces={["balloon", "messages"]}><BalloonPage /></ToolResources>} />
-        <Route path="circuit" element={<ToolResources key="circuit" namespaces={["circuit", "messages"]}><CircuitPage /></ToolResources>} />
-        <Route path="325" element={
-          <ToolResources key="325" namespaces={["calculator", "messages", "names"]}><Suspense fallback={<p className="notice" role="status">{t("loading")}</p>}><CalculatorPage /></Suspense></ToolResources>
-        } />
+        {TOOLS.map((tool) => <Route key={tool.id} path={tool.segment} element={<ToolRoute tool={tool} />} />)}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

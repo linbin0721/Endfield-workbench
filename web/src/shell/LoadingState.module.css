@@ -1,0 +1,50 @@
+@layer components {
+  .box {
+    display: grid;
+    align-content: center;
+    gap: var(--space-3);
+    max-width: 520px;
+    min-height: 40vh;
+    margin: 0 auto;
+  }
+
+  .label {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .slashes {
+    color: var(--text-muted);
+    font-family: var(--font-display);
+  }
+
+  .track {
+    position: relative;
+    display: block;
+    height: 3px;
+    overflow: hidden;
+    background: var(--border-subtle);
+  }
+
+  .bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 35%;
+    background: var(--text-primary);
+    box-shadow: 4px 0 0 var(--accent);
+    animation: scan 1.2s var(--ease-out) infinite;
+  }
+
+  @keyframes scan {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(300%);
+    }
+  }
+}
