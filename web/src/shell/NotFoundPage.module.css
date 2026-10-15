@@ -1,0 +1,190 @@
+@layer components {
+  .page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-10);
+    max-width: 1040px;
+    min-height: 55vh;
+    margin: 0 auto;
+  }
+
+  .signal {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    padding: var(--space-6) 0;
+  }
+
+  /* Striped digits read as a weak signal; a yellow band is offset like a dropped line. */
+  .digits {
+    position: relative;
+    font-family: var(--font-display);
+    font-size: clamp(6rem, 17vw, 12rem);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: transparent;
+    background: repeating-linear-gradient(to bottom, var(--text-primary) 0 4px, transparent 4px 7px);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .digits::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: var(--accent);
+    clip-path: inset(46% 0 38% 0);
+    transform: translateX(10px);
+    -webkit-text-stroke: 1px var(--text-primary);
+  }
+
+  .cursor {
+    width: 0.5em;
+    height: 0.14em;
+    margin-left: var(--space-2);
+    margin-bottom: 0.08em;
+    font-size: clamp(6rem, 17vw, 12rem);
+    background: var(--accent);
+    box-shadow: 0 0 0 1px var(--text-primary);
+    animation: blink 1s steps(1) infinite;
+  }
+
+  /* Scanline drifting down through the digits. */
+  .noise {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent, var(--surface-row-hover) 50%, transparent) 0 0 / 100% 30% no-repeat;
+    mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+    animation: roll 3.2s linear infinite;
+    pointer-events: none;
+  }
+
+  .copy {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    animation: blink 1.4s steps(1) infinite;
+  }
+
+  .title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin: 0;
+    font-size: var(--fs-3xl);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .slashes {
+    flex: none;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-weight: 500;
+  }
+
+  .message {
+    margin: 0 0 var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--fs-lg);
+  }
+
+  .tools {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px dashed var(--border-strong);
+  }
+
+  .toolsLabel {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+  }
+
+  .toolList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toolLink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--control-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--control-outline);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color var(--dur-instant) linear;
+  }
+
+  .toolLink:hover {
+    background: var(--surface-row-hover);
+  }
+
+  .toolIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes roll {
+    from {
+      background-position: 0 -40%;
+    }
+
+    to {
+      background-position: 0 140%;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .page {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-4);
+      min-height: 0;
+    }
+
+    .signal {
+      justify-content: flex-start;
+      padding: 0;
+    }
+  }
+}

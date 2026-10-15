@@ -1,0 +1,35 @@
+@layer components {
+  .notice {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-4);
+    max-width: 560px;
+    margin: 20vh auto 0;
+    padding: var(--space-5) var(--space-6);
+    border-left: 3px solid var(--danger);
+    background: var(--surface-panel-strong);
+    color: var(--text-primary);
+  }
+
+  .text {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .retry {
+    min-height: var(--control-height);
+    padding: 0 var(--space-5);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .notice {
+      margin: 12vh var(--space-4) 0;
+    }
+  }
+}

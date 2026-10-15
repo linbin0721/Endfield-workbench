@@ -1,9 +1,10 @@
 /*
  * Layer order for the redesign. Later layers win regardless of selector
- * specificity, so new components always override the legacy global styles
- * (which will be wrapped in `legacy` when the app adopts this file).
+ * specificity. `legacy` (the old global styles, scoped to `.legacy-page`)
+ * sits above `base` so these resets never restyle pages that are not migrated
+ * yet, and below `components` so new components always win.
  */
-@layer legacy, base, components, overrides;
+@layer base, legacy, components, overrides;
 
 @layer base {
   *,
@@ -35,7 +36,8 @@
     color: inherit;
   }
 
-  :focus-visible {
+  /* Pages that are not migrated keep their own (and the browser's) focus outline. */
+  :focus-visible:not(.legacy-page *) {
     outline: none;
     box-shadow: var(--focus-ring);
   }
@@ -54,6 +56,27 @@
 
   [data-surface] {
     color: var(--text-primary);
+  }
+
+  /* Theme switch: the new theme wipes in along a slanted edge. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  ::view-transition-new(root) {
+    animation: theme-wipe var(--dur-slow) var(--ease-out);
+  }
+
+  @keyframes theme-wipe {
+    from {
+      clip-path: polygon(0 0, 0 0, -12% 100%, -12% 100%);
+    }
+
+    to {
+      clip-path: polygon(0 0, 112% 0, 100% 100%, -12% 100%);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

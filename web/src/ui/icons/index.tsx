@@ -36,3 +36,6 @@ export const CaptureIcon = (props: IconProps) => <Icon {...props}><rect x="3" y=
 export const SunIcon = (props: IconProps) => <Icon {...props}><circle cx="10" cy="10" r="3.5" /><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /></Icon>;
 export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" /></Icon>;
 export const ArrowRightIcon =(props: IconProps) => <Icon {...props}><path d="M4 10h11.5M11 5.5l4.5 4.5-4.5 4.5" /></Icon>;
+export const MenuIcon = (props: IconProps) => <Icon {...props}><path d="M3.5 5.5h13M3.5 10h9M3.5 14.5h13" /></Icon>;
+export const GlobeIcon = (props: IconProps) => <Icon {...props}><circle cx="10" cy="10" r="7" /><path d="M3 10h14M10 3c2 2 2.8 4.3 2.8 7s-.8 5-2.8 7c-2-2-2.8-4.3-2.8-7S8 5 10 3z" /></Icon>;
+export const HomeIcon = (props: IconProps) => <Icon {...props}><path d="M3.5 9.5L10 4l6.5 5.5M5.5 8v8h9V8M8.5 16v-4.5h3V16" /></Icon>;

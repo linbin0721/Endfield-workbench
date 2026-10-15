@@ -1,12 +1,17 @@
 {
   "brand": "엔드필드 워크벤치",
   "loading": "불러오는 중…",
+  "loadError": "페이지를 불러오지 못했습니다. 연결을 확인한 후 다시 시도해 주세요.",
   "nav": {
     "ariaLabel": "주요 메뉴",
     "home": "홈",
     "balloon": "부유 회수",
     "circuit": "오리지늄 회로",
-    "calculator": "325 챌린지"
+    "calculator": "325 챌린지",
+    "menu": "메뉴 열기",
+    "menuTitle": "메뉴",
+    "close": "메뉴 닫기",
+    "skip": "본문으로 건너뛰기"
   },
   "language": {
     "label": "인터페이스 언어",
@@ -15,25 +20,34 @@
     "error": "선택한 언어를 불러오지 못했습니다. 현재 언어를 그대로 유지합니다.",
     "retry": "다시 시도"
   },
+  "theme": {
+    "toDark": "다크 테마로 전환",
+    "toLight": "라이트 테마로 전환"
+  },
   "footer": "비공식 플레이어 도구이며 게임 공식 서비스와 무관합니다.",
   "home": {
     "title": "엔드필드 워크벤치",
     "eyebrow": "플레이어 도구 / WORKBENCH",
     "heading": "사용할 도구 선택",
     "intro": "퍼즐 도구 또는 육성 계산기를 선택해 해당 페이지로 이동하세요.",
+    "watermark": "WORKBENCH",
+    "readout": "TOOLS {{total}} / ONLINE",
     "statusAvailable": "사용 가능",
     "openTool": "도구 열기",
     "balloon": {
       "name": "부유 회수",
-      "description": "스크린샷을 업로드하면 보드와 풍선 재고를 자동으로 인식합니다. 문제 번호로 기록된 문제를 조회할 수도 있습니다."
+      "description": "스크린샷을 업로드하면 보드와 풍선 재고를 자동으로 인식합니다. 문제 번호로 기록된 문제를 조회할 수도 있습니다.",
+      "tag": "PUZZLE SOLVER"
     },
     "circuit": {
       "name": "오리지늄 회로",
-      "description": "스크린샷에서 행·열 제약과 보유 조각을 인식합니다. 문제 번호로 기록된 정상 변형을 조회할 수도 있습니다."
+      "description": "스크린샷에서 행·열 제약과 보유 조각을 인식합니다. 문제 번호로 기록된 정상 변형을 조회할 수도 있습니다.",
+      "tag": "PUZZLE SOLVER"
     },
     "calculator": {
       "name": "325 챌린지",
-      "description": "오퍼레이터의 능력치를 325까지 끌어올리는 육성안을 찾습니다. 여러 능력치 동시 달성도 지원하며 우선 표시합니다."
+      "description": "오퍼레이터의 능력치를 325까지 끌어올리는 육성안을 찾습니다. 여러 능력치 동시 달성도 지원하며 우선 표시합니다.",
+      "tag": "BUILD PLANNER"
     }
   },
   "notFound": {
@@ -41,7 +55,8 @@
     "eyebrow": "404 / NOT FOUND",
     "heading": "페이지를 찾을 수 없습니다",
     "message": "이 주소에 해당하는 도구 페이지가 없습니다.",
-    "back": "홈으로 돌아가기"
+    "back": "홈으로 돌아가기",
+    "tools": "사용 가능한 도구"
   },
   "service": {
     "querying": "서비스 지원 상태 확인 중…",

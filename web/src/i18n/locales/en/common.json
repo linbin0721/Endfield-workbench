@@ -1,12 +1,17 @@
 {
   "brand": "Endfield Workbench",
   "loading": "Loading…",
+  "loadError": "The page could not be loaded. Check your connection and try again.",
   "nav": {
     "ariaLabel": "Main navigation",
     "home": "Home",
     "balloon": "Aero-Salvage",
     "circuit": "Originium Circuitry",
-    "calculator": "325 Challenge"
+    "calculator": "325 Challenge",
+    "menu": "Open menu",
+    "menuTitle": "Menu",
+    "close": "Close menu",
+    "skip": "Skip to content"
   },
   "language": {
     "label": "Interface language",
@@ -15,25 +20,34 @@
     "error": "The selected language could not be loaded. The current language is unchanged.",
     "retry": "Retry"
   },
+  "theme": {
+    "toDark": "Switch to dark theme",
+    "toLight": "Switch to light theme"
+  },
   "footer": "Unofficial fan tool, not affiliated with the official game services.",
   "home": {
     "title": "Endfield Workbench",
     "eyebrow": "PLAYER TOOLS / WORKBENCH",
     "heading": "Choose a tool",
     "intro": "Pick a puzzle tool or the build calculator to open its page.",
+    "watermark": "WORKBENCH",
+    "readout": "TOOLS {{total}} / ONLINE",
     "statusAvailable": "Available",
     "openTool": "Open tool",
     "balloon": {
       "name": "Aero-Salvage",
-      "description": "Upload a screenshot to detect the board and balloon stock automatically, or look up a recorded puzzle by its code."
+      "description": "Upload a screenshot to detect the board and balloon stock automatically, or look up a recorded puzzle by its code.",
+      "tag": "PUZZLE SOLVER"
     },
     "circuit": {
       "name": "Originium Circuitry",
-      "description": "Upload a screenshot to detect the row and column constraints and available pieces, or look up recorded valid variants by code."
+      "description": "Upload a screenshot to detect the row and column constraints and available pieces, or look up recorded valid variants by code.",
+      "tag": "PUZZLE SOLVER"
     },
     "calculator": {
       "name": "325 Challenge",
-      "description": "Find builds that push an operator's stats to 325, with support for several stats reaching the target and priority display."
+      "description": "Find builds that push an operator's stats to 325, with support for several stats reaching the target and priority display.",
+      "tag": "BUILD PLANNER"
     }
   },
   "notFound": {
@@ -41,7 +55,8 @@
     "eyebrow": "404 / NOT FOUND",
     "heading": "Page not found",
     "message": "There is no tool page at this address.",
-    "back": "Back to home"
+    "back": "Back to home",
+    "tools": "Available tools"
   },
   "service": {
     "querying": "Checking service availability…",

@@ -25,6 +25,8 @@ type SelectProps = {
   name?: string;
   disabled?: boolean;
   size?: "md" | "sm";
+  /** Icon before the value inside the trigger. */
+  leading?: ReactNode;
   className?: string;
 };
 
@@ -37,6 +39,7 @@ export function Select({
   name,
   disabled,
   size = "md",
+  leading,
   className,
   ...aria
 }: SelectProps) {
@@ -47,6 +50,7 @@ export function Select({
       aria-label={aria["aria-label"]}
       className={[styles.trigger, size === "sm" ? styles.sm : "", className ?? ""].filter(Boolean).join(" ")}
     >
+      {leading ? <span className={styles.leading} aria-hidden="true">{leading}</span> : null}
       <span className={styles.value}><RadixSelect.Value placeholder={placeholder} /></span>
       <RadixSelect.Icon className={styles.chevron}><ChevronDownIcon /></RadixSelect.Icon>
     </RadixSelect.Trigger>

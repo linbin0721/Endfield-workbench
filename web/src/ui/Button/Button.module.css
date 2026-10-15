@@ -15,6 +15,7 @@
     font-weight: 600;
     line-height: 1.25;
     text-align: right;
+    text-decoration: none;
     cursor: pointer;
     /* No box-shadow transition: the focus ring must appear instantly. */
     transition:

@@ -1,0 +1,19 @@
+@layer components {
+  .mark {
+    display: block;
+    flex: none;
+  }
+
+  .plate {
+    fill: var(--ink-900);
+    stroke: var(--border-strong);
+    stroke-width: 1;
+  }
+
+  .slashes {
+    fill: none;
+    stroke: var(--yellow-400);
+    stroke-width: 3;
+    stroke-linecap: square;
+  }
+}
