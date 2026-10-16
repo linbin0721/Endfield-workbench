@@ -1,10 +1,23 @@
 /**
  * Decorative topographic lines, generated once from a fixed seed so every
- * visit draws the same map. Smoothed closed loops around two summits.
+ * visit draws the same map: nested loops around one summit. All lines share
+ * one outline scaled by their radius, plus a small wobble of their own that
+ * stays well below the line spacing, so no two lines ever touch.
  */
 
 const WIDTH = 1200;
 const HEIGHT = 560;
+const CENTER_X = 860;
+const CENTER_Y = 250;
+const STRETCH = 1.35;
+const LEVELS = 10;
+const FIRST_RADIUS = 46;
+const SPACING = 38;
+/** Per-line wobble in px; the shared outline keeps neighbours >= 0.74 x SPACING apart. */
+const DETAIL = 6;
+const SAMPLES = 18;
+
+type Point = readonly [number, number];
 
 function random(seed: number) {
   let state = seed >>> 0;
@@ -14,33 +27,30 @@ function random(seed: number) {
   };
 }
 
-function ring(cx: number, cy: number, radius: number, stretch: number, next: () => number): string {
-  const count = 18;
-  const phases = [next() * Math.PI * 2, next() * Math.PI * 2, next() * Math.PI * 2];
-  const points = Array.from({ length: count }, (_, index) => {
-    const angle = (index / count) * Math.PI * 2;
-    const wobble = 1
-      + 0.13 * Math.sin(angle * 2 + phases[0])
-      + 0.08 * Math.sin(angle * 3 + phases[1])
-      + 0.05 * Math.sin(angle * 5 + phases[2]);
-    return [cx + Math.cos(angle) * radius * stretch * wobble, cy + Math.sin(angle) * radius * wobble] as const;
+function ring(radius: number, outline: readonly number[], detail: readonly number[]): string {
+  const points = Array.from({ length: SAMPLES }, (_, index): Point => {
+    const angle = (index / SAMPLES) * Math.PI * 2;
+    const shape = 1
+      + 0.13 * Math.sin(angle * 2 + outline[0])
+      + 0.08 * Math.sin(angle * 3 + outline[1])
+      + 0.05 * Math.sin(angle * 5 + outline[2]);
+    const r = radius * shape + DETAIL * Math.sin(angle * 4 + detail[0]) * Math.sin(angle * 3 + detail[1]);
+    return [CENTER_X + Math.cos(angle) * r * STRETCH, CENTER_Y + Math.sin(angle) * r];
   });
   // Quadratic segments through the midpoints give a smooth closed curve.
-  const mid = (a: readonly [number, number], b: readonly [number, number]) =>
-    `${Math.round((a[0] + b[0]) / 2)} ${Math.round((a[1] + b[1]) / 2)}`;
-  let path = `M${mid(points[count - 1], points[0])}`;
+  const mid = (a: Point, b: Point) => `${Math.round((a[0] + b[0]) / 2)} ${Math.round((a[1] + b[1]) / 2)}`;
+  let path = `M${mid(points[SAMPLES - 1], points[0])}`;
   points.forEach((point, index) => {
-    path += `Q${Math.round(point[0])} ${Math.round(point[1])} ${mid(point, points[(index + 1) % count])}`;
+    path += `Q${Math.round(point[0])} ${Math.round(point[1])} ${mid(point, points[(index + 1) % SAMPLES])}`;
   });
   return `${path}Z`;
 }
 
 function buildPaths(): string[] {
   const next = random(20261015);
-  const paths: string[] = [];
-  for (let level = 0; level < 9; level += 1) paths.push(ring(860, 250, 46 + level * 38, 1.35, next));
-  for (let level = 0; level < 5; level += 1) paths.push(ring(300, 470, 40 + level * 34, 1.6, next));
-  return paths;
+  const turn = () => next() * Math.PI * 2;
+  const outline = [turn(), turn(), turn()];
+  return Array.from({ length: LEVELS }, (_, level) => ring(FIRST_RADIUS + level * SPACING, outline, [turn(), turn()]));
 }
 
 const PATHS = buildPaths();
