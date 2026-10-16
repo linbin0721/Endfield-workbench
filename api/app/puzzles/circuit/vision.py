@@ -1591,6 +1591,16 @@ class BarTargets:
 
 
 @dataclass(frozen=True)
+class PartialBarTargets:
+    """Editable counts; a geometrically ambiguous or invalid count is unknown."""
+
+    channel_hues: tuple[float, ...]
+    row_targets: tuple[tuple[int | None, ...], ...]
+    column_targets: tuple[tuple[int | None, ...], ...]
+    residual_ratio: float
+
+
+@dataclass(frozen=True)
 class ConstraintGlyph:
     """One colour constraint glyph next to a confirmed symbol board.
 
@@ -2812,8 +2822,11 @@ def _validated_geometry(geometry: BoardGeometry, function: str) -> None:
 
 
 def extract_bar_targets(
-    geometry: BoardGeometry, ensembles: Sequence[BarEnsemble]
-) -> BarTargets | None:
+    geometry: BoardGeometry,
+    ensembles: Sequence[BarEnsemble],
+    *,
+    allow_incomplete: bool = False,
+) -> BarTargets | PartialBarTargets | None:
     """Decode the row and column targets of one already located board.
 
     ``geometry`` must be a self consistent :class:`BoardGeometry` (see
@@ -2846,6 +2859,11 @@ def extract_bar_targets(
     ``row_targets[channel][row]`` / ``column_targets[channel][column]`` and
     ``residual_ratio`` is the mean offset deviation from the per channel robust
     median in units of the board step.
+
+    ``allow_incomplete`` is only for editable recognition evidence. It keeps
+    reliable counts, marks conflicting/invalid line counts as None, and skips
+    the final consistency gates. Geometry and channel assignment stay strict;
+    the returned PartialBarTargets must never enter the solver directly.
     """
     _validated_geometry(geometry, "extract_bar_targets")
     pool = _validated_ensembles(ensembles, "extract_bar_targets")
@@ -2899,20 +2917,27 @@ def extract_bar_targets(
     residual_sum = 0.0
     for channel, axis, index, count, offset in entries:
         deviation = abs(offset - medians[(channel, axis)])
-        if deviation > BAR_OFFSET_TOLERANCE:
-            return None
-        if (channel, axis, index) in seen:
+        invalid = (
+            deviation > BAR_OFFSET_TOLERANCE
+            or (channel, axis, index) in seen
+            or count > (geometry.rows if axis == "column" else geometry.columns)
+        )
+        if invalid and not allow_incomplete:
             return None
         seen.add((channel, axis, index))
-        if axis == "column":
-            if count > geometry.rows:
-                return None
-            column_targets[channel][index] += count
-        else:
-            if count > geometry.columns:
-                return None
-            row_targets[channel][index] += count
+        target = column_targets if axis == "column" else row_targets
+        # Repeated stacks or an uncertain display offset invalidate that one
+        # line. Do not sum duplicate counts or replace uncertainty with zero.
+        target[channel][index] = None if invalid else count
         residual_sum += deviation
+
+    if allow_incomplete:
+        return PartialBarTargets(
+            channel_hues=tuple(float(hue) for hue in clusters.centers),
+            row_targets=tuple(tuple(row) for row in row_targets),
+            column_targets=tuple(tuple(column) for column in column_targets),
+            residual_ratio=float(residual_sum / len(entries)),
+        )
 
     for channel in range(channels):
         rows_total = sum(row_targets[channel])
