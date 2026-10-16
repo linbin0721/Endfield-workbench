@@ -21,7 +21,7 @@ const ICONS: Record<NoticeTone, ReactNode> = {
 };
 
 export function Notice({ tone = "info", title, children, role, action }: NoticeProps) {
-  return <div className={[styles.notice, styles[tone]].join(" ")} role={role}>
+  return <div className={[styles.notice, styles[tone]].join(" ")} role={role} data-tone={tone}>
     <span className={styles.icon} aria-hidden="true">{ICONS[tone]}</span>
     <div className={styles.body}>
       {title ? <p className={styles.title}>{title}</p> : null}

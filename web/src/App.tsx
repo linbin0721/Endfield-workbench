@@ -28,10 +28,14 @@ const TOOL_PAGES: Record<ToolId, ComponentType> = {
 };
 
 /** Pages that are not migrated yet keep the old styles inside a LegacyFrame. */
+const LEGACY_TOOLS: ReadonlySet<ToolId> = new Set<ToolId>(["calculator"]);
+
 function ToolRoute({ tool }: { tool: ToolEntry }) {
   const Page = TOOL_PAGES[tool.id];
   return <ToolResources key={tool.id} namespaces={tool.namespaces} preload={PAGE_LOADERS[tool.id]}>
-    <Suspense fallback={<LoadingState />}><LegacyFrame><Page /></LegacyFrame></Suspense>
+    <Suspense fallback={<LoadingState />}>
+      {LEGACY_TOOLS.has(tool.id) ? <LegacyFrame><Page /></LegacyFrame> : <Page />}
+    </Suspense>
   </ToolResources>;
 }
 

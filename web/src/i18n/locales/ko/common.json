@@ -80,6 +80,10 @@
     "failed": "실패",
     "cancelled": "취소됨"
   },
+  "puzzle": {
+    "answerWaiting": "인식이나 문제 번호 조회가 끝나면 여기에 답이 표시됩니다.",
+    "solved": "풀이 완료"
+  },
   "image": {
     "eyebrow": "01 / 이미지",
     "title": "이미지 불러오기",

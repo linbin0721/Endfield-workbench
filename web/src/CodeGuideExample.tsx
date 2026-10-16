@@ -1,4 +1,7 @@
+import { SectionHead } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
 import { useAppTranslation } from "./i18n";
+import { Panel } from "./ui/Panel/Panel";
 
 /**
  * Question-number example for the "query by code" entry: the same committed,
@@ -12,21 +15,20 @@ const CODE_REGION = { left: 1.8, top: 26.4, width: 10.8, height: 5.8 };
 
 export default function CodeGuideExample() {
   const { t } = useAppTranslation("balloon");
-  return <section className="panel" aria-labelledby="code-guide-title">
-    <div className="section-heading"><div><span className="eyebrow">{t("examples.eyebrow")}</span><h2 id="code-guide-title">{t("examples.codeTitle")}</h2></div>
-      <span className="badge">{t("examples.scopeBadge")}</span></div>
-    <p className="muted">{t("examples.codeIntro")}</p>
-    <figure className="guide-figure">
-      <div className="guide-frame">
-        <img src={`${import.meta.env.BASE_URL}balloon-screenshot-guide.png`} loading="lazy"
+  return <Panel as="section" aria-labelledby="code-guide-title">
+    <SectionHead eyebrow={t("examples.eyebrow")} title={t("examples.codeTitle")} id="code-guide-title" badge={t("examples.scopeBadge")} />
+    <p className={s.text}>{t("examples.codeIntro")}</p>
+    <figure className={s.figure}>
+      <div className={s.guideFrame}>
+        <img className={s.guideImage} src={`${import.meta.env.BASE_URL}balloon-screenshot-guide.png`} loading="lazy"
           alt={t("examples.codeAlt")} />
-        <span className="guide-box guide-code guide-code-only" style={{
+        <span className={`${s.guideBox} ${s.guideCode} ${s.guideCodeOnly}`} style={{
           left: `${CODE_REGION.left}%`, top: `${CODE_REGION.top}%`,
           width: `${CODE_REGION.width}%`, height: `${CODE_REGION.height}%` }}>
-          <b className="guide-marker guide-marker-outside" aria-hidden="true">{t("examples.codeMarker")}</b>
+          <b className={`${s.guideMarker} ${s.guideMarkerOutside}`} aria-hidden="true">{t("examples.codeMarker")}</b>
         </span>
       </div>
-      <figcaption><span>{t("examples.codeCaption")}</span></figcaption>
+      <figcaption className={s.caption}><span>{t("examples.codeCaption")}</span></figcaption>
     </figure>
-  </section>;
+  </Panel>;
 }

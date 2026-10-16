@@ -4,6 +4,8 @@ import type { CatalogCandidate } from "./api";
 import { msg, useAppTranslation, useMessages, type LocalizedText, type MessageText } from "./i18n";
 import type { BalloonPuzzle } from "./puzzle";
 import { puzzleFromCandidate } from "./puzzle";
+import s from "./features/puzzles/puzzles.module.css";
+import { Button } from "./ui/Button/Button";
 
 type Props = {
   candidates: CatalogCandidate[];
@@ -62,24 +64,26 @@ export default function CatalogCandidates({ candidates, matchedFingerprint, code
     setError("");
     onSolve(checked.puzzle, code ? t("answer.sourceCode", { code }) : t("answer.sourceCatalogPuzzle"));
   };
-  return <div className="catalog-candidates">
-    <fieldset>
-      <legend>{code ? t("candidates.legendCode", { code }) : t("candidates.legendGeneric")}</legend>
-      {candidates.map((candidate) => <label key={candidate.fingerprint}
-        className={`candidate ${selected === candidate.fingerprint ? "selected" : ""}`}>
-        <input type="radio" name="catalog-candidate" value={candidate.fingerprint}
-          checked={selected === candidate.fingerprint}
-          onChange={() => { setSelected(candidate.fingerprint); setError(""); }} />
-        <span>
-          <strong>{summarize(candidate, t)}</strong>
-          {candidate.fingerprint === matchedFingerprint && <em className="candidate-tag">{t("candidates.matchedTag")}</em>}
-        </span>
-      </label>)}
+  return <div className={s.candidates}>
+    <fieldset className={s.fieldset}>
+      <legend className={s.legend}>{code ? t("candidates.legendCode", { code }) : t("candidates.legendGeneric")}</legend>
+      <div className={s.candidates}>
+        {candidates.map((candidate) => <label key={candidate.fingerprint} className={s.candidate}
+          data-selected={selected === candidate.fingerprint}>
+          <input type="radio" name="catalog-candidate" value={candidate.fingerprint}
+            checked={selected === candidate.fingerprint}
+            onChange={() => { setSelected(candidate.fingerprint); setError(""); }} />
+          <span className={s.candidateBody}>
+            <strong className={s.candidateText}>{summarize(candidate, t)}</strong>
+            {candidate.fingerprint === matchedFingerprint && <span><em className={s.tag}>{t("candidates.matchedTag")}</em></span>}
+          </span>
+        </label>)}
+      </div>
     </fieldset>
-    {error && <p className="error-text" role="alert">{tm(error, "error")}</p>}
-    <div className="row-actions">
-      <button type="button" className="button primary" disabled={disabled || !selected} onClick={solve}>
-        {actionLabel ?? t("candidates.action")}</button>
+    {error && <p className={s.errorText} role="alert">{tm(error, "error")}</p>}
+    <div className={s.actions}>
+      <Button variant="accent" disabled={disabled || !selected} onClick={solve}>
+        {actionLabel ?? t("candidates.action")}</Button>
     </div>
   </div>;
 }
