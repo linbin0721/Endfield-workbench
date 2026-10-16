@@ -1,0 +1,790 @@
+/*
+ * Puzzle workbench shared by the balloon and circuit tools: header with the
+ * step bar, the import panel (drop zone / screenshot stage beside the
+ * question-code box), the puzzle + answer row and their waiting states.
+ * Screenshots are never recoloured; everything else reads the theme tokens.
+ */
+@layer components {
+  .page {
+    --board-bg: var(--surface-row);
+    --cell-bg: var(--surface-card);
+    --cell-border: var(--border-subtle);
+    --hatch: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    --grid-line: var(--surface-pattern);
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* ---------- Header ---------- */
+
+  .header {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .headerTop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+  }
+
+  .headerTop > header {
+    flex: 1 1 32rem;
+    margin-bottom: 0;
+  }
+
+  .headerSide {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .service {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 32px;
+    padding: 2px var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .serviceText {
+    min-width: 0;
+  }
+
+  .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    background: var(--text-muted);
+  }
+
+  .service[data-service="loading"] .dot {
+    animation: blink 1.2s steps(2, jump-none) infinite;
+  }
+
+  .service[data-service="ready"] .dot {
+    background: var(--success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent);
+  }
+
+  .service[data-service="error"] .dot {
+    background: var(--danger);
+  }
+
+  .service[data-service="missing"] .dot {
+    background: var(--yellow-400);
+  }
+
+  /* ---------- Step bar ---------- */
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+  }
+
+  .step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-3) var(--space-4) var(--space-3) 0;
+    color: var(--text-muted);
+  }
+
+  /* Progress rail under each step; filled for done and current steps. */
+  .step::after {
+    content: "";
+    position: absolute;
+    right: var(--space-2);
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--border-subtle);
+  }
+
+  .step[data-state="done"]::after {
+    background: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
+  }
+
+  .step[data-state="current"]::after {
+    background: linear-gradient(90deg, var(--accent) 0 60%, var(--border-subtle) 60%);
+  }
+
+  .stepIndex {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border-strong);
+    clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+    font-family: var(--font-display);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+  }
+
+  .stepIndex svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .stepLabel {
+    min-width: 0;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .step[data-state="done"] {
+    color: var(--text-secondary);
+  }
+
+  .step[data-state="done"] .stepIndex {
+    border-color: var(--accent-text);
+    color: var(--accent-text);
+  }
+
+  .step[data-state="current"] {
+    color: var(--text-primary);
+  }
+
+  .step[data-state="current"] .stepIndex {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  /* ---------- Import panel ---------- */
+
+  .importGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .importMain {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .import {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .dropzone {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--space-3);
+    min-height: 240px;
+    padding: var(--space-6) var(--space-4);
+    border: 1px dashed var(--border-strong);
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--board-bg);
+    color: var(--text-secondary);
+    text-align: center;
+    transition:
+      border-color var(--dur-instant) linear,
+      background-color var(--dur-instant) linear;
+  }
+
+  /* Corner brackets of a scanner frame. */
+  .dropzone::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--accent-text), var(--accent-text)) 0 0 / 18px 2px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 0 0 / 2px 18px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 100% 0 / 18px 2px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 100% 0 / 2px 18px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 0 100% / 18px 2px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 0 100% / 2px 18px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 100% 100% / 18px 2px no-repeat,
+      linear-gradient(var(--accent-text), var(--accent-text)) 100% 100% / 2px 18px no-repeat;
+    opacity: 0.55;
+    transition: inset var(--dur-fast) var(--ease-out), opacity var(--dur-fast) linear;
+  }
+
+  .dropzone[data-dragging] {
+    border-style: solid;
+    border-color: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 12%, var(--board-bg));
+  }
+
+  .dropzone[data-dragging]::before {
+    inset: 4px;
+    opacity: 1;
+  }
+
+  .dropIcon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--control-outline);
+    background: var(--surface-card);
+    color: var(--text-primary);
+  }
+
+  .dropIcon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .dropTitle {
+    max-width: 28em;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .dropNote,
+  .limits {
+    margin: 0;
+    font-size: var(--fs-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .limits {
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+  }
+
+  .importActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  .stage {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .stageBar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .stageMeta {
+    min-width: 0;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .stageActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .stageActions .importActions {
+    justify-content: flex-start;
+  }
+
+  .frame {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background:
+      conic-gradient(var(--grid-line) 25%, transparent 0 50%, var(--grid-line) 0 75%, transparent 0) 0 0 / 16px 16px,
+      var(--ink-950);
+  }
+
+  /* Sized to the rendered image, so the crop layer lines up with it exactly. */
+  .frameInner {
+    position: relative;
+    max-width: 100%;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .image {
+    display: block;
+    max-width: 100%;
+    max-height: min(52vh, 400px);
+    width: auto;
+    height: auto;
+    user-select: none;
+  }
+
+  .caption {
+    color: var(--ink-300);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Crop box ---------- */
+
+  .cropLayer {
+    position: absolute;
+    inset: 0;
+  }
+
+  .cropBox {
+    position: absolute;
+    outline: 2px solid var(--accent);
+    outline-offset: 0;
+    box-shadow: 0 0 0 100vmax rgba(5, 8, 12, 0.6);
+    cursor: move;
+    touch-action: none;
+    background:
+      linear-gradient(90deg, transparent calc(33.333% - 0.5px), rgba(255, 255, 255, 0.28) calc(33.333% - 0.5px) calc(33.333% + 0.5px), transparent 0 calc(66.666% - 0.5px), rgba(255, 255, 255, 0.28) 0 calc(66.666% + 0.5px), transparent 0),
+      linear-gradient(transparent calc(33.333% - 0.5px), rgba(255, 255, 255, 0.28) calc(33.333% - 0.5px) calc(33.333% + 0.5px), transparent 0 calc(66.666% - 0.5px), rgba(255, 255, 255, 0.28) 0 calc(66.666% + 0.5px), transparent 0);
+  }
+
+  .cropBox:focus-visible {
+    outline-color: var(--accent);
+    box-shadow: 0 0 0 100vmax rgba(5, 8, 12, 0.6), var(--focus-ring);
+  }
+
+  /* Handles sit inside the box corners, so the image edge never clips them. */
+  .handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--ink-950);
+    background: var(--accent);
+    touch-action: none;
+  }
+
+  /* Larger invisible hit area for touch. */
+  .handle::before {
+    content: "";
+    position: absolute;
+    inset: -14px;
+  }
+
+  .handle[data-corner="nw"] {
+    top: -2px;
+    left: -2px;
+    cursor: nwse-resize;
+  }
+
+  .handle[data-corner="ne"] {
+    top: -2px;
+    right: -2px;
+    cursor: nesw-resize;
+  }
+
+  .handle[data-corner="sw"] {
+    bottom: -2px;
+    left: -2px;
+    cursor: nesw-resize;
+  }
+
+  .handle[data-corner="se"] {
+    right: -2px;
+    bottom: -2px;
+    cursor: nwse-resize;
+  }
+
+  .handle:focus-visible {
+    background: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+
+  .capture {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--board-bg);
+    font-size: var(--fs-sm);
+  }
+
+  /* ---------- Question code box ---------- */
+
+  .code {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: 0 0 0 var(--space-6);
+    border-left: 1px solid var(--border-subtle);
+  }
+
+  .codeTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+    color: var(--text-primary);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .or {
+    padding: 1px var(--space-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+
+  .label {
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+  }
+
+  .codeRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .codeInput {
+    flex: 1 1 9rem;
+    min-width: 0;
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-sm);
+    background: var(--control-bg);
+    color: var(--control-text);
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .codeInput::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  /* ---------- Shared bits ---------- */
+
+  .stack {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .error {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .notices {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .notices:empty {
+    display: none;
+  }
+
+  .notices + .notices {
+    margin-top: 0;
+  }
+
+  .importGrid + .notices {
+    margin-top: var(--space-4);
+  }
+
+  .subline {
+    display: block;
+    margin-top: var(--space-1);
+  }
+
+  .badge {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+  }
+
+  .badge[data-tone="edit"] {
+    border-color: var(--yellow-400);
+    background: color-mix(in srgb, var(--yellow-400) 16%, transparent);
+    color: var(--text-primary);
+  }
+
+  .task {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+  }
+
+  .task::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--accent-text);
+    animation: blink 1s steps(2, jump-none) infinite;
+  }
+
+  .task[data-task-status="succeeded"]::before {
+    background: var(--success);
+    animation: none;
+  }
+
+  .task[data-task-status="failed"]::before,
+  .task[data-task-status="cancelled"]::before {
+    background: var(--danger);
+    animation: none;
+  }
+
+  /* ---------- Puzzle + answer row ---------- */
+
+  .results {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+    scroll-margin-top: 84px;
+  }
+
+  .results > [data-answer-panel] {
+    position: sticky;
+    top: 84px;
+  }
+
+  .waiting {
+    position: relative;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: var(--space-3);
+    min-height: 220px;
+    overflow: hidden;
+    padding: var(--space-6);
+    border: 1px dashed var(--border-strong);
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--board-bg);
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .waiting[data-busy] {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+    color: var(--text-secondary);
+  }
+
+  .waitingText {
+    max-width: 26em;
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  /* Scanning beam over a busy step. */
+  .scan {
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: 48px;
+    background: linear-gradient(transparent, color-mix(in srgb, var(--accent) 22%, transparent) 85%, var(--accent-text) 100%);
+    opacity: 0.55;
+    animation: scan 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    pointer-events: none;
+  }
+
+  /* ---------- Help panel content ---------- */
+
+  .help {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .helpSection {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .helpTitle {
+    margin: 0;
+    color: var(--accent-text);
+    font-size: var(--fs-md);
+    font-weight: 700;
+  }
+
+  .helpText {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  .helpList {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.2em;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes scan {
+    from {
+      top: -48px;
+    }
+
+    to {
+      top: 100%;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .results {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .results > [data-answer-panel] {
+      position: static;
+    }
+  }
+
+  @media (max-width: 860px) {
+    .importGrid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-5);
+    }
+
+    .code {
+      padding: var(--space-5) 0 0;
+      border-top: 1px solid var(--border-subtle);
+      border-left: 0;
+    }
+
+    .headerSide {
+      flex-direction: row-reverse;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .step {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding-right: var(--space-2);
+    }
+
+    .stepIndex {
+      width: 28px;
+      height: 28px;
+      font-size: var(--fs-xs);
+    }
+
+    .stepLabel {
+      font-size: var(--fs-sm);
+    }
+
+    .dropzone {
+      min-height: 0;
+      padding: var(--space-5) var(--space-3);
+    }
+
+    .waiting {
+      min-height: 140px;
+      padding: var(--space-5) var(--space-4);
+    }
+
+    .frame {
+      padding: var(--space-2);
+    }
+
+    .codeInput {
+      font-size: 16px;
+    }
+  }
+}

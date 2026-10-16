@@ -138,5 +138,25 @@
     "uploadFull": " · Full original",
     "preparingCrop": "Generating cropped image…",
     "previewAlt": "Preview of the image that will be uploaded"
+  },
+  "workbench": {
+    "fullImage": "Whole image",
+    "cropBox": "Crop box: drag to move, arrow keys to nudge (Shift for larger steps)",
+    "cropCornerNw": "Top-left handle",
+    "cropCornerNe": "Top-right handle",
+    "cropCornerSw": "Bottom-left handle",
+    "cropCornerSe": "Bottom-right handle",
+    "help": "How to use",
+    "helpTitle": "Screenshot scope and usage",
+    "helpClose": "Close help",
+    "notesTitle": "Notes",
+    "stepsLabel": "Solving steps",
+    "stepImport": "Import",
+    "stepPuzzle": "Puzzle",
+    "stepAnswer": "Answer",
+    "importTitle": "Import a screenshot or code",
+    "codeTitle": "Look up by puzzle code",
+    "or": "OR",
+    "puzzleWaiting": "The puzzle appears here after a screenshot is recognized or a code is looked up."
   }
 }

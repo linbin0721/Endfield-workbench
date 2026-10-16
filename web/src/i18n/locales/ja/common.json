@@ -138,5 +138,25 @@
     "uploadFull": " · 原画像全体",
     "preparingCrop": "切り抜き画像を作成中…",
     "previewAlt": "実際に送信する画像のプレビュー"
+  },
+  "workbench": {
+    "fullImage": "画像全体",
+    "cropBox": "切り抜き枠：ドラッグで移動、矢印キーで微調整（Shift で大きく移動）",
+    "cropCornerNw": "左上のハンドル",
+    "cropCornerNe": "右上のハンドル",
+    "cropCornerSw": "左下のハンドル",
+    "cropCornerSe": "右下のハンドル",
+    "help": "使い方",
+    "helpTitle": "撮影範囲と使い方",
+    "helpClose": "説明を閉じる",
+    "notesTitle": "注意事項",
+    "stepsLabel": "解答の手順",
+    "stepImport": "取り込み",
+    "stepPuzzle": "問題",
+    "stepAnswer": "解答",
+    "importTitle": "スクリーンショットか問題番号を取り込む",
+    "codeTitle": "問題番号で直接取得",
+    "or": "または",
+    "puzzleWaiting": "スクリーンショットの認識または問題番号の検索が終わると、ここに問題が表示されます。"
   }
 }
