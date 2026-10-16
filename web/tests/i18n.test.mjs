@@ -158,6 +158,7 @@ test("other locales mirror the zh-CN keys and interpolation parameters", () => {
 const DYNAMIC_KEY_FAMILIES = [
   ["common", ["task.queued", "task.running", "task.succeeded", "task.failed", "task.cancelled"]],
   ["calculator", ["attributes.strength", "attributes.agility", "attributes.intellect", "attributes.will"]],
+  ["calculator", ["bench.short.strength", "bench.short.agility", "bench.short.intellect", "bench.short.will"]],
   // Referenced inside i18n/messages.ts, which the source scan skips.
   ["messages", ["unknown.notice", "unknown.error", "unknown.inline"]],
 ];

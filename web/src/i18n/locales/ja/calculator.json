@@ -174,5 +174,39 @@
     "missing": "{{name}}：アイコンなし",
     "open": "{{name}}：資料を見る（新しいタブで開きます）",
     "title": "{{name}} · 資料を見る"
+  },
+  "bench": {
+    "legend": "内訳の凡例",
+    "source": {
+      "operator": "オペレーター",
+      "weapon": "武器",
+      "gear": "装備",
+      "sets": "セット"
+    },
+    "requiredTag": "必須",
+    "barLabel": "{{name}} {{value}}、目標 {{target}}",
+    "partPercent": "（+{{value}}%）",
+    "formula": "固定値 {{flat}} ×（1 + {{percent}}%）= {{raw}} → ステータス {{display}}",
+    "refineLevel": "{{value}} / {{max}}",
+    "buildIndex": "育成案 {{index}}",
+    "weaponSlot": "武器",
+    "refine": "精錬",
+    "gemFirst": "基質の基礎効果{{attribute}}",
+    "gemPassive": "基質のスキル効果",
+    "statsTitle": "ステータスと内訳",
+    "breakdownUnavailable": "一部のステータスは内訳ごとの再計算が表示値と完全には一致しないため、合計のみ表示しています。",
+    "tableCaption": "育成案の比較",
+    "colBuild": "育成案",
+    "colMatched": "達成",
+    "colWeapon": "武器",
+    "selectBuild": "育成案 {{index}} を表示",
+    "preview": "装備プレビュー",
+    "panelLabel": "装備ベンチ",
+    "short": {
+      "strength": "筋",
+      "agility": "俊",
+      "intellect": "知",
+      "will": "意"
+    }
   }
 }
