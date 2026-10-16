@@ -89,7 +89,14 @@ export function resolveCircuitDisplayPalette(
 ): CircuitDisplayPalette {
   const checked = validateCircuitPuzzle(puzzleValue);
   if (!checked.puzzle) return { colors: [], usedFallback: true };
-  const channelCount = checked.puzzle.channels.length;
+  return circuitPaletteForChannels(checked.puzzle.channels.length, paletteValue);
+}
+
+/** Same atomic palette rule for a known channel count (an editable draft is not a valid puzzle yet). */
+export function circuitPaletteForChannels(channelCount: number, paletteValue: unknown): CircuitDisplayPalette {
+  if (!Number.isInteger(channelCount) || channelCount < 1 || channelCount > FALLBACK_HUES.length) {
+    return { colors: [], usedFallback: true };
+  }
   if (!Array.isArray(paletteValue) || paletteValue.length !== channelCount) {
     return fallbackPalette(channelCount);
   }

@@ -167,5 +167,46 @@
     "screenshotIntro": "1の盤面全体と2の全在庫を含めてください。3の番号は任意です。",
     "codeIntro": "1は盤面、2は在庫、3は左側の問題番号です。番号検索では3だけを入力し、画像は不要です。",
     "figureAria": "未解答の源石回路の模式図"
+  },
+  "workbench": {
+    "intro": "スクリーンショットを取り込むと認識から解答まで一度に行います。問題番号を入力して記録済みの問題を取得することもできます。認識した問題は行・列の数字、障害物、固定マスを確認・修正してから解き直せます。",
+    "lookup": "検索",
+    "puzzleLetter": "問題 {{letter}}",
+    "editing": "修正中",
+    "readOnly": "目録の問題 · 閲覧のみ",
+    "puzzleFromCode": "問題番号 {{code}} の問題",
+    "puzzleRecognized": "認識した問題",
+    "needsInput": "欠けている値や矛盾する値があるため、ここで止めています。赤い項目を補ってから解いてください。",
+    "solveDraft": "この問題で解く",
+    "solveAgain": "修正した問題で解き直す",
+    "edit": "問題を修正",
+    "revert": "認識結果に戻す",
+    "sourceEdited": "スクリーンショット認識（手動で修正）",
+    "sourceCandidate": "問題番号 {{code}} · 問題 {{letter}}",
+    "staleAnswer": "問題が修正されました。下の解答は修正前の問題のものです。解き直してください。",
+    "answerSource": "出典：{{source}}",
+    "solveSelected": "選択した問題で解く",
+    "helpEditTitle": "問題の修正",
+    "helpEditTargets": "上で色を選び、その色の各行・各列の数字を修正します。",
+    "helpEditCells": "マスをクリックすると、空き → 障害物 → 選択中の色の固定マス → 空き の順に切り替わります。",
+    "helpEditPieces": "在庫のピースはスクリーンショットから認識され、修正できません。誤っている場合は別の画像を使ってください。"
+  },
+  "editor": {
+    "cellUnknown": "未認識",
+    "fixedNoChannel": "固定マス（色が未認識）",
+    "rowTarget": "{{color}} {{index}} 行目の目標",
+    "columnTarget": "{{color}} {{index}} 列目の目標",
+    "cellAria": "{{row}} 行 {{column}} 列：{{state}}",
+    "cellHint": "マスをクリックして切り替え：空き → 障害物 → 選択中の色の固定マス。",
+    "channelGroup": "修正する色",
+    "channelLabel": "修正する色："
+  },
+  "problems": {
+    "targetMissing": "{{color}}の {{index}} {{axis}}目に目標の数字がありません。",
+    "targetInvalid": "{{color}}の {{index}} {{axis}}目の目標が盤面の範囲を超えています。",
+    "cellUnknown": "認識できなかったマスが {{count}} 個あります。赤いマスをクリックして設定してください。",
+    "fixedChannel": "色のない固定マスが {{count}} 個あります。色を選んでから再度クリックしてください。",
+    "axisRow": "行",
+    "axisColumn": "列"
   }
 }

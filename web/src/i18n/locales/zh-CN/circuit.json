@@ -167,5 +167,46 @@
     "screenshotIntro": "截图需完整包含 1 号棋盘和 2 号全部库存；3 号题号可选。",
     "codeIntro": "1 号是棋盘，2 号是库存，3 号是棋盘左侧题号；按题号查询只需输入 3 号，无需上传截图。",
     "figureAria": "未解题源石电路示意画面"
+  },
+  "workbench": {
+    "intro": "导入截图一键识别并求解，或输入题号直接取题。识别出的题面可以核对和修改行列数字、障碍与固定格后再求解。",
+    "lookup": "查询",
+    "puzzleLetter": "题面 {{letter}}",
+    "editing": "修改中",
+    "readOnly": "目录题面 · 只读",
+    "puzzleFromCode": "题号 {{code}} 的题面",
+    "puzzleRecognized": "识别出的题面",
+    "needsInput": "题面有缺失或不一致的地方，已停在这一步。请补全标红的项目后再求解。",
+    "solveDraft": "用此题面求解",
+    "solveAgain": "按修改后的题面重新求解",
+    "edit": "修改题面",
+    "revert": "恢复识别结果",
+    "sourceEdited": "截图识别（已手动修改）",
+    "sourceCandidate": "题号 {{code}} · 题面 {{letter}}",
+    "staleAnswer": "题面已修改，下面的答案对应修改前的题面，请重新求解。",
+    "answerSource": "来源：{{source}}",
+    "solveSelected": "用所选题面求解",
+    "helpEditTitle": "修改题面",
+    "helpEditTargets": "先在上方选择要修改的颜色，再改该颜色每行、每列的数字。",
+    "helpEditCells": "点击格子依次切换：空格 → 障碍 → 当前颜色的固定格 → 空格。",
+    "helpEditPieces": "库存拼块按截图识别，不能修改；拼块有误时请换一张截图。"
+  },
+  "editor": {
+    "cellUnknown": "未识别",
+    "fixedNoChannel": "固定格（颜色未识别）",
+    "rowTarget": "{{color}}第 {{index}} 行目标",
+    "columnTarget": "{{color}}第 {{index}} 列目标",
+    "cellAria": "第 {{row}} 行第 {{column}} 列，{{state}}",
+    "cellHint": "点击格子切换：空格 → 障碍 → 当前颜色固定格。",
+    "channelGroup": "选择要修改的颜色",
+    "channelLabel": "修改颜色："
+  },
+  "problems": {
+    "targetMissing": "{{color}}第 {{index}} {{axis}}缺少目标数字。",
+    "targetInvalid": "{{color}}第 {{index}} {{axis}}的目标数字超出棋盘范围。",
+    "cellUnknown": "有 {{count}} 个格子未能识别，请点击标红的格子设定。",
+    "fixedChannel": "有 {{count}} 个固定格没有颜色，请选择颜色后重新点击设定。",
+    "axisRow": "行",
+    "axisColumn": "列"
   }
 }

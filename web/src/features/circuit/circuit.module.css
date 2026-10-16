@@ -1,0 +1,565 @@
+/*
+ * Circuit workbench: the board with per-channel targets (view / edit), the
+ * channel switcher, inventory shapes, "Puzzle A / B" cards, the verified
+ * answer board and the self-drawn guide in the help panel.
+ */
+@layer components {
+  .puzzle {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  /* ---------- Board ---------- */
+
+  .board {
+    display: grid;
+    gap: 4px;
+    align-items: stretch;
+    width: 100%;
+    max-width: 520px;
+    padding: 10px;
+    border: 1px solid var(--border-strong);
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 12px 12px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 12px 12px,
+      var(--board-bg);
+  }
+
+  .board[data-size="sm"] {
+    gap: 2px;
+    max-width: 240px;
+    padding: 5px;
+  }
+
+  .corner {
+    min-width: 0;
+  }
+
+  .columnHead,
+  .rowHead {
+    display: flex;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .columnHead {
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+  }
+
+  .rowHead {
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .target,
+  .targetInput {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    background: var(--chip-bg);
+    color: var(--chip-fg);
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .target {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 2px;
+  }
+
+  .rowHead .target {
+    width: 16px;
+  }
+
+  .target[data-missing] {
+    outline: 2px dashed var(--danger);
+    outline-offset: 1px;
+    background: transparent;
+    color: var(--danger);
+  }
+
+  .board[data-size="sm"] .target {
+    min-width: 11px;
+    height: 11px;
+    font-size: 0.6rem;
+  }
+
+  .board[data-size="sm"] .rowHead .target {
+    width: 11px;
+  }
+
+  .targetInput {
+    width: 100%;
+    min-width: 30px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--chip-fg) 40%, transparent);
+    border-radius: 0;
+    font-size: var(--fs-md);
+    text-align: center;
+    appearance: textfield;
+  }
+
+  .rowHead .targetInput {
+    width: 36px;
+  }
+
+  .targetInput::-webkit-outer-spin-button,
+  .targetInput::-webkit-inner-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .targetInput[aria-invalid] {
+    border: 2px dashed var(--danger);
+    background: color-mix(in srgb, var(--danger) 16%, var(--control-bg));
+    color: var(--control-text);
+  }
+
+  .cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid var(--cell-border);
+    background: var(--cell-bg);
+    color: var(--text-primary);
+    font: inherit;
+  }
+
+  .cell[data-cell="blocked"] {
+    background:
+      linear-gradient(45deg, transparent 44%, var(--text-primary) 44% 56%, transparent 56%) center / 46% 46% no-repeat,
+      linear-gradient(-45deg, transparent 44%, var(--text-primary) 44% 56%, transparent 56%) center / 46% 46% no-repeat,
+      repeating-linear-gradient(45deg, var(--hatch) 0 3px, transparent 3px 7px),
+      var(--cell-bg);
+  }
+
+  /* Fixed cell: channel colour with the diamond mark of the game. */
+  .cell[data-cell="fixed"] {
+    border-color: var(--cell-edge);
+    background:
+      linear-gradient(135deg, var(--cell-light), var(--cell-color) 30%, color-mix(in srgb, var(--cell-color) 70%, #000)) padding-box;
+  }
+
+  .cell[data-cell="fixed"]::after {
+    content: "";
+    width: 34%;
+    aspect-ratio: 1;
+    border: 2px solid var(--cell-light);
+    transform: rotate(45deg);
+  }
+
+  .cell[data-cell="unknown"],
+  .cell[data-cell="fixedUnknown"] {
+    border: 2px dashed var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, var(--cell-bg));
+  }
+
+  .mark {
+    position: absolute;
+    color: var(--danger);
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+
+  .mark:empty {
+    display: none;
+  }
+
+  button.cell {
+    cursor: pointer;
+    transition: border-color var(--dur-instant) linear;
+  }
+
+  button.cell:hover {
+    border-color: var(--accent);
+  }
+
+  /* ---------- Channel switcher (edit) ---------- */
+
+  .channels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .channelsLabel {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+  }
+
+  .channel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--fs-sm);
+    cursor: pointer;
+  }
+
+  .channel i {
+    width: 12px;
+    height: 12px;
+    background: var(--chip-bg);
+    transform: rotate(45deg);
+  }
+
+  .channel[aria-pressed="true"] {
+    border-color: var(--chip-bg);
+    box-shadow: inset 0 -3px 0 var(--chip-bg);
+    font-weight: 700;
+  }
+
+  /* ---------- Inventory ---------- */
+
+  .inventory {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .inventoryTitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+  }
+
+  .pieces {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .piece {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+
+  .pieces[data-compact] {
+    gap: var(--space-1);
+  }
+
+  .pieces[data-compact] .piece {
+    padding: 2px;
+  }
+
+  .pieces[data-compact] .pieceSvg {
+    max-width: 2.2rem;
+  }
+
+  .pieceSvg {
+    display: block;
+    max-width: 4.5rem;
+    height: auto;
+  }
+
+  .legendLine {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+
+  .problems {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 1em);
+    border-left: 3px solid var(--danger);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Comparison cards ---------- */
+
+  .candidates {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .legend {
+    margin-bottom: var(--space-2);
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+  }
+
+  .candidateGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .candidate {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    cursor: pointer;
+  }
+
+  .candidate:hover {
+    border-color: var(--card-edge-hover);
+  }
+
+  .candidate[data-selected="true"] {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .candidate:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  .candidateHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .candidateHead input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  .status {
+    padding: 0 var(--space-1);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+  }
+
+  .status[data-status="verified"] {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .seen {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+
+  .tag {
+    padding: 1px var(--space-2);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: var(--fs-xs);
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .error {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--fs-sm);
+  }
+
+  /* ---------- Answer ---------- */
+
+  .answer {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .answerSource,
+  .answerNote {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .answerSvg {
+    display: block;
+    width: min(100%, 560px);
+    height: auto;
+    max-height: 70vh;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .answer[data-stale] .answerSvg {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+  }
+
+  .svgFrame {
+    fill: var(--board-bg);
+    stroke: var(--border-strong);
+    stroke-width: 0.05;
+  }
+
+  .svgCell {
+    fill: var(--cell-bg);
+    stroke: var(--cell-border);
+    stroke-width: 0.025;
+  }
+
+  .svgObstacleBase {
+    fill: color-mix(in srgb, var(--text-primary) 18%, var(--cell-bg));
+  }
+
+  .svgObstacleStripe {
+    fill: color-mix(in srgb, var(--text-primary) 38%, var(--cell-bg));
+  }
+
+  .svgObstacle {
+    stroke: var(--border-strong);
+    stroke-width: 0.035;
+  }
+
+  .svgObstacleCross {
+    fill: none;
+    stroke: var(--text-primary);
+    stroke-width: 0.055;
+    stroke-linecap: round;
+  }
+
+  .svgBorder {
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 0.05;
+    pointer-events: none;
+  }
+
+  /* Pieces drop into place one after another. */
+  .placed {
+    animation: piece-in 420ms var(--ease-out) both;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* ---------- Help guide ---------- */
+
+  .guide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-strong);
+    background: var(--board-bg);
+  }
+
+  .guideRegion {
+    --region: #4fd1b5;
+    position: relative;
+    padding: var(--space-4) var(--space-2) var(--space-2);
+    border: 2px solid var(--region);
+  }
+
+  .guideRegion > b {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 0 5px;
+    background: var(--region);
+    color: var(--ink-950);
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+  }
+
+  .guideRegion[data-region="code"] {
+    --region: #c07bf0;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .guideRegion[data-region="inventory"] {
+    --region: #f0a24a;
+  }
+
+  .guideRegion code {
+    font-family: var(--font-display);
+    font-size: var(--fs-sm);
+  }
+
+  .guidePieces {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: center;
+  }
+
+  @keyframes piece-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .board {
+      gap: 2px;
+      padding: 6px;
+    }
+
+    .target {
+      min-width: 13px;
+      height: 13px;
+      font-size: 0.66rem;
+    }
+
+    .rowHead .target {
+      width: 13px;
+    }
+
+    .targetInput {
+      min-width: 24px;
+      height: 28px;
+      font-size: 16px;
+    }
+
+    .rowHead .targetInput {
+      width: 30px;
+    }
+  }
+}
