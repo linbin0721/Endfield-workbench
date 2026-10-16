@@ -174,5 +174,39 @@
     "missing": "{{name}}: icon unavailable",
     "open": "{{name}}: view details (opens in a new tab)",
     "title": "{{name}} · View details"
+  },
+  "bench": {
+    "legend": "Sources",
+    "source": {
+      "operator": "Operator",
+      "weapon": "Weapon",
+      "gear": "Gear",
+      "sets": "Sets"
+    },
+    "requiredTag": "Required",
+    "barLabel": "{{name}} {{value}}, target {{target}}",
+    "partPercent": " (+{{value}}%)",
+    "formula": "Flat {{flat}} × (1 + {{percent}}%) = {{raw}} → panel {{display}}",
+    "refineLevel": "{{value}} / {{max}}",
+    "buildIndex": "Build {{index}}",
+    "weaponSlot": "Weapon",
+    "refine": "Refinement",
+    "gemFirst": "Essence base affix{{attribute}}",
+    "gemPassive": "Essence skill affix",
+    "statsTitle": "Panel stats by source",
+    "breakdownUnavailable": "Some stats could not be recomputed exactly by source, so only their totals are shown.",
+    "tableCaption": "Build comparison",
+    "colBuild": "Build",
+    "colMatched": "Hits",
+    "colWeapon": "Weapon",
+    "selectBuild": "View build {{index}}",
+    "preview": "Loadout preview",
+    "panelLabel": "Loadout bench",
+    "short": {
+      "strength": "STR",
+      "agility": "AGI",
+      "intellect": "INT",
+      "will": "WIL"
+    }
   }
 }

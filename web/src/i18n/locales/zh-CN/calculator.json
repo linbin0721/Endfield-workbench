@@ -174,5 +174,39 @@
     "missing": "{{name}}：暂无图标",
     "open": "{{name}}：查看资料（在新标签页打开）",
     "title": "{{name}} · 查看资料"
+  },
+  "bench": {
+    "legend": "来源图例",
+    "source": {
+      "operator": "干员",
+      "weapon": "武器",
+      "gear": "装备",
+      "sets": "套装"
+    },
+    "requiredTag": "必选",
+    "barLabel": "{{name}} {{value}}，目标 {{target}}",
+    "partPercent": "（+{{value}}%）",
+    "formula": "固定值 {{flat}} ×（1 + {{percent}}%）= {{raw}} → 面板 {{display}}",
+    "refineLevel": "{{value}} / {{max}}",
+    "buildIndex": "方案 {{index}}",
+    "weaponSlot": "武器",
+    "refine": "精炼",
+    "gemFirst": "基质基础词条{{attribute}}",
+    "gemPassive": "基质技能词条",
+    "statsTitle": "面板属性与来源",
+    "breakdownUnavailable": "部分属性无法按来源逐项复算到与面板完全一致，只显示总值。",
+    "tableCaption": "方案对比",
+    "colBuild": "方案",
+    "colMatched": "达标",
+    "colWeapon": "武器",
+    "selectBuild": "查看方案 {{index}}",
+    "preview": "配装预览",
+    "panelLabel": "配装台",
+    "short": {
+      "strength": "力",
+      "agility": "敏",
+      "intellect": "智",
+      "will": "意"
+    }
   }
 }

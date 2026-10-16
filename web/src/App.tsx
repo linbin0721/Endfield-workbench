@@ -16,7 +16,7 @@ import { TOOLS, type ToolEntry, type ToolId } from "./tools/registry";
 const PAGE_LOADERS: Record<ToolId, () => Promise<{ default: ComponentType }>> = {
   balloon: () => import("./features/balloon/BalloonWorkbench"),
   circuit: () => import("./features/circuit/CircuitWorkbench"),
-  calculator: () => import("./CalculatorPage"),
+  calculator: () => import("./features/calculator/CalculatorBench"),
 };
 
 /** Created once at module level, so a language switch never remounts a page. */

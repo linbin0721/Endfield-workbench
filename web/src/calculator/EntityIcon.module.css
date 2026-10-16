@@ -22,6 +22,12 @@
     height: 56px;
   }
 
+  .large {
+    flex-basis: 88px;
+    width: 88px;
+    height: 88px;
+  }
+
   .icon:where(a):hover {
     border-color: var(--card-edge-hover);
   }

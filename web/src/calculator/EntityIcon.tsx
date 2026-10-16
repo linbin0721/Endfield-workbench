@@ -7,7 +7,7 @@ type EntityIconProps = {
   kind: EntityKind;
   id: string;
   name: string;
-  size?: 56 | 64;
+  size?: 56 | 64 | 88;
   eager?: boolean;
   /** Weapon rarity (3–6): a coloured bar along the bottom edge. */
   rarity?: number;
@@ -16,7 +16,7 @@ type EntityIconProps = {
 function IconImage({ imageUrl, name, size, eager }: {
   imageUrl: string;
   name: string;
-  size: 56 | 64;
+  size: 56 | 64 | 88;
   eager: boolean;
 }) {
   const [ready, setReady] = useState(false);
@@ -72,7 +72,7 @@ export default function EntityIcon({ kind, id, name, size = 64, eager = false, r
   const { t } = useAppTranslation("calculator");
   if (!id) return null;
   const media = getEntityMedia(kind, id);
-  const className = [styles.icon, size === 56 ? styles.small : "", rarity ? styles[`r${rarity}`] : ""].filter(Boolean).join(" ");
+  const className = [styles.icon, size === 56 ? styles.small : size === 88 ? styles.large : "", rarity ? styles[`r${rarity}`] : ""].filter(Boolean).join(" ");
   if (!media) return <span className={className} role="img" aria-label={t("icon.missing", { name })}>
     <span className={styles.placeholder} aria-hidden="true">{Array.from(name.trim())[0] ?? "?"}</span>
   </span>;
