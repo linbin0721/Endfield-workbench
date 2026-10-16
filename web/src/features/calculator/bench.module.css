@@ -1,0 +1,773 @@
+/*
+ * 325 loadout bench: conditions on the left, results table and the build
+ * bench (operator, weapon, four gear slots, panel bars by source) on the
+ * right. The search form itself keeps calculator.module.css.
+ */
+@layer components {
+  .page {
+    --src-operator: var(--blue-400);
+    --src-weapon: var(--yellow-400);
+    --src-gear: var(--teal-400);
+    --src-sets: #c07bf0;
+    --src-total: var(--text-secondary);
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  .main {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .targetChip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: 2px var(--space-2);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .targetChip small {
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  /* ---------- Progress ---------- */
+
+  .progress {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: start;
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+    background: var(--surface-panel);
+  }
+
+  .progress p {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .progressTrack {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    overflow: hidden;
+    background: var(--border-subtle);
+  }
+
+  .progressTrack span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 35%;
+    background: var(--text-primary);
+    box-shadow: 4px 0 0 var(--accent);
+    animation: progress-scan 1.2s var(--ease-out) infinite;
+  }
+
+  /* ---------- Results summary and table ---------- */
+
+  .summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .summary span {
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-row);
+    font-size: var(--fs-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .summary [data-complete] {
+    border-color: color-mix(in srgb, var(--success) 60%, transparent);
+    color: var(--success);
+  }
+
+  .notices {
+    display: grid;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .notices:empty {
+    display: none;
+  }
+
+  .note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .noteList {
+    display: grid;
+    gap: var(--space-1);
+    margin: var(--space-4) 0 0;
+    padding-left: 1.2em;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+  }
+
+  .tableWrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-sm);
+  }
+
+  .caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .table thead th {
+    background: var(--surface-row);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .table tbody tr {
+    cursor: pointer;
+    transition: background-color var(--dur-instant) linear;
+  }
+
+  .table tbody tr:hover {
+    background: var(--surface-row-hover);
+  }
+
+  .table tbody tr[data-selected] {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .table tbody tr:last-child th,
+  .table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .num {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    text-align: right !important;
+  }
+
+  .short {
+    display: none;
+    text-decoration: none;
+  }
+
+  .table td.num {
+    font-size: var(--fs-md);
+  }
+
+  .table td[data-matched] {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  .table td[data-matched]::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 6px;
+    background: var(--accent);
+    vertical-align: middle;
+  }
+
+  .rowButton {
+    min-width: 44px;
+    min-height: 36px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .rowButton[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 28px;
+    height: 24px;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+  }
+
+  .count[data-reached] {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .weaponCell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    white-space: normal;
+  }
+
+  .weaponCell > :first-child {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* ---------- Bench ---------- */
+
+  .benchPanel {
+    min-width: 0;
+  }
+
+  .bench {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .benchHead {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  /* Diagonal hazard strip under the header, as on game loadout screens. */
+  .benchHead::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 96px;
+    height: 3px;
+    background: repeating-linear-gradient(135deg, var(--accent) 0 6px, transparent 6px 10px);
+  }
+
+  .benchTitle {
+    display: grid;
+    flex: 1 1 12rem;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .benchIndex {
+    color: var(--accent-text);
+    font-family: var(--font-display);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .benchName {
+    margin: 0;
+    font-size: var(--fs-2xl);
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .benchMeta {
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+  }
+
+  .copy {
+    display: grid;
+    justify-items: end;
+    gap: var(--space-1);
+  }
+
+  .copyStatus {
+    font-size: var(--fs-xs);
+  }
+
+  .copyStatus[data-ok="true"] {
+    color: var(--success);
+  }
+
+  .copyStatus[data-ok="false"] {
+    color: var(--danger);
+  }
+
+  .loadout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.6fr);
+    gap: var(--space-3);
+  }
+
+  .weapon,
+  .slot {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+
+  .weapon {
+    border-top: 2px solid var(--src-weapon);
+  }
+
+  .slot {
+    border-top: 2px solid var(--src-gear);
+  }
+
+  .weapon[data-empty],
+  .slot[data-empty] {
+    min-height: 92px;
+    border-style: dashed;
+    border-top-width: 1px;
+    background:
+      repeating-linear-gradient(135deg, var(--surface-pattern) 0 1px, transparent 1px 10px),
+      var(--surface-row);
+  }
+
+  .weapon[data-empty] {
+    min-height: 196px;
+  }
+
+  .gear {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .slotHead {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .slotEmpty {
+    flex: 0 0 64px;
+    height: 64px;
+    border: 1px dashed var(--border-strong);
+  }
+
+  .slotText {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .slotLabel {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+  }
+
+  .slotName {
+    font-size: var(--fs-md);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .slotSet {
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .missing {
+    color: var(--danger);
+    font-size: var(--fs-xs);
+  }
+
+  .mods {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mod {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px var(--space-2);
+    background: var(--surface-row);
+    font-size: var(--fs-sm);
+  }
+
+  .modName {
+    min-width: 0;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+
+  .modValue {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pips {
+    display: inline-flex;
+    gap: 3px;
+  }
+
+  .pips i {
+    width: 6px;
+    height: 10px;
+    border: 1px solid var(--border-strong);
+    transform: skewX(-18deg);
+  }
+
+  .pips i[data-on] {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  .sets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+  }
+
+  .set {
+    padding: 2px var(--space-2);
+    border: 1px solid color-mix(in srgb, var(--src-sets) 60%, transparent);
+    color: var(--text-primary);
+  }
+
+  /* ---------- Panel bars ---------- */
+
+  .panel {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .panelTitle {
+    margin: 0;
+    color: var(--accent-text);
+    font-size: var(--fs-md);
+    font-weight: 700;
+  }
+
+  .stats {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin: 0;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    list-style: none;
+  }
+
+  .legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .legend li::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background: var(--src);
+  }
+
+  .page [data-source="operator"] {
+    --src: var(--src-operator);
+  }
+
+  .page [data-source="weapon"] {
+    --src: var(--src-weapon);
+  }
+
+  .page [data-source="gear"] {
+    --src: var(--src-gear);
+  }
+
+  .page [data-source="sets"] {
+    --src: var(--src-sets);
+  }
+
+  .page [data-source="total"] {
+    --src: var(--src-total);
+  }
+
+  .stat {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .statHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .statName {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 3.5em;
+    font-weight: 700;
+  }
+
+  .required {
+    padding: 0 var(--space-1);
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .statValue {
+    font-family: var(--font-display);
+    font-size: var(--fs-2xl);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .stat[data-matched] .statValue {
+    color: var(--accent-text);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
+  .statState {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+  }
+
+  .stat[data-matched] .statState {
+    color: var(--success);
+    font-weight: 700;
+  }
+
+  .track {
+    position: relative;
+    display: flex;
+    height: 14px;
+    background:
+      repeating-linear-gradient(90deg, var(--surface-pattern) 0 1px, transparent 1px 8px),
+      var(--surface-row);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .segment {
+    height: 100%;
+    background: var(--src);
+    transform-origin: left;
+    animation: grow 600ms var(--ease-out) both;
+  }
+
+  .segment + .segment {
+    box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.35);
+  }
+
+  .targetLine {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    left: var(--target);
+    width: 2px;
+    background: var(--text-primary);
+  }
+
+  .targetLine i {
+    position: absolute;
+    bottom: calc(100% + 1px);
+    left: 50%;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-style: normal;
+    line-height: 1;
+    transform: translateX(-50%);
+  }
+
+  .parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+
+  .parts > span[data-source] {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .parts > span[data-source]::before {
+    content: "";
+    align-self: center;
+    width: 6px;
+    height: 6px;
+    background: var(--src);
+  }
+
+  .parts small {
+    color: var(--text-muted);
+    font-size: inherit;
+  }
+
+  .formula {
+    flex-basis: 100%;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes progress-scan {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(300%);
+    }
+  }
+
+  @media (max-width: 1099px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .loadout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .weapon[data-empty] {
+      min-height: 92px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .gear {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .weaponCol,
+    .full {
+      display: none;
+    }
+
+    .short {
+      display: inline;
+    }
+
+    .table th,
+    .table td {
+      padding: var(--space-2);
+    }
+
+    .benchName {
+      font-size: var(--fs-xl);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .table th,
+    .table td {
+      padding: var(--space-2) 5px;
+    }
+
+    .rowButton {
+      min-width: 34px;
+    }
+
+    /* The hit dot becomes an underline to save width. */
+    .table td[data-matched]::after {
+      display: none;
+    }
+
+    .table td[data-matched] {
+      box-shadow: inset 0 -3px 0 var(--accent);
+    }
+  }
+}

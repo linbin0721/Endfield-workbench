@@ -174,5 +174,39 @@
     "missing": "{{name}}: 아이콘 없음",
     "open": "{{name}}: 자료 보기 (새 탭에서 열림)",
     "title": "{{name}} · 자료 보기"
+  },
+  "bench": {
+    "legend": "출처 범례",
+    "source": {
+      "operator": "오퍼레이터",
+      "weapon": "무기",
+      "gear": "장비",
+      "sets": "세트"
+    },
+    "requiredTag": "필수",
+    "barLabel": "{{name}} {{value}}, 목표 {{target}}",
+    "partPercent": " (+{{value}}%)",
+    "formula": "고정값 {{flat}} × (1 + {{percent}}%) = {{raw}} → 능력치 {{display}}",
+    "refineLevel": "{{value}} / {{max}}",
+    "buildIndex": "조합 {{index}}",
+    "weaponSlot": "무기",
+    "refine": "정련",
+    "gemFirst": "기질 기본 옵션{{attribute}}",
+    "gemPassive": "기질 스킬 옵션",
+    "statsTitle": "능력치와 출처",
+    "breakdownUnavailable": "일부 능력치는 출처별 재계산이 표시값과 정확히 일치하지 않아 합계만 표시합니다.",
+    "tableCaption": "조합 비교",
+    "colBuild": "조합",
+    "colMatched": "달성",
+    "colWeapon": "무기",
+    "selectBuild": "조합 {{index}} 보기",
+    "preview": "장비 미리보기",
+    "panelLabel": "장비 작업대",
+    "short": {
+      "strength": "힘",
+      "agility": "민첩",
+      "intellect": "지능",
+      "will": "의지"
+    }
   }
 }

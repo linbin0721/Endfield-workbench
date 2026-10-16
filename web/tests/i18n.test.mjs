@@ -163,6 +163,8 @@ const DYNAMIC_KEY_FAMILIES = [
   ["circuit", ["problems.targetMissing", "problems.targetInvalid", "problems.cellUnknown", "problems.fixedChannel"]],
   ["circuit", ["reasons.row_targets", "reasons.column_targets", "reasons.rejected", "reasons.unsatisfiable",
     "reasons.solver_limit", "reasons.validation_failed"]],
+  ["calculator", ["bench.short.strength", "bench.short.agility", "bench.short.intellect", "bench.short.will"]],
+
   // Referenced inside i18n/messages.ts, which the source scan skips.
   ["messages", ["unknown.notice", "unknown.error", "unknown.inline"]],
 ];

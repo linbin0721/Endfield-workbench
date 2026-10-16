@@ -4,6 +4,7 @@ import test from "node:test";
 import { characterState, evaluateBuild, weaponStats } from "../src/calculator/evaluate.ts";
 import { searchBuilds } from "../src/calculator/search.ts";
 import { DEFAULT_REQUEST } from "../src/calculator/types.ts";
+import { breakdownBuild } from "../src/features/calculator/breakdown.ts";
 
 const data = JSON.parse(fs.readFileSync(new URL("../src/calculator/data.json", import.meta.url)));
 const ember = "chr_0009_azrila";
@@ -155,4 +156,22 @@ test("search includes percentage weapon and equipment as well as permanent set b
   copy.weapons[0].bounds[0] = {lowerBound: 3, upperBound: 3};
   const r = searchBuilds(copy, {...DEFAULT_REQUEST, characterId: ember, required: [0], budgetMs: 1000, maxGemFirst: 0});
   assert.ok(r.results.length); assert.equal(r.results[0].evaluation.display[0], 325);
+});
+test("display breakdown replays raw exactly and its parts add up to it", () => {
+  for (const build of [fixture, triple]) {
+    const evaluation = evaluateBuild(data, build);
+    const axes = breakdownBuild(data, build, evaluation);
+    axes.forEach((axis, index) => {
+      assert.ok(axis, `axis ${index} has a breakdown`);
+      assert.equal(axis.raw, evaluation.raw[index]);
+      assert.equal(Math.floor(axis.raw), evaluation.display[index]);
+      const sum = axis.parts.reduce((total, part) => total + part.value, 0);
+      assert.ok(Math.abs(sum - axis.raw) < 1e-9);
+    });
+  }
+  // A tampered evaluation is never explained: the breakdown withholds that axis.
+  const evaluation = evaluateBuild(data, fixture);
+  const tampered = {...evaluation, raw: evaluation.raw.map((value, index) => index === 1 ? value + 1e-9 : value)};
+  assert.equal(breakdownBuild(data, fixture, tampered)[1], null);
+  assert.ok(breakdownBuild(data, fixture, tampered)[0]);
 });
