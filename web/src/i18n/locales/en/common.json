@@ -80,6 +80,10 @@
     "failed": "Failed",
     "cancelled": "Cancelled"
   },
+  "puzzle": {
+    "answerWaiting": "The answer appears here after recognition or a code lookup.",
+    "solved": "Solved"
+  },
   "image": {
     "eyebrow": "01 / IMAGE",
     "title": "Import screenshot",

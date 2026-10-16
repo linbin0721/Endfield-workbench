@@ -1,5 +1,3 @@
-// Pre-redesign page styles (legacy layer), loaded with the page chunk.
-import "./styles.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
@@ -22,6 +20,13 @@ import CircuitGuideExample from "./CircuitGuideExample";
 import CircuitResult from "./CircuitResult";
 import ImageInput, { type ImageSelection } from "./ImageInput";
 import { msg, useAppTranslation, useMessages, type MessageText } from "./i18n";
+import { AnswerPanel, ModeSwitch, SectionHead, ServiceStatus, TaskStatus, type ModeOption } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
+import { Button } from "./ui/Button/Button";
+import { ArrowRightIcon, CloseIcon, ImageIcon, SearchIcon } from "./ui/icons";
+import { Notice } from "./ui/Notice/Notice";
+import { PageHeader } from "./ui/PageHeader/PageHeader";
+import { Panel } from "./ui/Panel/Panel";
 
 type ServiceState = "loading" | "ready" | "error";
 type Operation = "recognition" | "solve";
@@ -290,105 +295,101 @@ export default function CircuitPage() {
   };
 
   const catalog = recognition?.catalog ?? null;
-  const catalogClass = catalog?.image_digest_mismatch || catalog?.available === false ? " warning" : "";
+  const catalogWarning = Boolean(catalog?.image_digest_mismatch || catalog?.available === false);
   const catalogConfidence = catalog?.code_confidence != null
     ? t("confidence", { value: (catalog.code_confidence * 100).toFixed(1) }) : "";
   const questionConfidence = recognition?.question_code_confidence != null
     ? t("confidence", { value: (recognition.question_code_confidence * 100).toFixed(1) }) : "";
   const notationKey = recognition?.notation ? notationKeys[recognition.notation] ?? "notation.unknown" : "";
-  return <>
-    <div className="intro"><span className="eyebrow">{t("eyebrow")}</span><h1>{t("heading")}</h1>
-      <p>{t("intro")}</p>
-    </div>
-    <div className="mode-choices" role="group" aria-label={t("modeGroupLabel")}>
-      <button type="button" className={`mode-choice ${mode === "screenshot" ? "active" : ""}`}
-        aria-expanded={mode === "screenshot"} aria-controls="circuit-screenshot-flow" onClick={() => switchMode("screenshot")}>
-        <span className="mode-choice-title">{t("mode.screenshotTitle")}</span>
-        <span className="mode-choice-note">{t("mode.screenshotNote")}</span>
-      </button>
-      <button type="button" className={`mode-choice ${mode === "code" ? "active" : ""}`}
-        aria-expanded={mode === "code"} aria-controls="circuit-code-flow" onClick={() => switchMode("code")}>
-        <span className="mode-choice-title">{t("mode.codeTitle")}</span>
-        <span className="mode-choice-note">{t("mode.codeNote")}</span>
-      </button>
-    </div>
-    <div className="service-status" role="status" aria-live="polite">
-      {service === "loading" ? tc("service.querying") : service === "error"
-        ? <><span>{tc("service.unavailable", { message: render(serviceError, "error") })}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>{tc("service.retry")}</button></>
-        : circuit ? <span>{tc("service.status", {
-          solving: tc(canSolve ? "service.solvingAvailable" : "service.solvingUnavailable"),
-          recognition: tc(canRecognize ? "service.recognitionAvailable" : "service.recognitionUnavailable"),
-        })}</span>
-          : t("capabilityMissing")}
-    </div>
-    {mode && <div className={`content-grid ${result ? "" : "no-result"}`}>
-      <div className="left-column">
-        {mode === "screenshot" ? <div className="flow" id="circuit-screenshot-flow">
+  const modeOptions: ModeOption<Mode>[] = [
+    { mode: "screenshot", title: t("mode.screenshotTitle"), note: t("mode.screenshotNote"), icon: <ImageIcon />, controls: "circuit-screenshot-flow" },
+    { mode: "code", title: t("mode.codeTitle"), note: t("mode.codeNote"), icon: <SearchIcon />, controls: "circuit-code-flow" },
+  ];
+  const serviceState = service === "ready" && !circuit ? "missing" : service;
+  const serviceText = service === "loading" ? tc("service.querying")
+    : service === "error" ? tc("service.unavailable", { message: render(serviceError, "error") })
+      : circuit ? tc("service.status", {
+        solving: tc(canSolve ? "service.solvingAvailable" : "service.solvingUnavailable"),
+        recognition: tc(canRecognize ? "service.recognitionAvailable" : "service.recognitionUnavailable"),
+      }) : t("capabilityMissing");
+  const taskLine = (kind: Operation | null) => task && <TaskStatus status={task.status}>{tc("task.label", {
+    operation: tc(kind === "recognition" ? "task.recognition" : "task.solve"),
+    status: tc(`task.${task.status}`),
+  })}</TaskStatus>;
+  const answerSourceKey = submission ? (typeof submission.source === "string" ? submission.source : submission.source.key) : undefined;
+
+  return <div className={s.page}>
+    <PageHeader eyebrow={t("eyebrow")} title={t("heading")}>{t("intro")}</PageHeader>
+    <ModeSwitch label={t("modeGroupLabel")} value={mode} options={modeOptions} onSelect={switchMode} />
+    <ServiceStatus state={serviceState} text={serviceText} retryLabel={tc("service.retry")} onRetry={() => void refreshCapabilities()} />
+    {mode && <div className={s.workspace} id={mode === "screenshot" ? "circuit-screenshot-flow" : "circuit-code-flow"}>
+      <div className={s.column}>
+        {mode === "screenshot" ? <>
           <CircuitGuideExample mode="screenshot" />
-          <ImageInput key={imageVersion} onChanged={changeImage}
-            cropHint={tc("image.cropNoteCircuit")} />
-          <section className="panel" aria-labelledby="circuit-recognize-title">
-            <span className="eyebrow">{t("recognize.eyebrow")}</span><h2 id="circuit-recognize-title">{t("recognize.heading")}</h2>
-            <p className="muted">{t("recognize.description")}</p>
-            <p className="muted small">{tc("image.ocrNote")}</p>
-            <div className="row-actions"><button type="button" className="button primary"
-              disabled={!canRecognize || !imageSelection || busy.current} onClick={() => void recognize()}>
-              {submitting && operation === "recognition" ? t("recognize.uploading") : operation === "recognition" && busy.current
-                ? t("recognize.recognizing") : submitting && operation === "solve" ? t("recognize.submittingSolve")
-                  : operation === "solve" && busy.current ? t("recognize.solving") : t("recognize.submit")}
-            </button>{busy.current && <button type="button" className="button secondary" onClick={cancel}>{t("recognize.cancel")}</button>}</div>
-            {/* The button stays disabled while the connection is unresolved, so
-                repeat the connection state next to it instead of only on top. */}
-            {service !== "ready" && <div className="service-status" role="status" aria-live="polite" data-service-hint={service}>
-              {service === "loading" ? tc("service.connecting") : <><span>{tc("service.connectFailed", { message: render(serviceError, "error") })}</span><button type="button" className="text-button" onClick={() => void refreshCapabilities()}>{tc("service.retry")}</button></>}
-            </div>}
-            {task && <p className="task-status" role="status" aria-live="polite">{tc("task.label", {
-              operation: tc(operation === "recognition" ? "task.recognition" : "task.solve"),
-              status: tc(`task.${task.status}`),
-            })}</p>}
-            {recognition && <div className="circuit-recognition-meta" role="status">
-              {(recognition.notation || recognition.question_code) && <div className="notice">
-                {recognition.notation && <p><strong>{t("notation.label")}</strong>{t(notationKey)}</p>}
-                {recognition.question_code && <p><strong>{t("questionCode")}</strong>{recognition.question_code}{questionConfidence}</p>}
-              </div>}
-              {(recognition.issues ?? []).length > 0 && <div className="notice"><strong>{t("issueTitle")}</strong>
-                <ul>{(recognition.issues ?? []).map((issue) => <li key={issue}>{tm(issue)}</li>)}</ul></div>}
-              {catalog && <div className={`notice${catalogClass}`}>
-                <strong>{t("catalog.title")}</strong>{catalog.available ? <>
-                  {t("catalog.code", { code: catalog.code, confidence: catalogConfidence })}
-                  {` · ${t(catalog.complete ? "catalog.complete" : "catalog.incomplete")}`}
-                  {catalog.recorded ? t("catalog.recorded") : ""}{catalog.duplicate ? t("catalog.duplicate") : ""}
-                  {catalog.image_digest_mismatch ? t("catalog.digestMismatch") : ""}
-                  {catalog.matched_status ? t("catalog.matchedStatus", { status: t(candidateStatusKeys[catalog.matched_status] ?? "catalog.statusUnknown") }) : ""}
-                  {t("catalog.variantCount", { count: (catalog.candidates ?? []).length })}
-                </> : t("catalog.unavailable")}
-                {(catalog.issues ?? []).length > 0 && <ul>{(catalog.issues ?? []).map((issue) => <li key={issue}>{tm(issue)}</li>)}</ul>}
-              </div>}
-            </div>}
-            {workError && <div className="notice warning" role="alert">{render(workError, "error")}</div>}
-            {choice && <div className="notice circuit-choice">
-              <strong>{t("choice.title")}</strong>{t("choice.line", { code: choice.code, count: choice.candidates.length })}
-              <CircuitCatalogCandidates candidates={choice.candidates} code={choice.code}
-                matchedFingerprint={choice.matchedFingerprint} disabled={busy.current || !canSolve} onSolve={solveFromChoice} />
-            </div>}
-          </section>
-        </div> : <div className="flow" id="circuit-code-flow">
+          <ImageInput key={imageVersion} onChanged={changeImage} cropHint={tc("image.cropNoteCircuit")} />
+        </> : <>
           <CircuitGuideExample mode="code" />
           <CircuitCodeQuery key={queryVersion} canQuery={canQuery} canSolve={canSolve} busy={busy.current}
             onQueryStart={invalidate} onSolve={solveFromChoice} />
-          {(task || workError || busy.current) && <section className="panel" aria-label={t("statusPanelLabel")}>
-            {task && <p className="task-status" role="status" aria-live="polite">{tc("task.label", {
-              operation: tc("task.solve"), status: tc(`task.${task.status}`) })}</p>}
-            {workError && <div className="notice warning" role="alert">{render(workError, "error")}</div>}
-            {busy.current && <div className="row-actions"><button type="button" className="button secondary" onClick={cancel}>{t("recognize.cancel")}</button></div>}
-          </section>}
-        </div>}
+        </>}
       </div>
-      {result && submission && <div className="right-column"><section className="panel answer-panel" aria-label={t("answer.panelLabel")}
-        data-answer-source={typeof submission.source === "string" ? submission.source : submission.source.key}>
-        <span className="eyebrow">{t("answer.eyebrow")}</span>
-        <CircuitResult puzzle={submission.puzzle} displayPalette={submission.displayPalette} result={result} />
-      </section></div>}
+      <div className={s.column}>
+        {mode === "screenshot" ? <Panel as="section" aria-labelledby="circuit-recognize-title">
+          <SectionHead eyebrow={t("recognize.eyebrow")} title={t("recognize.heading")} id="circuit-recognize-title" />
+          <p className={s.text}>{t("recognize.description")}</p>
+          <p className={`${s.text} ${s.small}`}>{tc("image.ocrNote")}</p>
+          <div className={s.actions}>
+            <Button variant="accent" icon={<ArrowRightIcon />} disabled={!canRecognize || !imageSelection || busy.current} onClick={() => void recognize()}>
+              {submitting && operation === "recognition" ? t("recognize.uploading") : operation === "recognition" && busy.current
+                ? t("recognize.recognizing") : submitting && operation === "solve" ? t("recognize.submittingSolve")
+                  : operation === "solve" && busy.current ? t("recognize.solving") : t("recognize.submit")}
+            </Button>
+            {busy.current && <Button variant="secondary" icon={<CloseIcon />} onClick={cancel}>{t("recognize.cancel")}</Button>}
+          </div>
+          {/* The button stays disabled while the connection is unresolved, so
+              repeat the connection state next to it instead of only on top. */}
+          {service !== "ready" && <ServiceStatus hint state={service}
+            text={service === "loading" ? tc("service.connecting") : tc("service.connectFailed", { message: render(serviceError, "error") })}
+            retryLabel={tc("service.retry")} onRetry={() => void refreshCapabilities()} />}
+          {taskLine(operation)}
+          <div className={s.recognition}>
+            {recognition && (recognition.notation || recognition.question_code) && <Notice tone="info" role="status">
+              {recognition.notation && <p><strong>{t("notation.label")}</strong>{t(notationKey)}</p>}
+              {recognition.question_code && <p><strong>{t("questionCode")}</strong>{recognition.question_code}{questionConfidence}</p>}
+            </Notice>}
+            {recognition && (recognition.issues ?? []).length > 0 && <Notice tone="info" role="status" title={t("issueTitle")}>
+              <ul className={s.list}>{(recognition.issues ?? []).map((issue) => <li key={issue}>{tm(issue)}</li>)}</ul>
+            </Notice>}
+            {recognition && catalog && <Notice tone={catalogWarning ? "warning" : "info"} role="status" title={t("catalog.title")}>
+              {catalog.available ? <>
+                {t("catalog.code", { code: catalog.code, confidence: catalogConfidence })}
+                {` · ${t(catalog.complete ? "catalog.complete" : "catalog.incomplete")}`}
+                {catalog.recorded ? t("catalog.recorded") : ""}{catalog.duplicate ? t("catalog.duplicate") : ""}
+                {catalog.image_digest_mismatch ? t("catalog.digestMismatch") : ""}
+                {catalog.matched_status ? t("catalog.matchedStatus", { status: t(candidateStatusKeys[catalog.matched_status] ?? "catalog.statusUnknown") }) : ""}
+                {t("catalog.variantCount", { count: (catalog.candidates ?? []).length })}
+              </> : t("catalog.unavailable")}
+              {(catalog.issues ?? []).length > 0 && <ul className={s.list}>{(catalog.issues ?? []).map((issue) => <li key={issue}>{tm(issue)}</li>)}</ul>}
+            </Notice>}
+            {workError && <Notice tone="danger" role="alert">{render(workError, "error")}</Notice>}
+            {choice && <div className={s.stack}>
+              <Notice tone="info" title={t("choice.title")}>{t("choice.line", { code: choice.code, count: choice.candidates.length })}</Notice>
+              <CircuitCatalogCandidates candidates={choice.candidates} code={choice.code}
+                matchedFingerprint={choice.matchedFingerprint} disabled={busy.current || !canSolve} onSolve={solveFromChoice} />
+            </div>}
+          </div>
+        </Panel> : (task || workError || busy.current) && <Panel as="section" aria-label={t("statusPanelLabel")}>
+          {taskLine("solve")}
+          {workError && <div className={s.recognition}><Notice tone="danger" role="alert">{render(workError, "error")}</Notice></div>}
+          {busy.current && <div className={s.actions}><Button variant="secondary" icon={<CloseIcon />} onClick={cancel}>{t("recognize.cancel")}</Button></div>}
+        </Panel>}
+        <AnswerPanel label={t("answer.panelLabel")} title={t("answer.eyebrow")} waiting={tc("puzzle.answerWaiting")}
+          sourceKey={result && submission ? answerSourceKey : undefined}>
+          {result && submission
+            ? <CircuitResult puzzle={submission.puzzle} displayPalette={submission.displayPalette} result={result} />
+            : null}
+        </AnswerPanel>
+      </div>
     </div>}
-  </>;
+  </div>;
 }

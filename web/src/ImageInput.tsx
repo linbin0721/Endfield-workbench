@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppTranslation } from "./i18n";
 import { isMobileLikeDevice } from "./device";
 import { ScreenCaptureError, captureGameWindow, isScreenCaptureSupported, type ScreenCaptureFailure } from "./screenCapture";
+import { SectionHead, cx } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
+import { Button } from "./ui/Button/Button";
+import { CaptureIcon, ImageIcon } from "./ui/icons";
+import { Panel } from "./ui/Panel/Panel";
 
 type Crop = { left: number; top: number; width: number; height: number };
 type ImageInfo = { file: File; width: number; height: number; url: string };
@@ -223,44 +228,54 @@ export default function ImageInput({ onChanged, cropHint }: Props) {
   };
   const error = errorKey ? t(errorKey) : "";
 
-  return <section className={`panel ${isMobile ? "image-input-mobile" : "image-input-desktop"}`} aria-labelledby="image-title">
-    <div className="section-heading"><div><span className="eyebrow">{t("image.eyebrow")}</span><h2 id="image-title">{t("image.title")}</h2></div><span className="badge">{t("image.localOnlyBadge")}</span></div>
-    <p className="muted">{isMobile ? t("image.introMobile") : t("image.introDesktop")}{t("image.uploadNote")}</p>
-    <div className={`dropzone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+  return <Panel as="section" className={isMobile ? s.mobile : undefined} aria-labelledby="image-title">
+    <SectionHead eyebrow={t("image.eyebrow")} title={t("image.title")} id="image-title" badge={t("image.localOnlyBadge")} />
+    <p className={s.text}>{isMobile ? t("image.introMobile") : t("image.introDesktop")}{t("image.uploadNote")}</p>
+    <div className={cx(s.dropzone, dragging && s.dragging)} onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void choose(event.dataTransfer.files[0]); }}>
       <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" id="image-file" hidden tabIndex={-1} aria-label={t("image.fileInputLabel")}
         onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void choose(file); }} />
-      <div className="dropzone-actions">
-        <button type="button" className={`button ${choosePrimary ? "primary" : "secondary"}`} onClick={() => fileInput.current?.click()}>{t(chooseLabelKey)}</button>
-        {!isMobile && <button type="button" className={`button ${captureSupported ? "primary" : "secondary"}`} disabled={!captureSupported || capturing} onClick={startCapture}>{t("image.captureWindow")}</button>}
+      <span className={s.dropIcon} aria-hidden="true"><ImageIcon /></span>
+      <div className={s.dropActions}>
+        <Button variant={choosePrimary ? "primary" : "secondary"} icon={<ImageIcon />} onClick={() => fileInput.current?.click()}>{t(chooseLabelKey)}</Button>
+        {!isMobile && <Button variant={captureSupported ? "primary" : "secondary"} icon={<CaptureIcon />}
+          disabled={!captureSupported || capturing} onClick={startCapture}>{t("image.captureWindow")}</Button>}
       </div>
-      {!isMobile && <span className="dropzone-note">{t("image.dropNote")}</span>}
-      <small>{t("image.limits")}</small>
+      {!isMobile && <span className={s.dropNote}>{t("image.dropNote")}</span>}
+      <small className={s.limits}>{t("image.limits")}</small>
     </div>
-    {!isMobile && !captureSupported && <p className="muted small capture-hint">{t("image.captureUnsupported")}</p>}
-    {capturing && <div className="capture-status" role="status"><span>{t(captureStatusKey)}</span>
-      <button className="text-button" type="button" onClick={cancelCapture}>{t("image.captureCancel")}</button></div>}
-    {error && <p role="alert" className="error-text">{error}</p>}
+    {!isMobile && !captureSupported && <p className={cx(s.text, s.small)}>{t("image.captureUnsupported")}</p>}
+    {capturing && <div className={s.captureStatus} role="status"><span>{t(captureStatusKey)}</span>
+      <Button variant="ghost" size="sm" onClick={cancelCapture}>{t("image.captureCancel")}</Button></div>}
+    {error && <p role="alert" className={s.errorText}>{error}</p>}
     {image && <>
-      <div className="image-meta"><span>{t("image.meta", { name: image.file.name, width: image.width, height: image.height })}</span><button className="text-button" type="button" onClick={clear}>{t("image.clear")}</button></div>
-      <fieldset className="image-source"><legend>{t("image.scopeLegend")}</legend>
-        <label><input type="radio" name="image-source" checked={!useCrop} onChange={() => selectCrop(false)} /> {t("image.scopeFull")}</label>
-        <label><input type="radio" name="image-source" checked={useCrop} onChange={() => selectCrop(true)} /> {t("image.scopeCrop")}</label>
+      <div className={s.imageMeta}><span className={s.imageName}>{t("image.meta", { name: image.file.name, width: image.width, height: image.height })}</span>
+        <Button variant="ghost" size="sm" onClick={clear}>{t("image.clear")}</Button></div>
+      <fieldset className={s.fieldset}><legend className={s.legend}>{t("image.scopeLegend")}</legend>
+        <div className={s.choices}>
+          <label className={s.choice}><input type="radio" name="image-source" checked={!useCrop} onChange={() => selectCrop(false)} /> {t("image.scopeFull")}</label>
+          <label className={s.choice}><input type="radio" name="image-source" checked={useCrop} onChange={() => selectCrop(true)} /> {t("image.scopeCrop")}</label>
+        </div>
       </fieldset>
-      <p className="muted">{!useCrop ? t("image.fullNote") : cropped
+      <p className={cx(s.text, s.small, s.scopeNote)}>{!useCrop ? t("image.fullNote") : cropped
         ? cropHint ?? t("image.cropNoteDefault") : t("image.cropFullNote")}</p>
-      {useCrop && <fieldset className="crop-controls"><legend>{t("image.cropLegend")}</legend>
-        {(["left", "top", "width", "height"] as const).map((field) => <label key={field}>
-          {cropLabels[field]}
-          <input type="number" inputMode="numeric" min={field === "width" || field === "height" ? 1 : 0} max="100"
-            value={crop[field]} onChange={(event) => changeCrop(field, Number(event.target.value))} /> %
-        </label>)}
+      {useCrop && <fieldset className={s.fieldset}><legend className={s.legend}>{t("image.cropLegend")}</legend>
+        <div className={s.cropGrid}>
+          {(["left", "top", "width", "height"] as const).map((field) => <label key={field} className={s.cropField}>
+            {cropLabels[field]}
+            <input className={cx(s.input, s.number)} type="number" inputMode="numeric" min={field === "width" || field === "height" ? 1 : 0} max="100"
+              value={crop[field]} onChange={(event) => changeCrop(field, Number(event.target.value))} /> %
+          </label>)}
+        </div>
       </fieldset>}
-      <div className="image-previews single"><figure><figcaption>{t("image.uploadCaption", {
+      <figure className={s.preview}><figcaption className={s.previewCaption}>{t("image.uploadCaption", {
         width: uploadWidth ?? 0, height: uploadHeight ?? 0,
         suffix: cropped ? t("image.uploadCropped") : t("image.uploadFull") })}</figcaption>
-        {cropped && (preparing || !preview) ? <span className="muted" role="status">{t("image.preparingCrop")}</span> : <img src={cropped ? preview! : image.url} alt={t("image.previewAlt")} />}
-      </figure></div>
+        <div className={s.previewFrame}>
+          {cropped && (preparing || !preview) ? <span className={s.small} role="status">{t("image.preparingCrop")}</span>
+            : <img className={s.previewImage} src={cropped ? preview! : image.url} alt={t("image.previewAlt")} />}
+        </div>
+      </figure>
     </>}
-  </section>;
+  </Panel>;
 }

@@ -80,6 +80,10 @@
     "failed": "失敗",
     "cancelled": "キャンセル済み"
   },
+  "puzzle": {
+    "answerWaiting": "認識または問題番号の検索が終わると、ここに答えが表示されます。",
+    "solved": "解答完了"
+  },
   "image": {
     "eyebrow": "01 / 画像",
     "title": "画像を読み込む",

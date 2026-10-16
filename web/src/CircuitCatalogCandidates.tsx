@@ -4,6 +4,8 @@ import type { CircuitCatalogCandidate, CircuitPuzzle } from "./api";
 import { useAppTranslation, useMessages, type MessageText } from "./i18n";
 import { puzzleFromCircuitCandidate } from "./circuit";
 import CircuitPuzzlePreview from "./CircuitPuzzlePreview";
+import s from "./features/puzzles/puzzles.module.css";
+import { Button } from "./ui/Button/Button";
 
 type Props = {
   candidates: CircuitCatalogCandidate[];
@@ -57,29 +59,33 @@ export default function CircuitCatalogCandidates({ candidates, matchedFingerprin
       code ? t("answer.sourceCatalogVariant", { code }) : t("answer.sourceCatalogVariantGeneric"));
   };
 
-  return <div className="circuit-candidates">
-    <fieldset>
-      <legend>{code ? t("candidates.legendCode", { code }) : t("candidates.legendGeneric")}</legend>
-      {candidates.length > 1 && <p className="muted small">{t("candidates.note")}</p>}
-      {candidates.map((candidate, index) => <label key={candidate.fingerprint}
-        className={`circuit-candidate${selected === candidate.fingerprint ? " selected" : ""}`}>
-        <span className="circuit-candidate-heading">
+  return <div className={s.candidates}>
+    <fieldset className={s.fieldset}>
+      <legend className={s.legend}>{code ? t("candidates.legendCode", { code }) : t("candidates.legendGeneric")}</legend>
+      {candidates.length > 1 && <p className={`${s.text} ${s.small}`}>{t("candidates.note")}</p>}
+      <div className={s.candidates}>
+        {candidates.map((candidate, index) => <label key={candidate.fingerprint} className={s.candidate}
+          data-selected={selected === candidate.fingerprint}>
           <input type="radio" name={radioName} value={candidate.fingerprint}
             checked={selected === candidate.fingerprint}
             onChange={() => { setSelected(candidate.fingerprint); setError(""); }} />
-          <strong>{t("candidates.variant", { index: index + 1 })}</strong>
-          <span className={`circuit-candidate-status ${candidate.status}`}>{candidateStatusText(t, candidate.status)}</span>
-          <span className="muted small">{t("candidates.observations", { count: candidate.observations })}</span>
-          {candidate.fingerprint === matchedFingerprint && <em className="candidate-tag">{t("candidates.matchedTag")}</em>}
-        </span>
-        <CircuitPuzzlePreview puzzle={candidate.puzzle} displayPalette={candidate.display_palette} compact />
-      </label>)}
+          <span className={s.candidateBody}>
+            <span className={s.candidateHeading}>
+              <strong>{t("candidates.variant", { index: index + 1 })}</strong>
+              <span className={s.status} data-status={candidate.status}>{candidateStatusText(t, candidate.status)}</span>
+              <span className={s.small}>{t("candidates.observations", { count: candidate.observations })}</span>
+              {candidate.fingerprint === matchedFingerprint && <em className={s.tag}>{t("candidates.matchedTag")}</em>}
+            </span>
+            <CircuitPuzzlePreview puzzle={candidate.puzzle} displayPalette={candidate.display_palette} compact />
+          </span>
+        </label>)}
+      </div>
     </fieldset>
-    {error && <p className="error-text" role="alert">{tm(error, "error")}</p>}
-    <div className="row-actions">
-      <button type="button" className="button primary" disabled={disabled || !selected} onClick={solve}>
+    {error && <p className={s.errorText} role="alert">{tm(error, "error")}</p>}
+    <div className={s.actions}>
+      <Button variant="accent" disabled={disabled || !selected} onClick={solve}>
         {candidates.length === 1 ? t("candidates.actionSingle") : actionLabel ?? t("candidates.action")}
-      </button>
+      </Button>
     </div>
   </div>;
 }

@@ -80,6 +80,10 @@
     "failed": "失败",
     "cancelled": "已取消"
   },
+  "puzzle": {
+    "answerWaiting": "完成识别或题号查询后，答案会显示在这里。",
+    "solved": "求解完成"
+  },
   "image": {
     "eyebrow": "01 / 图片",
     "title": "导入画面",

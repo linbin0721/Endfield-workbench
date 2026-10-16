@@ -2,6 +2,10 @@ import type { TFunction } from "i18next";
 import type { CircuitPuzzle } from "./api";
 import { useAppTranslation, useMessages } from "./i18n";
 import { validateCircuitPuzzle } from "./circuit";
+import { circuitColorOnSurface } from "./features/puzzles/circuitTheme";
+import { cx } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
+import { useSurface } from "./ui/surface";
 import {
   circuitColorStyle,
   resolveCircuitDisplayPalette,
@@ -43,8 +47,8 @@ export function circuitColorLabel(t: TFunction, name: string): string {
 
 export function CircuitColorToken({ color }: { color: CircuitDisplayColor }) {
   const { t } = useAppTranslation("circuit");
-  return <span className="circuit-color-token" style={circuitColorStyle(color)}>
-    <i data-circuit-pattern={color.channel} aria-hidden="true" />
+  return <span className={s.colorToken} style={circuitColorStyle(color)}>
+    <i className={cx(s.swatch, s.pattern)} data-circuit-pattern={color.channel} aria-hidden="true" />
     {circuitColorLabel(t, color.name)}
   </span>;
 }
@@ -53,13 +57,14 @@ export function CircuitPieceShape({ cells, color }: PieceShapeProps) {
   const rows = Math.max(...cells.map((cell) => cell.row)) + 1;
   const columns = Math.max(...cells.map((cell) => cell.column)) + 1;
   const occupied = new Set(cells.map((cell) => `${cell.row},${cell.column}`));
-  return <span className="circuit-piece-shape"
+  return <span className={s.pieceShape}
     style={{ ...circuitColorStyle(color), gridTemplateColumns: `repeat(${columns}, 0.72rem)` }}
     aria-hidden="true">
     {Array.from({ length: rows * columns }, (_, index) => {
       const row = Math.floor(index / columns), column = index % columns;
-      return <i key={`${row},${column}`} data-circuit-pattern={color.channel}
-        className={occupied.has(`${row},${column}`) ? "filled" : "empty"} />;
+      const filled = occupied.has(`${row},${column}`);
+      return <i key={`${row},${column}`} className={filled ? s.pattern : undefined}
+        data-circuit-pattern={filled ? color.channel : undefined} data-filled={filled} />;
     })}
   </span>;
 }
@@ -67,63 +72,65 @@ export function CircuitPieceShape({ cells, color }: PieceShapeProps) {
 export default function CircuitPuzzlePreview({ puzzle: value, displayPalette, compact = false }: Props) {
   const { t } = useAppTranslation("circuit");
   const { tm } = useMessages();
+  const surface = useSurface();
   const checked = validateCircuitPuzzle(value);
-  if (!checked.puzzle) return <p className="error-text circuit-preview-error" role="alert">{tm(checked.error, "error")}</p>;
+  if (!checked.puzzle) return <p className={s.errorText} role="alert">{tm(checked.error, "error")}</p>;
   const puzzle = checked.puzzle;
   const palette = resolveCircuitDisplayPalette(puzzle, displayPalette);
+  const colors = palette.colors.map((color) => circuitColorOnSurface(color, surface));
   const blocked = new Set((puzzle.blocked_cells ?? []).map((cell) => `${cell.row},${cell.column}`));
   const fixed = new Map((puzzle.fixed_cells ?? []).map((cell) => [`${cell.row},${cell.column}`, cell.channel]));
-  return <div className={`circuit-preview${compact ? " compact" : ""}`}>
-    <div className="circuit-targets" aria-label={t("preview.targetsLabel")}>
+  return <div className={cx(s.circuitPreview, compact && s.compact)}>
+    <div className={s.targets} aria-label={t("preview.targetsLabel")}>
       {puzzle.channels.map((channel) => {
-        const color = palette.colors[channel.index];
-        return <div className="circuit-target" key={channel.index}>
+        const color = colors[channel.index];
+        return <div className={s.target} key={channel.index}>
           <CircuitColorToken color={color} />
           <span><b>{t("preview.row")}</b> {channel.row_targets.join(" · ")}</span>
           <span><b>{t("preview.column")}</b> {channel.column_targets.join(" · ")}</span>
         </div>;
       })}
     </div>
-    <div className="circuit-preview-body">
+    <div className={s.previewBody}>
       <div>
-        <p className="circuit-preview-label">{t("preview.boardSize", { rows: puzzle.rows, columns: puzzle.columns })}</p>
-        <div className="circuit-board" style={{ gridTemplateColumns: `repeat(${puzzle.columns}, minmax(0, 1fr))` }}>
+        <p className={s.previewLabel}>{t("preview.boardSize", { rows: puzzle.rows, columns: puzzle.columns })}</p>
+        <div className={s.circuitBoard} style={{ gridTemplateColumns: `repeat(${puzzle.columns}, minmax(0, 1fr))` }}>
           {Array.from({ length: puzzle.rows * puzzle.columns }, (_, index) => {
             const row = Math.floor(index / puzzle.columns), column = index % puzzle.columns;
             const key = `${row},${column}`, channel = fixed.get(key);
             const kind = blocked.has(key) ? "blocked" : channel != null ? "fixed" : "empty";
-            const color = channel != null ? palette.colors[channel] : null;
+            const color = channel != null ? colors[channel] : null;
             const label = kind === "blocked" ? t("preview.blocked")
               : color ? t("preview.fixed", { color: circuitColorLabel(t, color.name) }) : t("preview.empty");
-            return <span key={key} className={`circuit-cell ${kind}`}
+            return <span key={key} className={cx(s.circuitCell, color && s.pattern)} data-cell={kind}
               style={color ? circuitColorStyle(color) : undefined}
               data-circuit-pattern={color?.channel}
               aria-label={label}>
-              {kind === "blocked" ? <i className="circuit-obstacle-mark" aria-hidden="true" />
-                : color ? <i className="circuit-fixed-mark" aria-hidden="true" /> : null}
+              {kind === "blocked" ? <i className={s.obstacleMark} aria-hidden="true" />
+                : color ? <i className={s.fixedMark} aria-hidden="true" /> : null}
             </span>;
           })}
         </div>
       </div>
-      <div className="circuit-pieces">
-        <p className="circuit-preview-label">{t("preview.piecesLabel", { count: puzzle.pieces.length })}</p>
-        <div className="circuit-piece-list">
+      <div>
+        <p className={s.previewLabel}>{t("preview.piecesLabel", { count: puzzle.pieces.length })}</p>
+        <div className={s.pieceList}>
           {puzzle.pieces.map((piece, index) => {
-            const color = palette.colors[piece.channel];
-            return <div className="circuit-piece" key={index}
+            const color = colors[piece.channel];
+            return <div className={s.piece} key={index}
               aria-label={t("preview.pieceAria", { color: circuitColorLabel(t, color.name), cells: piece.cells.length })}>
               <CircuitPieceShape cells={piece.cells} color={color} />
               <CircuitColorToken color={color} />
-              <small>{t("preview.cellCount", { cells: piece.cells.length })}</small>
+              <small className={s.pieceCount}>{t("preview.cellCount", { cells: piece.cells.length })}</small>
             </div>;
           })}
         </div>
       </div>
     </div>
-    <div className="circuit-legend" aria-label={t("preview.legendLabel")}>
-      <span className="circuit-legend-item blocked">{t("preview.legendBlocked")}</span>
-      <span className="circuit-legend-item fixed">{t("preview.legendFixed")}</span>
-      {palette.usedFallback && <span className="muted">{t("preview.fallbackColors")}</span>}
+    <div className={s.colorLegend} aria-label={t("preview.legendLabel")}>
+      <span className={cx(s.legendItem, s.legendBlocked)}>{t("preview.legendBlocked")}</span>
+      <span className={s.legendItem}>{t("preview.legendFixed")}</span>
+      {palette.usedFallback && <span>{t("preview.fallbackColors")}</span>}
     </div>
   </div>;
 }

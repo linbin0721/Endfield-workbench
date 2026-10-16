@@ -1,5 +1,10 @@
 import { useId } from "react";
+import { circuitColorOnSurface } from "./features/puzzles/circuitTheme";
+import { SectionHead, cx } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
 import { useAppTranslation } from "./i18n";
+import { Panel } from "./ui/Panel/Panel";
+import { useSurface } from "./ui/surface";
 import {
   circuitColorStyle,
   circuitFallbackDisplayColor,
@@ -34,7 +39,7 @@ function CircuitGuidePiece({ cells, color }: {
   const outline = circuitPieceBoundarySegments(cells).map((segment) =>
     `M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}`).join("");
   const padding = 0.14;
-  return <svg className="circuit-guide-piece-svg"
+  return <svg className={s.guidePieceSvg}
     viewBox={`${fill.bounds.x1 - padding} ${fill.bounds.y1 - padding} ${fill.bounds.x2 - fill.bounds.x1 + padding * 2} ${fill.bounds.y2 - fill.bounds.y1 + padding * 2}`}
     aria-hidden="true">
     <defs>
@@ -55,40 +60,39 @@ function CircuitGuidePiece({ cells, color }: {
 
 export default function CircuitGuideExample({ mode }: Props) {
   const { t } = useAppTranslation("circuit");
+  const surface = useSurface();
+  const colors = GUIDE_COLORS.map((color) => circuitColorOnSurface(color, surface));
   const titleId = `circuit-guide-${mode}-title`;
   const screenshot = mode === "screenshot";
-  return <section className="panel" aria-labelledby={titleId}>
-    <div className="section-heading"><div><span className="eyebrow">{t("examples.eyebrow")}</span>
-      <h2 id={titleId}>{screenshot ? t("examples.screenshotTitle") : t("examples.codeTitle")}</h2></div>
-      <span className="badge">{t("examples.badge")}</span>
-    </div>
-    <p className="muted">{screenshot ? t("examples.screenshotIntro") : t("examples.codeIntro")}</p>
-    <figure className="circuit-guide" aria-label={t("examples.figureAria")}>
-      <div className="circuit-guide-stage">
-        <div className="circuit-guide-code-region circuit-guide-region guide-code">
-          <b className="guide-marker" aria-hidden="true">3</b>
-          <code>△-V40020</code>
-        </div>
-        <div className="circuit-guide-board-region circuit-guide-region guide-board">
-          <b className="guide-marker" aria-hidden="true">1</b>
-          <div className="circuit-guide-board">
-            {GUIDE_CELLS.map((channel, index) => {
-              const color = channel != null && channel >= 0 ? GUIDE_COLORS[channel] : null;
-              return <span key={index} className={`circuit-cell ${channel === -1 ? "blocked" : color ? "fixed" : "empty"}`}
-                style={color ? circuitColorStyle(color) : undefined} data-circuit-pattern={color?.channel}>
-                {channel === -1 ? <i className="circuit-obstacle-mark" aria-hidden="true" />
-                  : color ? <i className="circuit-fixed-mark" aria-hidden="true" /> : null}
-              </span>;
-            })}
-          </div>
-        </div>
-        <div className="circuit-guide-inventory circuit-guide-region guide-inventory">
-          <b className="guide-marker" aria-hidden="true">2</b>
-          {GUIDE_PIECES.map((piece, index) => <div className="circuit-guide-piece" key={index}>
-            <CircuitGuidePiece cells={piece.cells} color={GUIDE_COLORS[piece.channel]} />
-          </div>)}
+  return <Panel as="section" aria-labelledby={titleId}>
+    <SectionHead eyebrow={t("examples.eyebrow")} title={screenshot ? t("examples.screenshotTitle") : t("examples.codeTitle")}
+      id={titleId} badge={t("examples.badge")} />
+    <p className={s.text}>{screenshot ? t("examples.screenshotIntro") : t("examples.codeIntro")}</p>
+    <figure className={cx(s.figure, s.circuitGuide)} aria-label={t("examples.figureAria")}>
+      <div className={cx(s.guideRegion, s.guideCode, s.guideCodeRegion)}>
+        <b className={s.guideMarker} aria-hidden="true">3</b>
+        <code>△-V40020</code>
+      </div>
+      <div className={cx(s.guideRegion, s.guideBoard, s.guideBoardRegion)}>
+        <b className={s.guideMarker} aria-hidden="true">1</b>
+        <div className={s.guideBoardGrid}>
+          {GUIDE_CELLS.map((channel, index) => {
+            const color = channel != null && channel >= 0 ? colors[channel] : null;
+            const kind = channel === -1 ? "blocked" : color ? "fixed" : "empty";
+            return <span key={index} className={cx(s.circuitCell, color && s.pattern)} data-cell={kind}
+              style={color ? circuitColorStyle(color) : undefined} data-circuit-pattern={color?.channel}>
+              {channel === -1 ? <i className={s.obstacleMark} aria-hidden="true" />
+                : color ? <i className={s.fixedMark} aria-hidden="true" /> : null}
+            </span>;
+          })}
         </div>
       </div>
+      <div className={cx(s.guideRegion, s.guideInventory, s.guidePieces)}>
+        <b className={s.guideMarker} aria-hidden="true">2</b>
+        {GUIDE_PIECES.map((piece, index) => <div className={s.guidePiece} key={index}>
+          <CircuitGuidePiece cells={piece.cells} color={colors[piece.channel]} />
+        </div>)}
+      </div>
     </figure>
-  </section>;
+  </Panel>;
 }

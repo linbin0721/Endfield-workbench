@@ -1,4 +1,7 @@
+import { SectionHead, cx } from "./features/puzzles/PuzzleParts";
+import s from "./features/puzzles/puzzles.module.css";
 import { useAppTranslation } from "./i18n";
+import { Panel } from "./ui/Panel/Panel";
 
 /** Annotated screenshot-scope example built on the committed, desensitized guide image. */
 type Region = { key: string; marker: string; left: number; top: number; width: number; height: number; outside?: boolean };
@@ -11,31 +14,32 @@ const REGIONS: Region[] = [
   { key: "code", marker: "3", left: 3.47, top: 27.84, width: 8.79, height: 6.16, outside: true },
 ];
 
+const REGION_CLASS: Record<string, string> = { board: s.guideBoard, inventory: s.guideInventory, code: s.guideCode };
+
 // The target counter sits inside the board region, above the grid.
 const TARGET = { left: 29.4, top: 1.5, width: 35.7, height: 8.6 };
 
 export default function GuideExample() {
   const { t } = useAppTranslation("balloon");
-  return <section className="panel" aria-labelledby="guide-title">
-    <div className="section-heading"><div><span className="eyebrow">{t("examples.eyebrow")}</span><h2 id="guide-title">{t("examples.scopeTitle")}</h2></div>
-      <span className="badge">{t("examples.scopeBadge")}</span></div>
-    <p className="muted">{t("examples.scopeIntro")}</p>
-    <figure className="guide-figure">
-      <div className="guide-frame">
-        <img src={`${import.meta.env.BASE_URL}balloon-screenshot-guide.png`} loading="lazy"
+  return <Panel as="section" aria-labelledby="guide-title">
+    <SectionHead eyebrow={t("examples.eyebrow")} title={t("examples.scopeTitle")} id="guide-title" badge={t("examples.scopeBadge")} />
+    <p className={s.text}>{t("examples.scopeIntro")}</p>
+    <figure className={s.figure}>
+      <div className={s.guideFrame}>
+        <img className={s.guideImage} src={`${import.meta.env.BASE_URL}balloon-screenshot-guide.png`} loading="lazy"
           alt={t("examples.scopeAlt")} />
-        {REGIONS.map((region) => <span key={region.key} className={`guide-box guide-${region.key}`}
+        {REGIONS.map((region) => <span key={region.key} className={cx(s.guideBox, REGION_CLASS[region.key])}
           style={{ left: `${region.left}%`, top: `${region.top}%`, width: `${region.width}%`, height: `${region.height}%` }}>
-          <b className={`guide-marker${region.outside ? " guide-marker-outside" : ""}`} aria-hidden="true">{region.marker}</b>
-          {region.key === "board" && <span className="guide-target" style={{
+          <b className={cx(s.guideMarker, region.outside && s.guideMarkerOutside)} aria-hidden="true">{region.marker}</b>
+          {region.key === "board" && <span className={s.guideTarget} style={{
             left: `${TARGET.left}%`, top: `${TARGET.top}%`, width: `${TARGET.width}%`, height: `${TARGET.height}%` }} />}
         </span>)}
       </div>
-      <figcaption>
+      <figcaption className={s.caption}>
         <span>{t("examples.scopeCaptionBoard")}</span>
         <span>{t("examples.scopeCaptionInventory")}</span>
         <span>{t("examples.scopeCaptionCode")}</span>
       </figcaption>
     </figure>
-  </section>;
+  </Panel>;
 }
