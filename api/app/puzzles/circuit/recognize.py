@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.catalog.circuit_models import CircuitCatalogMatch
 from app.catalog.circuit_rules import normalize_circuit_code
+from app.puzzles.circuit.draft import CircuitDraft
 from app.puzzles.circuit.model import CircuitPuzzle
 from app.puzzles.circuit.presentation import (
     CircuitDisplayColor,
@@ -49,6 +50,7 @@ class CircuitRecognitionResult(BaseModel):
 
     outcome: RecognitionOutcome
     puzzle: CircuitPuzzle | None = None
+    draft: CircuitDraft | None = None
     display_palette: list[CircuitDisplayColor] = Field(default_factory=list)
     notation: RecognitionNotation | None = None
     question_code: str | None = None
@@ -67,6 +69,8 @@ class CircuitRecognitionResult(BaseModel):
 
     @model_validator(mode="after")
     def validate_result(self) -> "CircuitRecognitionResult":
+        if self.draft is not None and self.outcome != "incomplete":
+            raise ValueError("only an incomplete result may carry a draft")
         if self.outcome == "recognized":
             if self.puzzle is None:
                 raise ValueError("a recognized result must carry a puzzle")

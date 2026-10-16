@@ -16,6 +16,8 @@ import numpy as np
 from pydantic import ValidationError
 
 from app.catalog.circuit_rules import normalize_circuit_code
+from app.puzzles.circuit.draft import CircuitDraft, DraftReason
+from app.puzzles.circuit.presentation import CircuitDisplayColor
 from app.puzzles.circuit.model import (
     RULE_VERSION,
     CircuitCell,
@@ -27,6 +29,7 @@ from app.puzzles.circuit.model import (
 )
 from app.puzzles.circuit.ocr import (
     SymbolTargets,
+    PartialSymbolTargets,
     extract_symbol_targets,
     read_circuit_question_code,
 )
@@ -61,6 +64,7 @@ class BarImageAnalysis:
     solution: CircuitSolution | None = None
     channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
+    draft: CircuitDraft | None = None
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
@@ -70,6 +74,7 @@ class BarImageAnalysis:
             self.channel_hues,
             self.issues,
             "bar image",
+            self.draft,
         )
 
 
@@ -85,6 +90,7 @@ class DecodedImageAnalysis:
     solution: CircuitSolution | None = None
     channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
+    draft: CircuitDraft | None = None
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
@@ -94,6 +100,7 @@ class DecodedImageAnalysis:
             self.channel_hues,
             self.issues,
             "decoded image",
+            self.draft,
         )
         if self.notation not in {None, "bars", "digits", "roman", "mixed"}:
             raise ValueError(f"unknown decoded image notation {self.notation!r}")
@@ -123,6 +130,7 @@ class _CoreAnalysis:
     solution: CircuitSolution | None = None
     channel_hues: tuple[float, ...] = ()
     issues: tuple[str, ...] = ()
+    draft: CircuitDraft | None = None
 
     def __post_init__(self) -> None:
         _validate_analysis_fields(
@@ -132,6 +140,7 @@ class _CoreAnalysis:
             self.channel_hues,
             self.issues,
             "core",
+            self.draft,
         )
 
 
@@ -148,7 +157,10 @@ def _validate_analysis_fields(
     channel_hues: tuple[float, ...],
     issues: tuple[str, ...],
     label: str,
+    draft: CircuitDraft | None = None,
 ) -> None:
+    if draft is not None and (outcome != "incomplete" or not isinstance(draft, CircuitDraft)):
+        raise ValueError("only incomplete analysis may carry a draft")
     if outcome not in _OUTCOMES:
         raise ValueError(f"unknown {label} outcome {outcome!r}")
     if not isinstance(issues, tuple) or any(
@@ -180,8 +192,63 @@ def _validate_analysis_fields(
         raise ValueError("only recognized analysis may carry a puzzle, solution or hues")
 
 
-def _incomplete(issue: str) -> _CoreAnalysis:
-    return _CoreAnalysis(outcome="incomplete", issues=(issue,))
+def _incomplete(issue: str, draft: CircuitDraft | None = None) -> _CoreAnalysis:
+    return _CoreAnalysis(outcome="incomplete", issues=(issue,), draft=draft)
+
+
+def _draft(
+    geometry: BoardGeometry,
+    channel_hues: tuple[float, ...],
+    board: _BoardInputs,
+    row_targets: tuple[tuple[int | None, ...], ...] | None = None,
+    column_targets: tuple[tuple[int | None, ...], ...] | None = None,
+    reason: DraftReason | None = None,
+) -> CircuitDraft | None:
+    """Snapshot safe inputs without asserting any domain consistency.
+
+    Structural failure is never repaired here: it keeps the old no-draft path.
+    Only numeric evidence may be missing; all shapes and classified cells stay
+    subject to the existing conservative visual gates.
+    """
+    rows = row_targets if row_targets is not None else tuple(
+        (None,) * geometry.rows for _ in channel_hues
+    )
+    columns = column_targets if column_targets is not None else tuple(
+        (None,) * geometry.columns for _ in channel_hues
+    )
+    missing: list[DraftReason] = []
+    if any(v is None for line in rows for v in line):
+        missing.append("row_targets")
+    if any(v is None for line in columns for v in line):
+        missing.append("column_targets")
+    if reason is not None:
+        missing.append(reason)
+    if not missing:
+        missing.append("rejected")
+    try:
+        return CircuitDraft(
+            rows=geometry.rows,
+            columns=geometry.columns,
+            channels=[
+                dict(index=i, row_targets=list(rows[i]), column_targets=list(columns[i]))
+                for i in range(len(channel_hues))
+            ],
+            cells=[
+                dict(kind=cell.kind, channel=cell.channel)
+                for row in board.cells.cells for cell in row
+            ],
+            pieces=[
+                dict(channel=piece.channel, cells=[dict(row=r, column=c) for r, c in piece.cells])
+                for piece in board.inventory.pieces
+            ],
+            palette=[
+                CircuitDisplayColor(channel=i, hue_degrees=float(hue) * 2.0)
+                for i, hue in enumerate(channel_hues)
+            ],
+            missing=missing,
+        )
+    except (ValidationError, IndexError):
+        return None
 
 
 def _validate_limits(time_limit_seconds: float, max_nodes: int) -> None:
@@ -286,20 +353,32 @@ def _build_and_solve(
         )
     except ValidationError as error:
         issue_type = error.errors()[0]["type"]
-        return _incomplete(f"domain model rejected the recognized statement: {issue_type}")
+        return _incomplete(
+            f"domain model rejected the recognized statement: {issue_type}",
+            _draft(geometry, channel_hues, board, row_targets, column_targets, "rejected"),
+        )
 
     result = solve_circuit(puzzle, float(time_limit_seconds), max_nodes)
     if result.outcome == "unsatisfiable":
-        return _incomplete("recognized statement is unsatisfiable")
+        return _incomplete(
+            "recognized statement is unsatisfiable",
+            _draft(geometry, channel_hues, board, row_targets, column_targets, "unsatisfiable"),
+        )
     if result.outcome == "timeout":
-        return _incomplete(f"solver reached its {result.limit_reason} limit")
+        return _incomplete(
+            f"solver reached its {result.limit_reason} limit",
+            _draft(geometry, channel_hues, board, row_targets, column_targets, "solver_limit"),
+        )
     solution = result.solution
     if solution is None:
         raise RuntimeError("solver returned solved without a solution")
     try:
         validate_solution(puzzle, solution)
     except ValueError as error:
-        return _incomplete(f"independent solution validation failed: {error}")
+        return _incomplete(
+            f"independent solution validation failed: {error}",
+            _draft(geometry, channel_hues, board, row_targets, column_targets, "validation_failed"),
+        )
     return _CoreAnalysis(
         outcome="recognized",
         puzzle=puzzle,
@@ -335,7 +414,15 @@ def _analyze_bar_core(
 
     targets = extract_bar_targets(geometry, ensembles)
     if targets is None:
-        return _incomplete("short-bar targets are incomplete"), geometry
+        partial = extract_bar_targets(geometry, ensembles, allow_incomplete=True)
+        if partial is not None and partial.channel_hues != channel_hues:
+            return _incomplete("channel identities disagree between visual stages"), geometry
+        return _incomplete(
+            "short-bar targets are incomplete",
+            _draft(geometry, channel_hues, state,
+                   partial.row_targets if partial is not None else None,
+                   partial.column_targets if partial is not None else None),
+        ), geometry
     if targets.channel_hues != channel_hues:
         return (
             _incomplete("channel identities disagree between visual stages"),
@@ -356,7 +443,7 @@ def _analyze_bar_core(
 
 
 def _analyze_symbol_core(
-    targets: SymbolTargets | None,
+    targets: SymbolTargets | PartialSymbolTargets | None,
     geometry: BoardGeometry,
     channel_hues: tuple[float, ...],
     state: _BoardInputs,
@@ -365,9 +452,13 @@ def _analyze_symbol_core(
     max_nodes: int,
 ) -> tuple[_CoreAnalysis, RecognitionNotation | None]:
     if targets is None:
-        return _incomplete("symbol targets are incomplete"), None
+        return _incomplete("symbol targets are incomplete", _draft(geometry, channel_hues, state)), None
     if targets.channel_hues != channel_hues:
         return _incomplete("channel identities disagree between visual stages"), None
+    if isinstance(targets, PartialSymbolTargets):
+        return _incomplete("symbol targets are incomplete", _draft(
+            geometry, channel_hues, state, targets.row_targets, targets.column_targets,
+        )), targets.notation
     return (
         _build_and_solve(
             geometry,
@@ -398,6 +489,7 @@ def analyze_bar_image(
         solution=core.solution,
         channel_hues=core.channel_hues,
         issues=core.issues,
+        draft=core.draft,
     )
 
 
@@ -420,7 +512,7 @@ def analyze_decoded_image(
         if isinstance(state, _CoreAnalysis):
             core = state
         else:
-            targets = extract_symbol_targets(image, layout, ocr)
+            targets = extract_symbol_targets(image, layout, ocr, allow_incomplete=True)
             core, notation = _analyze_symbol_core(
                 targets,
                 geometry,
@@ -453,4 +545,5 @@ def analyze_decoded_image(
         solution=core.solution,
         channel_hues=core.channel_hues,
         issues=tuple(issues),
+        draft=core.draft,
     )

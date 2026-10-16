@@ -167,5 +167,55 @@
     "screenshotIntro": "1번 전체 보드와 2번 전체 재고를 포함해 주세요. 3번 번호는 선택 사항입니다.",
     "codeIntro": "1번은 보드, 2번은 재고, 3번은 왼쪽 문제 번호입니다. 번호 조회에는 3번만 입력하며 업로드는 필요하지 않습니다.",
     "figureAria": "풀기 전 오리지늄 회로 예시 화면"
+  },
+  "workbench": {
+    "intro": "스크린샷을 가져오면 인식부터 풀이까지 한 번에 진행합니다. 문제 번호를 입력해 기록된 문제를 바로 가져올 수도 있습니다. 인식한 문제는 행·열 숫자, 장애물, 고정 칸을 확인하고 수정한 뒤 다시 풀 수 있습니다.",
+    "lookup": "조회",
+    "puzzleLetter": "문제 {{letter}}",
+    "editing": "수정 중",
+    "readOnly": "목록 문제 · 읽기 전용",
+    "puzzleFromCode": "문제 번호 {{code}}의 문제",
+    "puzzleRecognized": "인식한 문제",
+    "needsInput": "누락되었거나 맞지 않는 값이 있어 여기서 멈췄습니다. 빨간색으로 표시된 항목을 채운 뒤 풀어 주세요.",
+    "solveDraft": "이 문제로 풀기",
+    "solveAgain": "현재 문제로 다시 풀기",
+    "edit": "문제 수정",
+    "revert": "인식 결과로 되돌리기",
+    "sourceEdited": "스크린샷 인식(직접 수정함)",
+    "sourceCandidate": "문제 번호 {{code}} · 문제 {{letter}}",
+    "staleAnswer": "문제가 수정되었습니다. 아래 정답은 수정 전 문제의 정답입니다. 다시 풀어 주세요.",
+    "answerSource": "출처: {{source}}",
+    "solveSelected": "선택한 문제로 풀기",
+    "helpEditTitle": "문제 수정",
+    "helpEditTargets": "위에서 색을 고른 뒤 그 색의 각 행·열 숫자를 수정합니다.",
+    "helpEditCells": "칸을 클릭하면 빈칸 → 장애물 → 선택한 색의 고정 칸 → 빈칸 순서로 바뀝니다.",
+    "helpEditPieces": "재고 조각은 스크린샷에서 인식하며 수정할 수 없습니다. 잘못되었다면 다른 스크린샷을 사용해 주세요."
+  },
+  "editor": {
+    "cellUnknown": "인식 못 함",
+    "fixedNoChannel": "고정 칸(색 인식 못 함)",
+    "rowTarget": "{{color}} {{index}}행 목표",
+    "columnTarget": "{{color}} {{index}}열 목표",
+    "cellAria": "{{row}}행 {{column}}열: {{state}}",
+    "cellHint": "칸을 클릭해 전환: 빈칸 → 장애물 → 선택한 색의 고정 칸.",
+    "channelGroup": "수정할 색",
+    "channelLabel": "수정할 색:"
+  },
+  "problems": {
+    "targetMissing": "{{color}} {{index}}{{axis}}의 목표 숫자가 없습니다.",
+    "targetInvalid": "{{color}} {{index}}{{axis}}의 목표가 보드 범위를 벗어납니다.",
+    "cellUnknown": "인식하지 못한 칸이 {{count}}개 있습니다. 빨간색 칸을 클릭해 설정해 주세요.",
+    "fixedChannel": "색이 없는 고정 칸이 {{count}}개 있습니다. 색을 고른 뒤 다시 클릭해 주세요.",
+    "axisRow": "행",
+    "axisColumn": "열"
+  },
+  "reasons": {
+    "title": "인식 안내:",
+    "row_targets": "일부 행 목표를 읽지 못해 빨간색으로 표시했습니다.",
+    "column_targets": "일부 열 목표를 읽지 못해 빨간색으로 표시했습니다.",
+    "rejected": "문제를 모두 읽었지만 내용이 성립하지 않습니다. 숫자나 칸이 잘못 인식되었을 수 있습니다. 확인한 뒤 풀어 주세요.",
+    "unsatisfiable": "문제를 모두 읽었지만 인식 결과로는 해가 없습니다. 행·열 숫자, 장애물, 고정 칸을 확인한 뒤 풀어 주세요.",
+    "solver_limit": "문제를 모두 읽었지만 풀이가 한도에 도달해 답을 얻지 못했습니다. 문제를 확인하고 다시 시도해 주세요.",
+    "validation_failed": "문제를 모두 읽었지만 답이 독립 검증을 통과하지 못했습니다. 문제를 확인한 뒤 풀어 주세요."
   }
 }

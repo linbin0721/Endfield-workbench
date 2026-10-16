@@ -1,0 +1,72 @@
+{
+  "outcome": "incomplete",
+  "puzzle": null,
+  "draft": {
+    "rule_version": "line-count-v1",
+    "rows": 2,
+    "columns": 2,
+    "channels": [
+      {
+        "index": 0,
+        "row_targets": [
+          null,
+          0
+        ],
+        "column_targets": [
+          1,
+          1
+        ]
+      }
+    ],
+    "cells": [
+      {
+        "kind": "empty",
+        "channel": null
+      },
+      {
+        "kind": "empty",
+        "channel": null
+      },
+      {
+        "kind": "empty",
+        "channel": null
+      },
+      {
+        "kind": "empty",
+        "channel": null
+      }
+    ],
+    "pieces": [
+      {
+        "channel": 0,
+        "cells": [
+          {
+            "row": 0,
+            "column": 0
+          },
+          {
+            "row": 0,
+            "column": 1
+          }
+        ]
+      }
+    ],
+    "palette": [
+      {
+        "channel": 0,
+        "hue_degrees": 80.0
+      }
+    ],
+    "missing": [
+      "row_targets"
+    ]
+  },
+  "display_palette": [],
+  "notation": "digits",
+  "question_code": null,
+  "question_code_confidence": null,
+  "catalog": null,
+  "issues": [
+    "Synthetic fixture: one row target could not be read."
+  ]
+}

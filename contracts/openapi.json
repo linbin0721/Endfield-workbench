@@ -1558,6 +1558,179 @@
         "title": "CircuitDisplayColor",
         "description": "One domain channel's display hue in standard 0..360 degree space."
       },
+      "CircuitDraft": {
+        "properties": {
+          "rule_version": {
+            "type": "string",
+            "const": "line-count-v1",
+            "title": "Rule Version",
+            "default": "line-count-v1"
+          },
+          "rows": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Rows"
+          },
+          "columns": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Columns"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitDraftChannel"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Channels"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitDraftCell"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 4,
+            "title": "Cells"
+          },
+          "pieces": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitPiece"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Pieces"
+          },
+          "palette": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitDisplayColor"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Palette"
+          },
+          "missing": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "row_targets",
+                "column_targets",
+                "rejected",
+                "unsatisfiable",
+                "solver_limit",
+                "validation_failed"
+              ]
+            },
+            "type": "array",
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Missing"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rows",
+          "columns",
+          "channels",
+          "cells",
+          "pieces",
+          "palette",
+          "missing"
+        ],
+        "title": "CircuitDraft"
+      },
+      "CircuitDraftCell": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "empty",
+              "blocked",
+              "fixed"
+            ],
+            "title": "Kind"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "CircuitDraftCell"
+      },
+      "CircuitDraftChannel": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Index"
+          },
+          "row_targets": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 10.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Row Targets"
+          },
+          "column_targets": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 10.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 2,
+            "title": "Column Targets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "index",
+          "row_targets",
+          "column_targets"
+        ],
+        "title": "CircuitDraftChannel"
+      },
       "CircuitFixedCell": {
         "properties": {
           "row": {
@@ -1733,6 +1906,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CircuitPuzzle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitDraft"
               },
               {
                 "type": "null"

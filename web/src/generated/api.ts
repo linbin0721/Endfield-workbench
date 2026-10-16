@@ -522,6 +522,48 @@ export interface components {
             /** Hue Degrees */
             hue_degrees: number;
         };
+        /** CircuitDraft */
+        CircuitDraft: {
+            /**
+             * Rule Version
+             * @default line-count-v1
+             * @constant
+             */
+            rule_version: "line-count-v1";
+            /** Rows */
+            rows: number;
+            /** Columns */
+            columns: number;
+            /** Channels */
+            channels: components["schemas"]["CircuitDraftChannel"][];
+            /** Cells */
+            cells: components["schemas"]["CircuitDraftCell"][];
+            /** Pieces */
+            pieces: components["schemas"]["CircuitPiece"][];
+            /** Palette */
+            palette: components["schemas"]["CircuitDisplayColor"][];
+            /** Missing */
+            missing: ("row_targets" | "column_targets" | "rejected" | "unsatisfiable" | "solver_limit" | "validation_failed")[];
+        };
+        /** CircuitDraftCell */
+        CircuitDraftCell: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "empty" | "blocked" | "fixed";
+            /** Channel */
+            channel?: number | null;
+        };
+        /** CircuitDraftChannel */
+        CircuitDraftChannel: {
+            /** Index */
+            index: number;
+            /** Row Targets */
+            row_targets: (number | null)[];
+            /** Column Targets */
+            column_targets: (number | null)[];
+        };
         /**
          * CircuitFixedCell
          * @description Already covered cell that belongs to one color channel.
@@ -592,6 +634,7 @@ export interface components {
              */
             outcome: "recognized" | "incomplete" | "no_board" | "already_completed" | "timeout" | "invalid_image" | "failed";
             puzzle?: components["schemas"]["CircuitPuzzle"] | null;
+            draft?: components["schemas"]["CircuitDraft"] | null;
             /** Display Palette */
             display_palette?: components["schemas"]["CircuitDisplayColor"][];
             /** Notation */

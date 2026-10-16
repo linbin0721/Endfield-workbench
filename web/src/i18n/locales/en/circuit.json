@@ -167,5 +167,55 @@
     "screenshotIntro": "Include the complete board (1) and all stock (2). The code (3) is optional.",
     "codeIntro": "1 is the board, 2 is stock, and 3 is the code to the left. Lookup only needs 3; no upload.",
     "figureAria": "Illustration of an unsolved Originium Circuitry puzzle"
+  },
+  "workbench": {
+    "intro": "Import a screenshot to recognize and solve it in one step, or enter a puzzle code to fetch a recorded puzzle. A recognized puzzle's row and column numbers, obstacles and fixed cells can be checked and edited before solving again.",
+    "lookup": "Look up",
+    "puzzleLetter": "Puzzle {{letter}}",
+    "editing": "Editing",
+    "readOnly": "Catalog puzzle · read-only",
+    "puzzleFromCode": "Puzzle {{code}}",
+    "puzzleRecognized": "Recognized puzzle",
+    "needsInput": "Some values are missing or inconsistent, so solving stopped here. Fill in the items marked in red, then solve.",
+    "solveDraft": "Solve this puzzle",
+    "solveAgain": "Solve the current puzzle again",
+    "edit": "Edit puzzle",
+    "revert": "Restore recognized values",
+    "sourceEdited": "Screenshot (edited by hand)",
+    "sourceCandidate": "Code {{code}} · Puzzle {{letter}}",
+    "staleAnswer": "The puzzle was edited; the answer below belongs to the previous version. Solve again.",
+    "answerSource": "Source: {{source}}",
+    "solveSelected": "Solve the selected puzzle",
+    "helpEditTitle": "Editing a puzzle",
+    "helpEditTargets": "Pick a colour above, then change that colour's number for each row and column.",
+    "helpEditCells": "Click a cell to cycle: empty → obstacle → fixed cell of the current colour → empty.",
+    "helpEditPieces": "Inventory pieces come from the screenshot and cannot be edited; if they are wrong, use another screenshot."
+  },
+  "editor": {
+    "cellUnknown": "not recognized",
+    "fixedNoChannel": "fixed cell (colour not recognized)",
+    "rowTarget": "{{color}} row {{index}} target",
+    "columnTarget": "{{color}} column {{index}} target",
+    "cellAria": "Row {{row}}, column {{column}}: {{state}}",
+    "cellHint": "Click a cell to cycle: empty → obstacle → fixed cell of the current colour.",
+    "channelGroup": "Colour to edit",
+    "channelLabel": "Editing colour:"
+  },
+  "problems": {
+    "targetMissing": "{{color}} {{axis}} {{index}} has no target number.",
+    "targetInvalid": "{{color}} {{axis}} {{index}} has a target outside the board.",
+    "cellUnknown": "Unrecognized cells: {{count}}. Click the cells marked in red to set them.",
+    "fixedChannel": "Fixed cells without a colour: {{count}}. Pick a colour and click them again.",
+    "axisRow": "row",
+    "axisColumn": "column"
+  },
+  "reasons": {
+    "title": "About this recognition:",
+    "row_targets": "Some row targets could not be read; they are marked in red.",
+    "column_targets": "Some column targets could not be read; they are marked in red.",
+    "rejected": "The whole puzzle was read, but it does not hold together; a number or cell may be misread. Check it, then solve.",
+    "unsatisfiable": "The whole puzzle was read, but it has no solution as recognized. Check the row and column numbers, obstacles and fixed cells, then solve.",
+    "solver_limit": "The whole puzzle was read, but solving hit its limit before finding an answer. Check the puzzle and try again.",
+    "validation_failed": "The whole puzzle was read, but the answer failed the independent check. Check the puzzle, then solve."
   }
 }

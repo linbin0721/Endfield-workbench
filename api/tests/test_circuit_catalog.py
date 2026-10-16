@@ -520,7 +520,7 @@ def test_no_code_never_touches_store() -> None:
     store = MemoryCircuitCatalogStore()
     payload = recognition(code=None)
     result = CircuitCatalogService(store).enrich_recognition(payload, digest("x"))
-    assert result == {**payload, "catalog": None}
+    assert result == {**payload, "catalog": None, "draft": None}
     assert store.records == 0 and store.lookups == 0
 
 

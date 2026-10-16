@@ -139,7 +139,7 @@
     "puzzleRecognized": "识别出的题面",
     "needsInput": "题面有缺失或不一致的数值，已停在这一步。请补全标红的项目后再求解。",
     "solveDraft": "用此题面求解",
-    "solveAgain": "按修改后的题面重新求解",
+    "solveAgain": "按当前题面重新求解",
     "edit": "修改题面",
     "revert": "恢复识别结果",
     "sourceEdited": "截图识别（已手动修改）",

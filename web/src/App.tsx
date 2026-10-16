@@ -15,7 +15,7 @@ import { TOOLS, type ToolEntry, type ToolId } from "./tools/registry";
  */
 const PAGE_LOADERS: Record<ToolId, () => Promise<{ default: ComponentType }>> = {
   balloon: () => import("./features/balloon/BalloonWorkbench"),
-  circuit: () => import("./CircuitPage"),
+  circuit: () => import("./features/circuit/CircuitWorkbench"),
   calculator: () => import("./CalculatorPage"),
 };
 
