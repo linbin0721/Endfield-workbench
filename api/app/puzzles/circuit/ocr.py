@@ -60,6 +60,16 @@ class SymbolTargets:
 
 
 @dataclass(frozen=True)
+class PartialSymbolTargets:
+    """Reliable glyph locations with uncertain values left explicitly unknown."""
+
+    channel_hues: tuple[float, ...]
+    row_targets: tuple[tuple[int | None, ...], ...]
+    column_targets: tuple[tuple[int | None, ...], ...]
+    notation: Literal["digits", "roman", "mixed"] | None
+
+
+@dataclass(frozen=True)
 class QuestionCodeReading:
     """Optional normalized code plus evidence explaining an absent value."""
 
@@ -157,9 +167,18 @@ def _text_rec_results(ocr: object, crops: list[np.ndarray]) -> list[object] | No
 
 
 def extract_symbol_targets(
-    image: np.ndarray, layout: SymbolLayout, ocr: object
-) -> SymbolTargets | None:
-    """Batch-read every coloured glyph and fill confirmed missing keys with zero."""
+    image: np.ndarray,
+    layout: SymbolLayout,
+    ocr: object,
+    *,
+    allow_incomplete: bool = False,
+) -> SymbolTargets | PartialSymbolTargets | None:
+    """Batch-read coloured glyphs; confirmed absent keys retain their zero.
+
+    Strict callers get the existing complete, consistent targets or None.
+    Opting into drafts keeps failed glyph readings as null and preserves known
+    counts even when the totals disagree, without a second OCR batch.
+    """
     _validated_image(image, "extract_symbol_targets")
     geometry = layout.geometry
     keys = [(glyph.axis, glyph.line_index, glyph.channel) for glyph in layout.glyphs]
@@ -194,55 +213,73 @@ def extract_symbol_targets(
     if results is None:
         return None
 
-    decoded: dict[tuple[str, int, int], ConstraintToken] = {}
+    decoded: dict[tuple[str, int, int], ConstraintToken | None] = {}
     observed_notations: set[str] = set()
     confidences: list[float] = []
     for key, result in zip(keys, results, strict=True):
         if not isinstance(result, (list, tuple)) or len(result) != 2:
-            return None
-        text, confidence = result
-        maximum = geometry.columns if key[0] == "row" else geometry.rows
-        token = parse_constraint_token(text, confidence, maximum)
+            token = None
+        else:
+            text, confidence = result
+            maximum = geometry.columns if key[0] == "row" else geometry.rows
+            token = parse_constraint_token(text, confidence, maximum)
         if token is None:
-            return None
+            if not allow_incomplete:
+                return None
+            decoded[key] = None
+            continue
         decoded[key] = token
         confidences.append(token.confidence)
         if token.notation != "empty":
             observed_notations.add(token.notation)
 
-    if not observed_notations:
+    if not observed_notations and not allow_incomplete:
         return None
-    notation: Literal["digits", "roman", "mixed"]
-    if observed_notations == {"digits"}:
+    notation: Literal["digits", "roman", "mixed"] | None
+    if not observed_notations:
+        notation = None
+    elif observed_notations == {"digits"}:
         notation = "digits"
     elif observed_notations == {"roman"}:
         notation = "roman"
     else:
         notation = "mixed"
 
+    def value(key: tuple[str, int, int]) -> int | None:
+        # Only absent glyphs in a confirmed layout mean zero. A present glyph
+        # that failed OCR is unknown, never a fabricated zero.
+        token = decoded.get(key, ConstraintToken(0, "empty", 1.0))
+        return token.value if token is not None else None
+
     row_targets = tuple(
         tuple(
-            decoded.get(
-                ("row", line, channel), ConstraintToken(0, "empty", 1.0)
-            ).value
+            value(("row", line, channel))
             for line in range(geometry.rows)
         )
         for channel in range(channel_count)
     )
     column_targets = tuple(
         tuple(
-            decoded.get(
-                ("column", line, channel), ConstraintToken(0, "empty", 1.0)
-            ).value
+            value(("column", line, channel))
             for line in range(geometry.columns)
         )
         for channel in range(channel_count)
     )
-    if any(
+    complete = notation is not None and all(
+        v is not None for targets in (*row_targets, *column_targets) for v in targets
+    )
+    if not complete or any(
         sum(rows) != sum(columns)
         for rows, columns in zip(row_targets, column_targets)
     ):
-        return None
+        if not allow_incomplete:
+            return None
+        return PartialSymbolTargets(
+            channel_hues=tuple(float(hue) for hue in layout.channel_hues),
+            row_targets=row_targets,
+            column_targets=column_targets,
+            notation=notation,
+        )
     return SymbolTargets(
         channel_hues=tuple(float(hue) for hue in layout.channel_hues),
         row_targets=row_targets,

@@ -98,6 +98,7 @@ def result_from_analysis(analysis: DecodedImageAnalysis) -> CircuitRecognitionRe
     return CircuitRecognitionResult(
         outcome=analysis.outcome,
         puzzle=analysis.puzzle,
+        draft=analysis.draft,
         display_palette=[
             CircuitDisplayColor(
                 channel=channel,

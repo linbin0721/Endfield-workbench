@@ -134,7 +134,7 @@ def patch_visual_pipeline(
     monkeypatch.setattr(
         analyze_module,
         "extract_bar_targets",
-        lambda board, ensembles: targets,
+        lambda board, ensembles, **kwargs: targets,
     )
 
 
@@ -452,7 +452,7 @@ def patch_symbol_pipeline(
     monkeypatch.setattr(
         analyze_module,
         "extract_symbol_targets",
-        lambda image, source_layout, ocr: targets,
+        lambda image, source_layout, ocr, **kwargs: targets,
     )
     monkeypatch.setattr(
         analyze_module,
@@ -518,7 +518,7 @@ def test_decoded_symbol_completion_does_not_read_targets(
     monkeypatch.setattr(
         analyze_module,
         "extract_symbol_targets",
-        lambda image, source_layout, ocr: pytest.fail(
+        lambda image, source_layout, ocr, **kwargs: pytest.fail(
             "completion must not run constraint OCR"
         ),
     )
