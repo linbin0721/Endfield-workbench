@@ -25,6 +25,7 @@
     "levelInvalid": "1から{{max}}までのレベルを入力してください。",
     "potential": "潜在",
     "potentialAny": "潜在指定なし（0–5）",
+    "potentialAnyShort": "指定なし",
     "potentialValue": "潜在 {{value}}",
     "targetLabel": "目標ステータス",
     "targetFixed": "固定値",
@@ -39,6 +40,18 @@
     "searching": "検索中…",
     "start": "検索開始",
     "cancel": "検索をキャンセル"
+  },
+  "picker": {
+    "title": "オペレーターを選択",
+    "change": "オペレーターを変更",
+    "search": "オペレーターを検索",
+    "empty": "一致するオペレーターがいません。",
+    "close": "閉じる"
+  },
+  "level": {
+    "decrease": "レベルを1下げる",
+    "increase": "レベルを1上げる",
+    "slider": "レベルスライダー"
   },
   "progress": {
     "preparing": "検索を準備中…",

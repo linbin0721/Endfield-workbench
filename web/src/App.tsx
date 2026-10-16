@@ -2,7 +2,6 @@ import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, useParams } from "react-router-dom";
 import HomePage from "./features/home/HomePage";
 import { localizePath, matchLocaleSegment, stripLocalePrefix, useLocale } from "./i18n";
-import { LegacyFrame } from "./shell/LegacyFrame";
 import { LoadingState } from "./shell/LoadingState";
 import NotFoundPage from "./shell/NotFoundPage";
 import SiteLayout from "./shell/SiteLayout";
@@ -11,8 +10,8 @@ import { TOOLS, type ToolEntry, type ToolId } from "./tools/registry";
 
 /**
  * Each tool page is its own chunk, so the home page loads none of them; the
- * 325 chunk also carries its data and calculator.css. ToolResources starts the
- * download together with the language bundles.
+ * 325 chunk also carries its data. ToolResources starts the download together
+ * with the language bundles.
  */
 const PAGE_LOADERS: Record<ToolId, () => Promise<{ default: ComponentType }>> = {
   balloon: () => import("./BalloonPage"),
@@ -27,15 +26,10 @@ const TOOL_PAGES: Record<ToolId, ComponentType> = {
   calculator: lazy(PAGE_LOADERS.calculator),
 };
 
-/** Pages that are not migrated yet keep the old styles inside a LegacyFrame. */
-const LEGACY_TOOLS: ReadonlySet<ToolId> = new Set<ToolId>(["calculator"]);
-
 function ToolRoute({ tool }: { tool: ToolEntry }) {
   const Page = TOOL_PAGES[tool.id];
   return <ToolResources key={tool.id} namespaces={tool.namespaces} preload={PAGE_LOADERS[tool.id]}>
-    <Suspense fallback={<LoadingState />}>
-      {LEGACY_TOOLS.has(tool.id) ? <LegacyFrame><Page /></LegacyFrame> : <Page />}
-    </Suspense>
+    <Suspense fallback={<LoadingState />}><Page /></Suspense>
   </ToolResources>;
 }
 

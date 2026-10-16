@@ -25,6 +25,7 @@
     "levelInvalid": "1부터 {{max}} 사이의 레벨을 입력해 주세요.",
     "potential": "잠재 능력",
     "potentialAny": "잠재 능력 무관 (0–5)",
+    "potentialAnyShort": "무관",
     "potentialValue": "잠재 능력 {{value}}",
     "targetLabel": "목표 능력치",
     "targetFixed": "고정값",
@@ -39,6 +40,18 @@
     "searching": "검색 중…",
     "start": "검색 시작",
     "cancel": "검색 취소"
+  },
+  "picker": {
+    "title": "오퍼레이터 선택",
+    "change": "오퍼레이터 변경",
+    "search": "오퍼레이터 검색",
+    "empty": "일치하는 오퍼레이터가 없습니다.",
+    "close": "닫기"
+  },
+  "level": {
+    "decrease": "레벨 1 낮추기",
+    "increase": "레벨 1 올리기",
+    "slider": "레벨 슬라이더"
   },
   "progress": {
     "preparing": "검색 준비 중…",

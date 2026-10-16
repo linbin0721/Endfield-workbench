@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppTranslation } from "../i18n";
+import styles from "./EntityIcon.module.css";
 import { getEntityMedia, type EntityKind } from "./media.ts";
 
 type EntityIconProps = {
@@ -8,6 +9,8 @@ type EntityIconProps = {
   name: string;
   size?: 56 | 64;
   eager?: boolean;
+  /** Weapon rarity (3–6): a coloured bar along the bottom edge. */
+  rarity?: number;
 };
 
 function IconImage({ imageUrl, name, size, eager }: {
@@ -51,11 +54,11 @@ function IconImage({ imageUrl, name, size, eager }: {
   }, [revealImage]);
 
   return <>
-    <span className="calc-icon-placeholder" hidden={ready} aria-hidden="true">
+    <span className={styles.placeholder} hidden={ready} aria-hidden="true">
       {Array.from(name.trim())[0] ?? "?"}
     </span>
     <img ref={imageRef} src={imageUrl} alt="" width={size} height={size}
-      className={ready ? "calc-icon-image-ready" : undefined}
+      className={ready ? `${styles.image} ${styles.ready}` : styles.image}
       loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async"
       onLoad={(event) => revealImage(event.currentTarget)} onError={() => {
         attemptRef.current += 1;
@@ -65,13 +68,13 @@ function IconImage({ imageUrl, name, size, eager }: {
 }
 
 /** Media is a presentation-only lookup; missing records never produce a guessed link. */
-export default function EntityIcon({ kind, id, name, size = 64, eager = false }: EntityIconProps) {
+export default function EntityIcon({ kind, id, name, size = 64, eager = false, rarity }: EntityIconProps) {
   const { t } = useAppTranslation("calculator");
   if (!id) return null;
   const media = getEntityMedia(kind, id);
-  const className = `calc-entity-icon${size === 56 ? " calc-entity-icon-small" : ""}`;
+  const className = [styles.icon, size === 56 ? styles.small : "", rarity ? styles[`r${rarity}`] : ""].filter(Boolean).join(" ");
   if (!media) return <span className={className} role="img" aria-label={t("icon.missing", { name })}>
-    <span className="calc-icon-placeholder" aria-hidden="true">{Array.from(name.trim())[0] ?? "?"}</span>
+    <span className={styles.placeholder} aria-hidden="true">{Array.from(name.trim())[0] ?? "?"}</span>
   </span>;
   return <a className={className} href={media.detailUrl} target="_blank" rel="noopener noreferrer"
     aria-label={t("icon.open", { name })} title={t("icon.title", { name })}>

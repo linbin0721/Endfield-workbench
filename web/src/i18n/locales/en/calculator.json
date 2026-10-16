@@ -25,6 +25,7 @@
     "levelInvalid": "Enter a level from 1 to {{max}}.",
     "potential": "Potential",
     "potentialAny": "Any potential (0–5)",
+    "potentialAnyShort": "Any",
     "potentialValue": "Potential {{value}}",
     "targetLabel": "Target stat value",
     "targetFixed": "Fixed value",
@@ -39,6 +40,18 @@
     "searching": "Searching…",
     "start": "Start search",
     "cancel": "Cancel search"
+  },
+  "picker": {
+    "title": "Choose an operator",
+    "change": "Change operator",
+    "search": "Search operators",
+    "empty": "No matching operators.",
+    "close": "Close"
+  },
+  "level": {
+    "decrease": "Lower the level by 1",
+    "increase": "Raise the level by 1",
+    "slider": "Level slider"
   },
   "progress": {
     "preparing": "Preparing search…",
