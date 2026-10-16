@@ -1,8 +1,8 @@
 # 项目当前状态
 
-最后核验：2026-10-16 12:37 UTC（EW-033 PR #11已发布79770cc，样张410并私有归档；核心公网/资源/API、真实Worker与全站160加载回归通过；EW-030～033双方技术验收通过）。四语完整截图/题号/325综合回归及目录全量计数最近核验仍为2026-10-11 12:22 UTC，不冒充本轮全量回归。
+最后核验：2026-10-16 16:17 UTC（EW-034动效独立预览d8fe66d已部署、48组浏览器与资源/隔离检查通过；正式79770cc的385文件/526资源、旧样张410和API/DB保持）。四语完整截图/题号/325综合回归及目录全量计数最近核验仍为2026-10-11 12:22 UTC，不冒充本轮全量回归。
 
-需求与任务记录核对：2026-10-16 12:37 UTC（EW-030～032双方技术验收通过；EW-033已发布下线样张并完成双方技术验收；各批用户验收待本人）。
+需求与任务记录核对：2026-10-16 16:17 UTC（EW-030～033双方技术交付完成，用户验收待本人；EW-034工作分支预览已发布且双方公网复核通过，已交用户初筛，下一编号EW-035）。
 
 ## 当前阶段
 
@@ -14,7 +14,7 @@
 
 - EW-029（B3 325）已在[PR #7](https://github.com/linbin0721/Endfield-workbench/pull/7)squash合并为`2a88cce`并发布；宿主真实集成与Claude公网64项检查均通过，双方技术验收完成；用户认可整体风格，交互重设计转EW-030～032，未补记全功能用户验收。干员弹窗头像网格加搜索，等级滑块/±1/数字框，潜能与高级上限分段、属性文字、第一方案默认展开其余折叠且可复制、武器稀有度条已接入。数值/数据/搜索Worker保持；LegacyFrame与旧styles.css已在EW-033删除。
 
-- EW-028源树`.worktrees/ew-028-puzzles`起点`bcbb718`，已先提交再合入main `f6a34d3`并复测，最终交接`f687b9b`；宿主独立集成最新main `dde05b6`后发布。EW-029源树`.worktrees/ew-029-calculator`提前从`f687b9b`创建，最终先后合入B2 `2cdadf0`及记录`3973e88`，以`f1101b2`干净交接；宿主集成树为`.worktrees/ew-029-codex-integration`、分支`ew-029/codex-integration`、提交`318b30b`。Claude三个已合并源树（等高线/EW-028/EW-029）已清理，分支保留，三个web树与对应squash提交一致；上述路径为历史引用；EW-026～030的Codex旧集成树已在EW-033清理，分支/提交及验证证据保留。下一编号EW-034；新一轮已登记EW-030～033。
+- EW-028源树`.worktrees/ew-028-puzzles`起点`bcbb718`，已先提交再合入main `f6a34d3`并复测，最终交接`f687b9b`；宿主独立集成最新main `dde05b6`后发布。EW-029源树`.worktrees/ew-029-calculator`提前从`f687b9b`创建，最终先后合入B2 `2cdadf0`及记录`3973e88`，以`f1101b2`干净交接；宿主集成树为`.worktrees/ew-029-codex-integration`、分支`ew-029/codex-integration`、提交`318b30b`。Claude三个已合并源树（等高线/EW-028/EW-029）已清理，分支保留，三个web树与对应squash提交一致；上述路径为历史引用；EW-026～030的Codex旧集成树已在EW-033清理，分支/提交及验证证据保留。下一编号EW-035；EW-030～033已技术交付，EW-034为独立工作分支预览。
 
 - 2026-10-15的两批自主任务已交付；2026-10-16用户重新确认三个工具的交互重设计及收尾，范围为EW-030～033，Claude负责架构/前端，Codex负责必要后端、共享核对、PR/发布及真实集成。每批分别PR、squash并直接上线；新增接口先约定契约和校验边界。先前“不向用户提问”仅限已完成两批，不扩展成新一轮全局授权。TASK编辑权已由Claude登记后交回Codex，STATUS仍由Codex维护。
 
@@ -27,6 +27,8 @@
 - EW-032已在[PR #10](https://github.com/linbin0721/Endfield-workbench/pull/10)squash为`f3b94b9`并发布：比较表选择方案、配装台/物品格、属性进度与raw严格一致才显示的来源拆分已上线。Claude源`7799363`与自测`2d8a6a1`的325产品逐字节相同；Codex独立集成`9855b9e`仅合并App两工作台加载与i18n动态键检查。宿主真实Worker/共享/公网集成与Claude公网复核均通过，双方技术交付完成，待用户验收。
 
 - EW-033已在[PR #11](https://github.com/linbin0721/Endfield-workbench/pull/11)squash为`79770cc`并发布。样张源码/构建脚本、旧全局样式/legacy层、旧组件及失效文案已删除，useChangeCount移到ui，流程/UI/目录/长期决定文档已更新。Nginx仅样张前缀改为410/no-store/noindex，31份生成站文件已按原哈希私有归档，正式资产/旧release与API/DB保持。宿主真实集成/全站160加载与Claude公网复核均通过，双方技术交付完成，待用户验收。8个已合入且干净无占用的旧Codex集成树已常规删除，分支提交保留、未删镜像，磁盘余约5.4GB/93%。TASK/STATUS仍归Codex。
+
+- EW-034动效方向预览已独立部署到 https://endfield.linbin.org/motion-preview/ ，源码工作分支ew-034/motion-preview@d8fe66d、detached构建树ew-034-codex-preview；未建PR/未合并预览代码到main，正式站保持79770cc。8方向各一个中文演示场景、单页切换/重播、手动与自动、亮暗与减弱开关；纯假数据，不上传、不调用API。宿主与Claude公网复核均通过，已交用户初筛，后续沿工作分支预览，最终下线另按确认执行。
 
 - 坐标只读评估：两种识别器已有格子定位，可低额外运行成本保留并返回；尚无对外坐标字段或叠加实现。未来需处理实际工作图逆缩放、两管线EXIF差异与前端裁剪偏移，独立可选元数据绑定当前识别图；模型/契约/回归另行成批，当前EW-030～033不包含坐标/截图叠加。
 
@@ -51,6 +53,7 @@
 | 前端 | `https://endfield.linbin.org/` |
 | 前端 release | `/var/www/endfield-workbench/releases/79770cc`；`current`指向该目录，385份文件与构建一致；上一版`f3b94b9`及更早版本保留，共享`assets/`526份（本次新增23份、旧503份保持） |
 | B0 独立样张 | 已在EW-033下线；`/design-preview`及整个`/design-preview/`前缀均410、no-store/noindex/nofollow；独立生成站31文件按原哈希移入root私有备份，旧公开目录已移除；原始业务参考资料/验证证据保留 |
+| EW-034 动效预览 | `https://endfield.linbin.org/motion-preview/`；独立`/var/www/endfield-workbench-motion-preview/current`→`releases/d8fe66d`，7文件/6资源共385,176 bytes；HTML no-store/noindex/nofollow、资源immutable、缺失资源404，不回落SPA；#1～#8可直达 |
 | 计算器数据 | `1.5.3/10506507-7`，源更新 2026-09-24；33 干员、80 武器、258 装备 |
 | 计算器语言名称 | 同版本 CN/EN/JP/KR 游戏表；四语各 33 干员、80 武器、258 装备、4 套装，按 ID 关联并锁来源/输出哈希 |
 | 计算器图标 | AKEData 来源；371 条映射、365 个源路径，341 种内容；生产 WebP 合计 3,930,832 bytes，192px；来源/文件哈希保存在 `media/provenance.json` |
@@ -67,6 +70,9 @@
 | 发布前备份 | `deploy/backups/catalog-before-ew018-20261003T184434Z.dump`，已通过 `pg_restore --list`，未实际恢复；旧 API 镜像 `rollback-f170d1e-ew018-20261003T184434Z` 保留 |
 
 ## 当前验证状态
+
+- EW-034共享/宿主：干净npmci、无API基址的build:motion、类型生成无差异通过；正式API基址build的385文件与现网逐字节相同。Nginx只新增motion三规则，候选及实际nginx-t/平滑reload通过；独立7文件/6哈希资源，HTML/meta/headers noindex/nofollow和no-store、资源immutable、5类缺失路径真实404通过。正式20路由、current/385文件/526资源、旧design-preview四路径410、TLS/HTTP跳转、API实际health/CORS与API/DB身份/启动/重启/健康/端口保持，0宿主写请求。
+- EW-034实际浏览器：8方向×1366/390/320×亮暗48组无溢出/页面控制台HTTP错误或失败请求；重播、自动时序、电影手动翻页、极简编辑示意格、菜单和工业操作、主题记忆/减弱/#深链通过。全部请求为自身预览前缀GET，0 API请求、0正式资源请求，中文正常。UID60001构建树/元数据/证据7399项读写及目录CRUD通过，证据ew034-motion-preview/；Claude最终公网复核已通过（4e926b94）：1366暗/390亮各8方向共16组，无溢出/错误或预览外请求，自动到SOLVED、重定向/缓存/noindex/缺失404通过；用户初筛未代写。
 
 - EW-033宿主：干净npmci、明确API正式构建、生成无差异、i18n7/7/calculator16/16通过；无design脚本与legacy CSS，385文件、Worker字节保持。首页gzip153568（冻结基线134381，累计+19187）、两WOFF244796，预算通过。20路由/42当前资源/101历史JS-CSS/4类404/TLS/CORS、WL-A2014真实solve1POST通过，旧503资源/旧release保持，共享526。
 - EW-033下线：实际nginx-t及平滑reload通过，仅替换样张规则；15种样张/HTML/深链/旧资源/缺失资源均410+no-store+noindex/nofollow，无SPA回落，类似前缀仍走正式站。31份生成站文件及symlink整体私有归档，哈希保持，业务参考原图/视频/抽帧/冻结证据不动。API/DB身份/启动/重启/健康/端口保持，镜像仍EW-031，无重启。
@@ -162,6 +168,8 @@
 ## 近期待处理
 
 - EW-030～033已全部分别PR发布并完成双方技术验收，样张下线及旧文件/文档收尾已完成。各批用户验收待本人，不代写；坐标/答案叠加到截图继续留以后的独立任务。
+
+- EW-034已部署且双方公网技术复核通过，等待用户对8个动效方向初筛；后续演示迭代继续工作分支直接部署，未授权在本任务改正式工具交互或恢复旧样张。
 
 - EW-021已由用户于2026-10-14决定暂缓；恢复调查后，如无VPN再次无法连接，收集Edge Network等待/失败请求与Console错误，继续区分连接线路、DNS/代理及浏览器网络状态。
 

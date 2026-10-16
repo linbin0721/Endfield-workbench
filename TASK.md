@@ -1,6 +1,6 @@
 # 任务交接与历史
 
-下一任务编号：`EW-034`。未结任务：`EW-021`（直连故障等待客户端证据；用户 2026-10-14 决定暂缓）、`EW-027`（双方技术验收通过，用户验收待本人，不阻塞已授权后续批次）、`EW-028`（双方技术验收通过，待用户查看）、`EW-029`（双方技术验收通过，待用户查看）、`EW-030`（双方技术验收通过，待用户验收）、`EW-031`（双方技术验收通过，待用户验收）、`EW-032`（双方技术验收通过，待用户验收）、`EW-033`（已发布并下线样张，双方技术验收通过，待用户验收）。
+下一任务编号：`EW-035`。未结任务：`EW-021`（直连故障等待客户端证据；用户 2026-10-14 决定暂缓）、`EW-027`（双方技术验收通过，用户验收待本人，不阻塞已授权后续批次）、`EW-028`（双方技术验收通过，待用户查看）、`EW-029`（双方技术验收通过，待用户查看）、`EW-030`（双方技术验收通过，待用户验收）、`EW-031`（双方技术验收通过，待用户验收）、`EW-032`（双方技术验收通过，待用户验收）、`EW-033`（已发布并下线样张，双方技术验收通过，待用户验收）、`EW-034`（独立预览已部署，双方公网技术复核通过，待用户初筛）。
 状态流转：“待开始 → 进行中 → 待验收 → 已验收”。前端/UI/组件由 Claude 自审、自测并做交互验收；架构/后端/数据及宿主改动由 Codex 审查和测试；需要发布的任务在 Codex 完成合并、发布和集成验证并写入结论后才算完成。
 近期交接：`tail -n 160 TASK.md`。任务按编号递增排列，新任务追加到文末，已完成记录持续保留。
 历史任务中的旧约定反映当时情况；当前维护规则以 AGENTS.md 为准。
@@ -1576,3 +1576,28 @@
 - 回执`3c52b12f`（关联f13123e1）已从实时桥接输入与Claude完成窗口核实：旧样张无尾斜杠/带斜杠/index.html/资源路径均410、noindex/nofollow及no-store，类似前缀/design-previewx仍走正式SPA，正式工具200/no-cache、缺失assets真实404。最初脚本把代理CONNECT的200当成最终响应，已只改读取最终状态的方法并复验，未调整网络或生产配置。
 - 前端公网：5路由×四组组合（1366暗简中、390亮英文、320暗日文、1024亮韩文），共20次实际加载，无溢出、主题/标题正确、页面与控制台无错误、0写请求，焦点双层环正常；加载的新index-CQel6_Tt.js/index-CrzQwfFy.css已核对。Claude完成窗口也确认EW-030～033前端公网复核全部通过，其已合并的源工作树已清理，分支提交保留。
 - 最终结论：EW-033前端自审自测、共享构建、宿主部署/样张退役、真实Worker/全站160加载与Claude公网复核均通过。EW-030～033全部已按各批PR正式发布并完成双方技术交付，待用户本人验收；不代写用户确认、不新增答案叠加/坐标功能。当前盘余约5.4GB、使用93%，未删除Docker镜像，生产历史assets/releases与业务冻结证据保持。TASK/STATUS仍由Codex维护。
+
+### EW-034：动效方向预览（独立工作分支迭代）
+
+- 状态：待验收（工作分支预览d8fe66d已部署，宿主共享/隔离与Claude公网复核通过，已交用户初筛）。
+- 来源：Claude桥接e632ca1b转述已核对的用户原话：“总感觉整体还是有些僵硬……你能不能多做几个预览版？使用不同的方向，主题风格与配色一致就可以。预览版只是让我看交互与动画的，不需要实际功能”。随后确认网站预览地址、单页切换、手动及自动演示、预览始终播放动画；“全做吧，以及每个方向都先只做一个你认为最能凸显这个方向特性的页面和动画，部署后我做初步筛选……省点quota”。
+- 负责人/验收/集成：Claude负责方向、前端实现、自审自测、交互验收与后续用户初筛沟通；Codex负责登记、共享构建核对、宿主Nginx/独立静态部署、隔离和公网验证、TASK/STATUS；用户本人初筛，不代写。
+- 范围：8方向各一个代表场景（战术终端、流畅物理、电影叙事、灵敏极简、游戏菜单、全息投影、卡片堆叠、工业机械），同一预览页面切换/重播/手动自动演示，主题与配色一致；纯假数据，不提供实际功能、不调用API。源分支ew-034/motion-preview@d8fe66db051160c282cbac344dffb526ad820296，基于main082a533；源树/root/project/EndfieldWorkbench/.worktrees/ew-034-motion-preview由Claude持有。Codex另建/root/project/EndfieldWorkbench/.worktrees/ew-034-codex-preview，detached固定同一提交，仅构建验证，不编辑源码。
+- 构建/部署：web/npm ci --include=dev及npm run build:motion，输出dist-motion，base=/motion-preview/，无VITE_API_BASE_URL要求。独立/var/www/endfield-workbench-motion-preview版本化release和共享资源，通过https://endfield.linbin.org/motion-preview/提供；HTML no-store、robots meta及X-Robots-Tag noindex/nofollow，哈希资源长期缓存，缺失资源真实404、无SPA回落。
+- 限制：本轮从工作分支直接部署，不建PR、不合并预览代码到main；记录仍写主树权威入口。正式src/产物/current/assets、API/DB及旧/design-preview/的410规则保持；不上传图片或运行真实识别/求解，不使用Vite开发服务器。私有配置备份留管理区，新增业务树/证据须UID60001有效读写和目录CRUD。用户初选后由Claude继续迭代，最终预览下线另按后续确认执行。
+- 验证：Claude报告build:motion通过，8方向在1366/390/320亮暗无溢出/页面错误，空favicon已修复。Codex核实依赖锁/正式源码不变、干净安装、预览构建及正式产物逐字节保持；nginx-t、预览路径/缓存/404、浏览器8方向和手动/自动/重播/主题、无API请求、正式站与旧410保持，部署后再交Claude公网复核。
+
+#### Claude交付与Codex独立预览部署
+
+- 来源/文件归属：Claude完成交接e632ca1b、源分支ew-034/motion-preview@d8fe66db051160c282cbac344dffb526ad820296，报告8方向在1366/390/320和亮暗自测通过；纯中文假数据演示，后续方向选择仍由Claude与用户核对，不代写用户认可。Codex未例行复审前端或修改源树，在自己的detached树固定同一提交构建；源码分支未推送、无PR、无预览代码合并main。仅任务/当前状态记录按既有约定提交main。
+- 构建与共享：依赖版本和锁、正式src/public、API/契约/生成类型、发布器均保持。干净npm ci --include=dev、generate:api无差异、npm run build:motion（移除VITE_API_BASE_URL环境变量）通过；另带明确生产API基址跑正式build，385文件与当前正式79770cc逐字节相同。预览产物7文件/6哈希资源，共385,176 bytes，无正式示例或业务样本拷贝。
+- 部署：复用未改的publish_frontend.py，独立/var/www/endfield-workbench-motion-preview/releases/d8fe66d与独立assets/current；Nginx只新增motion三个前缀规则，原配置去掉新增块后逐字节相同，候选全站及实际nginx-t通过、平滑reload。初次发布被发布器的“站点根不存在”前置检查拒绝，尚未写入站点或配置；建立明确独立根后重跑成功，初始日志保留。未动正式current/资源或旧design-preview规则，无API/DB重启。
+- HTTP/隔离：无尾斜杠301至带斜杠；/motion-preview/和index.html均200、哈希正确、no-store，meta和X-Robots-Tag均noindex/nofollow，无阻止内联主题脚本的CSP；6资产公网哈希与一年immutable缓存通过，5种缺失文件/深链均真实404且无SPA回落或immutable。20正式新旧路由、正式385文件/526共享资产与原哈希/current保持；旧design-preview四路径仍410，类似motion前缀走正常正式站，缺失正式资产404。TLS/HTTP跳转、API真实health与CORS通过，API/DB身份/启动/重启/健康/端口保持；全部宿主检查0写请求，不重复求解或OCR。
+- 实际浏览器：8方向×1366/390/320×亮暗共48组，无横向溢出、页面/控制台/HTTP错误或失败请求，36组取样时有运行中动画。终端真实自动时序到SOLVED、5气球及重播复位；电影自动到第3幕再手动回第1幕；极简自动/手动运行及编辑示意格；菜单点选、工业启动/返回；主题记忆刷新、减弱开关及#6深链均通过。所有预览浏览器网络请求只在自身/motion-preview/前缀且为GET，API请求0、正式assets请求0，无mock接口，中文截图正常。这里只验证预览演示，不冒充实际业务求解。
+- 权限/证据：实际Claude UID60001对独立构建树、Git worktree元数据、证据及记录7,399项有效读写/目录创建修改删除通过；npm收窄的14个CLI权限定点修复，原ACL和Nginx/部署前基线在root私有管理区。证据独立deploy/.local-backups/ui-redesign-refs/ew034-motion-preview/，旧冻结证据不覆盖；磁盘余约5.2GB，未清理Docker镜像或历史正式资源。
+- 宿主验收：独立构建、正式产物保持、Nginx/资源缓存/404/旧410/无API/公网交互均通过；完成交接fa9a72d7已向claude-host:%15提交，请其公网前端复核后转用户初筛。TASK/STATUS仍归Codex，源分支/源树归Claude，后续迭代仍只切独立预览release。最终预览下线待用户初筛与后续决定，不提前移除或安排自动清理。
+
+#### Claude公网复核与本轮交付结论
+
+- 回执4e926b94（关联fa9a72d7）已从实时桥接输入与Claude完成窗口核实：无尾斜杠301、页面200/no-store/noindex/nofollow，缺失资源及深链/nope真实404。8方向×1366暗色/390亮色共16组无溢出、主题正确、页面和控制台无错误；所有请求仅自身/motion-preview/，0 API和正式资源请求，方向1自动到SOLVED。
+- 本轮独立预览部署、宿主隔离和公网检查及Claude前端公网复核均通过，地址已由Claude交用户按编号初筛。保持待用户选择，不代写方向认可；源码工作分支不合main，后续预览迭代和最终下线按已确认流程。TASK/STATUS仍由Codex维护，正式站保持79770cc。
