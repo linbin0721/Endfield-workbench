@@ -1,4 +1,4 @@
-import type { CircuitPuzzle } from "../../api";
+import type { CircuitPuzzle, CircuitRecognitionDraft, CircuitRecognitionResult } from "../../api";
 import { validateCircuitPuzzle } from "../../circuit";
 
 export type CellKind = "empty" | "blocked" | "fixed";
@@ -117,9 +117,9 @@ export function puzzleKey(puzzle: CircuitPuzzle): string {
   return `${puzzle.rows}x${puzzle.columns}|${channels}|${cells(puzzle.blocked_cells)}|${cells(puzzle.fixed_cells)}|${puzzle.pieces.length}`;
 }
 
-/** Machine-readable reasons of a recognition draft (EW-031 contract); display hints only. */
-export const DRAFT_REASONS = ["row_targets", "column_targets", "rejected", "unsatisfiable", "solver_limit", "validation_failed"] as const;
-export type DraftReason = (typeof DRAFT_REASONS)[number];
+/** Machine-readable reasons of a recognition draft (docs/circuit-recognition-draft.md); display hints only. */
+export type DraftReason = CircuitRecognitionDraft["missing"][number];
+const DRAFT_REASONS: readonly DraftReason[] = ["row_targets", "column_targets", "rejected", "unsatisfiable", "solver_limit", "validation_failed"];
 
 type RecordValue = Record<string, unknown>;
 const asRecord = (value: unknown): RecordValue | null =>
@@ -133,8 +133,9 @@ const isTarget = (value: unknown, limit: number): value is number | null =>
  * screenshot, as before). The data is untrusted: sizes, channel indices,
  * cells and pieces are checked here; the full puzzle check runs on solve.
  */
-export function draftFromRecognition(result: unknown): { draft: CircuitDraft; reasons: DraftReason[] } | null {
-  const value = asRecord(asRecord(result)?.draft);
+export function draftFromRecognition(result: CircuitRecognitionResult): { draft: CircuitDraft; reasons: DraftReason[] } | null {
+  // Typed by the contract, but still read as untrusted data crossing the HTTP boundary.
+  const value = asRecord(result.draft);
   if (!value || value.rule_version !== "line-count-v1") return null;
   const { rows, columns } = value;
   if (!Number.isInteger(rows) || !Number.isInteger(columns) || (rows as number) < 2 || (rows as number) > 10 ||

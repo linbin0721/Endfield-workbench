@@ -11,6 +11,7 @@ export type CatalogCandidate = components["schemas"]["CatalogCandidate"];
 export type CatalogMatch = components["schemas"]["CatalogMatch"];
 export type CircuitPuzzle = components["schemas"]["CircuitPuzzle"];
 export type CircuitRecognitionResult = components["schemas"]["CircuitRecognitionResult"];
+export type CircuitRecognitionDraft = components["schemas"]["CircuitDraft"];
 export type CircuitSolveResult = components["schemas"]["CircuitSolveResult"];
 export type CircuitRecognitionTaskView = components["schemas"]["CircuitRecognitionTaskView"];
 export type CircuitSolveTaskView = components["schemas"]["CircuitSolveTaskView"];
