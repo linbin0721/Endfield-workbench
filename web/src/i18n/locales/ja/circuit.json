@@ -178,7 +178,7 @@
     "puzzleRecognized": "認識した問題",
     "needsInput": "欠けている値や矛盾する値があるため、ここで止めています。赤い項目を補ってから解いてください。",
     "solveDraft": "この問題で解く",
-    "solveAgain": "修正した問題で解き直す",
+    "solveAgain": "現在の問題で解き直す",
     "edit": "問題を修正",
     "revert": "認識結果に戻す",
     "sourceEdited": "スクリーンショット認識（手動で修正）",

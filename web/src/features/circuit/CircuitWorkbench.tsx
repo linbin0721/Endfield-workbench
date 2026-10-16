@@ -49,9 +49,9 @@ const MATCHED_STATUS_KEYS: Record<string, string> = {
 const DASHES = "-֊־᐀᠆‐‑‒–—―−⸺⸻﹘﹣－";
 const TRIANGLES = "△▲▵▴Δ∆";
 
-/** V + five digits or WL + four digits; decoration triangles, dashes and spaces are dropped. */
+/** V + five digits or WL + four digits; case, decoration triangles, dashes and spaces are normalized. */
 function normalizeCode(value: string): string | null {
-  const token = value.normalize("NFKC").replace(/[\s︀-️\u{E0100}-\u{E01EF}]/gu, "");
+  const token = value.normalize("NFKC").replace(/[\s\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu, "").toUpperCase();
   const decoration = new RegExp(`^[${TRIANGLES}]?[${DASHES.replace("-", "\\-")}]?`);
   const normalized = token.replace(decoration, "");
   return /^(?:V\d{5}|WL\d{4})$/.test(normalized) ? normalized : null;

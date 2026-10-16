@@ -178,7 +178,7 @@
     "puzzleRecognized": "Recognized puzzle",
     "needsInput": "Some values are missing or inconsistent, so solving stopped here. Fill in the items marked in red, then solve.",
     "solveDraft": "Solve this puzzle",
-    "solveAgain": "Solve the edited puzzle",
+    "solveAgain": "Solve the current puzzle again",
     "edit": "Edit puzzle",
     "revert": "Restore recognized values",
     "sourceEdited": "Screenshot (edited by hand)",

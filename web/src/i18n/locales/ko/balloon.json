@@ -139,7 +139,7 @@
     "puzzleRecognized": "인식한 문제",
     "needsInput": "누락되었거나 맞지 않는 값이 있어 여기서 멈췄습니다. 빨간색으로 표시된 항목을 채운 뒤 풀어 주세요.",
     "solveDraft": "이 문제로 풀기",
-    "solveAgain": "수정한 문제로 다시 풀기",
+    "solveAgain": "현재 문제로 다시 풀기",
     "edit": "문제 수정",
     "revert": "인식 결과로 되돌리기",
     "sourceEdited": "스크린샷 인식(직접 수정함)",
