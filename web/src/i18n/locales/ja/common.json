@@ -66,9 +66,7 @@
     "solvingAvailable": "計算可能",
     "solvingUnavailable": "計算不可",
     "recognitionAvailable": "画像認識可能",
-    "recognitionUnavailable": "画像認識不可",
-    "connecting": "パズルサービスに接続中…",
-    "connectFailed": "接続に失敗しました：{{message}}"
+    "recognitionUnavailable": "画像認識不可"
   },
   "task": {
     "label": "{{operation}}の処理状況：{{status}}",
@@ -85,8 +83,6 @@
     "solved": "解答完了"
   },
   "image": {
-    "eyebrow": "01 / 画像",
-    "title": "画像を読み込む",
     "localOnlyBadge": "端末内でプレビュー",
     "introMobile": "端末でスクリーンショットを撮り、アルバムから選択してください。",
     "introDesktop": "画像を選択・ドラッグ・貼り付けるか、ゲームウィンドウを撮影してください。",
@@ -122,17 +118,10 @@
     "meta": "{{name}} · {{width}}×{{height}}",
     "clear": "画像をクリア",
     "scopeLegend": "認識範囲",
-    "scopeFull": "画像全体（自動検出）",
     "scopeCrop": "手動切り抜き",
-    "fullNote": "ブラウザーで切り抜かず、原画像全体を送信します。",
     "cropNoteDefault": "盤面全体と右側の全バルーン在庫を残してください。",
     "cropNoteCircuit": "盤面全体、上側・左側の全条件、右側の全ピースを残してください。",
     "cropFullNote": "切り抜き範囲が100%のため、原画像全体を送信します。",
-    "cropLegend": "切り抜き範囲（原画像に対する割合）",
-    "cropLeft": "左余白",
-    "cropTop": "上余白",
-    "cropWidth": "幅",
-    "cropHeight": "高さ",
     "uploadCaption": "送信画像：{{width}}×{{height}} ピクセル{{suffix}}",
     "uploadCropped": " · 切り抜き後",
     "uploadFull": " · 原画像全体",

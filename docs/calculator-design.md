@@ -17,7 +17,7 @@
 | 计算/校验 | `evaluate.ts` | 从原始物品与每条词条等级复算；检查穿戴、潜能、武器类型与合法范围 |
 | 搜索 | `search.ts` | 有界候选生成、目标投影、折半搜索、去重与排序；可替换算法 |
 | 执行 | `search.worker.ts` | 浏览器独立线程；页面取消时终止 Worker，旧结果不回流 |
-| 展示 | `CalculatorPage.tsx` | 输入、限制、方案和复制；按路由延迟加载，不占 OCR 队列 |
+| 展示 | `web/src/features/calculator/` | 条件、方案对比表、配装台、属性来源拆分（`breakdown.ts`，仅在与 `raw` 逐位一致时显示）和复制；按路由延迟加载，不占 OCR 队列 |
 | 媒体 | `media.ts`、`media/`、`EntityIcon.tsx`、`avatarPreload.ts` | 独立图标/详情映射、来源锁、加载占位与头像预热；不进入数值数据或 Worker |
 
 目标值通过 `SearchRequest.target` 传入，UI 第一版固定 325。后续库存约束、不同目标、收藏与自定义养成可扩展请求或新增策略；服务端存储应放独立模块，无需把静态数值存入题号目录。规则和数据分别有 `rulesVersion`、`schemaVersion`，变更时同步导入器、校验器与基准测试。新增更复杂 modifier 阶段需显式扩展，不能静默折为加法。

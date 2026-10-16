@@ -5,7 +5,7 @@ import { circuitPieceBoundarySegments, circuitPieceFill } from "../../circuitDis
 import { msg, useAppTranslation, useMessages, type MessageText } from "../../i18n";
 import { Notice } from "../../ui/Notice/Notice";
 import { SuccessGlow, SuccessReveal } from "../../ui/SuccessReveal/SuccessReveal";
-import { useChangeCount } from "../puzzles/useChangeCount";
+import { useChangeCount } from "../../ui/useChangeCount";
 import { colorName, useCircuitColors } from "./colors";
 import c from "./circuit.module.css";
 

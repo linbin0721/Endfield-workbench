@@ -2,6 +2,8 @@
 
 状态：2026-09-28 设计冻结，按 EW-006 分批实现。
 
+> 前端部分已在 EW-031 重做：页面结构与交互以 `frontend-flow.md`、界面以 `ui-design.md`、识别草稿以 `circuit-recognition-draft.md` 为准；本文保留当时的设计记录，其中的 `CircuitPage`、`CircuitResult` 等组件名已不存在。
+
 ## 目标与边界
 
 - 源石电路与浮空回收使用独立页面：`/circuit` 与 `/balloon`；`/` 是谜题选择首页。

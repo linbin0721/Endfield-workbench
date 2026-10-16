@@ -2,7 +2,7 @@ import { useAppTranslation, useMessages, type MessageText } from "../../i18n";
 import type { BalloonPuzzle, BalloonSolveResult } from "../../puzzle";
 import { Notice } from "../../ui/Notice/Notice";
 import { SuccessGlow, SuccessReveal } from "../../ui/SuccessReveal/SuccessReveal";
-import { useChangeCount } from "../puzzles/useChangeCount";
+import { useChangeCount } from "../../ui/useChangeCount";
 import { BalloonBoard } from "./BalloonBoard";
 import { draftFromPuzzle } from "./draft";
 import s from "./balloon.module.css";

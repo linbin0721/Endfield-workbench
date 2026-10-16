@@ -66,9 +66,7 @@
     "solvingAvailable": "풀이 가능",
     "solvingUnavailable": "풀이 불가",
     "recognitionAvailable": "이미지 인식 가능",
-    "recognitionUnavailable": "이미지 인식 불가",
-    "connecting": "퍼즐 서비스 연결 중…",
-    "connectFailed": "연결 실패: {{message}}"
+    "recognitionUnavailable": "이미지 인식 불가"
   },
   "task": {
     "label": "{{operation}} 작업 상태: {{status}}",
@@ -85,8 +83,6 @@
     "solved": "풀이 완료"
   },
   "image": {
-    "eyebrow": "01 / 이미지",
-    "title": "이미지 불러오기",
     "localOnlyBadge": "기기에서만 미리보기",
     "introMobile": "기기에서 스크린샷을 찍은 후 앨범에서 선택해 주세요.",
     "introDesktop": "이미지를 선택, 드래그, 붙여넣거나 게임 창을 캡처해 주세요.",
@@ -122,17 +118,10 @@
     "meta": "{{name}} · {{width}}×{{height}}",
     "clear": "이미지 지우기",
     "scopeLegend": "인식 범위",
-    "scopeFull": "전체 이미지 (자동 탐지)",
     "scopeCrop": "수동 자르기",
-    "fullNote": "브라우저에서 자르지 않고 원본 전체를 업로드합니다.",
     "cropNoteDefault": "전체 보드와 오른쪽의 모든 풍선 재고를 남겨 주세요.",
     "cropNoteCircuit": "전체 보드, 위쪽과 왼쪽의 모든 조건, 오른쪽의 모든 조각을 남겨 주세요.",
     "cropFullNote": "자르기 범위가 100%이므로 원본 전체를 업로드합니다.",
-    "cropLegend": "자르기 범위 (원본 대비 %)",
-    "cropLeft": "왼쪽 여백",
-    "cropTop": "위쪽 여백",
-    "cropWidth": "너비",
-    "cropHeight": "높이",
     "uploadCaption": "업로드 이미지: {{width}}×{{height}} 픽셀{{suffix}}",
     "uploadCropped": " · 잘라낸 이미지",
     "uploadFull": " · 전체 원본",

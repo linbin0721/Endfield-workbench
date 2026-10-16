@@ -3,17 +3,8 @@
   "eyebrow": "퍼즐 도구 / BALLOON",
   "heading": "부유 회수 퍼즐",
   "intro": "전체 보드와 오른쪽의 모든 풍선 재고가 보이는 선명한 스크린샷을 불러오면 한 번의 클릭으로 인식하고 풉니다. 문제 번호로 카탈로그의 검증된 문제를 불러올 수도 있습니다.",
-  "modeGroupLabel": "입력 방식 선택",
-  "mode": {
-    "screenshotTitle": "스크린샷 인식",
-    "screenshotNote": "전체 보드와 재고가 있는 이미지로 인식 및 풀이",
-    "codeTitle": "문제 번호로 검색",
-    "codeNote": "이미지의 문제 번호로 검증된 문제 불러오기"
-  },
   "capabilityMissing": "서비스에서 부유 회수 지원 정보를 제공하지 않아 제출할 수 없습니다.",
   "recognize": {
-    "eyebrow": "인식 및 풀이",
-    "heading": "이미지로 답 구하기",
     "description": "클릭할 때만 미리보기 이미지를 업로드합니다. 누락된 부력이나 수량을 목표 총부력으로 유일하게 추론할 수 있을 때만 보완하고 근거를 아래에 표시합니다. 그 외에는 전체가 보이는 선명한 이미지로 다시 시도해 주세요.",
     "uploading": "업로드 중…",
     "recognizing": "인식 중…",
@@ -22,7 +13,6 @@
     "submit": "인식 및 풀이",
     "cancel": "현재 작업 취소"
   },
-  "statusPanelLabel": "검색 및 풀이 상태",
   "issueTitle": "인식 안내:",
   "catalog": {
     "title": "문제 카탈로그:",
@@ -38,12 +28,10 @@
   },
   "confidence": " · 신뢰도 {{value}}%",
   "answer": {
-    "panelLabel": "풀이 결과",
     "eyebrow": "정답",
     "source": "출처: {{source}}",
     "sourceScreenshot": "스크린샷 인식",
-    "sourceCode": "문제 번호 {{code}}",
-    "sourceCatalogPuzzle": "카탈로그 문제"
+    "sourceCode": "문제 번호 {{code}}"
   },
   "result": {
     "unsatisfiableTitle": "이 이미지에서 인식한 문제에는 해가 없습니다.",
@@ -58,10 +46,6 @@
     "cellBlocked": "사용 불가",
     "cellFilled": "부력 {{lift}} 풍선",
     "cellEmpty": "빈 칸",
-    "summaryUsed": "사용한 풍선 {{count}}개",
-    "summaryLift": "총부력 {{value}}",
-    "summaryRowMoment": "행 방향 모멘트 {{value}}",
-    "summaryColumnMoment": "열 방향 모멘트 {{value}}",
     "rule": "규칙 {{version}}: 행과 열 두 방향의 가중 부력이 균형을 이룹니다."
   },
   "failure": {
@@ -82,10 +66,6 @@
   },
   "candidates": {
     "legendCode": "번호 {{code}}의 문제 후보",
-    "legendGeneric": "카탈로그 후보",
-    "summary": "{{rows}}×{{columns}} · 사용 가능 {{cells}}칸 · 재고 {{inventory}}{{target}} · 관측 {{count}}회",
-    "target": " · 목표 총부력 {{value}}",
-    "inventorySeparator": ", ",
     "matchedTag": "이번 이미지에서 인식",
     "action": "선택한 문제 풀기",
     "statusProvisional": "미확인 (이미지 1장)",
@@ -95,16 +75,10 @@
     "statusUnknown": "알 수 없는 상태"
   },
   "query": {
-    "eyebrow": "문제 번호",
-    "heading": "번호로 문제 불러오기",
-    "badge": "카탈로그 조회",
-    "description": "전체 정보를 인식한 적이 있는 문제 번호를 입력하면 다시 업로드하지 않고 검증된 문제를 풀 수 있습니다. 기록이 다르면 모든 후보를 표시하여 선택할 수 있습니다.",
     "label": "문제 번호",
     "loading": "조회 중…",
-    "submit": "조회 및 풀이",
     "help": "WL-A 뒤에 숫자 4자리를 입력해 주세요. 대소문자와 공백은 자동으로 정규화됩니다.",
     "emptyCode": "문제 번호를 입력해 주세요. 예: WL-A1001.",
-    "autoSolve": "카탈로그 후보가 하나여서 자동으로 풀이를 시작했습니다 (기록 상태: {{status}}).",
     "entryLine": "{{code}} · 기록 상태: {{status}} · 후보 {{count}}개",
     "multiple": "같은 번호에 서로 다른 문제가 기록되어 있습니다. 재고와 목표 총부력을 확인한 후 올바른 후보를 선택해 주세요.",
     "solveUnavailable": "지금은 풀이 서비스를 이용할 수 없습니다. 나중에 다시 시도해 주세요.",
@@ -114,19 +88,14 @@
     "errorFailed": "조회가 완료되지 않았습니다. 나중에 다시 시도해 주세요."
   },
   "examples": {
-    "eyebrow": "00 / 예시",
     "scopeTitle": "스크린샷 범위 예시",
-    "scopeBadge": "개인정보를 제거한 공개 이미지",
     "scopeIntro": "1번의 전체 보드와 목표 총부력, 2번의 전체 재고를 포함해 주세요. 3번 문제 번호는 선택 사항이며 인식 후 기록과 재사용에 활용됩니다.",
     "scopeAlt": "전체 보드, 목표 총부력, 전체 재고, 선택 사항인 문제 번호를 표시한 이미지",
     "scopeCaptionBoard": "1 필수: 전체 보드 + 목표 총부력 (예: 0/11)",
     "scopeCaptionInventory": "2 필수: 모든 재고의 레벨, 부력, 수량",
     "scopeCaptionCode": "3 선택: 문제 번호",
     "codeTitle": "문제 번호 위치",
-    "codeIntro": "문제 번호는 보드 밖 왼쪽에 있으며 WL-A 뒤에 숫자 4자리가 붙습니다 (예: WL-A1001). 번호 조회에는 이 문자만 필요하며 이미지 업로드는 필요하지 않습니다.",
-    "codeAlt": "보드 왼쪽의 WL-A와 숫자 4자리 위치를 표시한 이미지",
-    "codeMarker": "문제 번호",
-    "codeCaption": "문제 번호 위치: WL-A + 숫자 4자리 (예: WL-A1001)"
+    "codeIntro": "문제 번호는 보드 밖 왼쪽에 있으며 WL-A 뒤에 숫자 4자리가 붙습니다 (예: WL-A1001). 번호 조회에는 이 문자만 필요하며 이미지 업로드는 필요하지 않습니다."
   },
   "workbench": {
     "intro": "스크린샷을 가져오면 인식부터 풀이까지 한 번에 진행합니다. 문제 번호를 입력해 기록된 문제를 바로 가져올 수도 있습니다. 인식한 문제는 확인하고 수정한 뒤 다시 풀 수 있습니다.",

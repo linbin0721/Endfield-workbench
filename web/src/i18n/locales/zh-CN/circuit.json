@@ -3,17 +3,8 @@
   "eyebrow": "解谜工具 / CIRCUIT",
   "heading": "源石电路解谜",
   "intro": "导入包含完整棋盘、上方和左侧约束及右侧全部库存拼块的截图，自动识别并求解；也可以按题号复用目录中的题面变体。",
-  "modeGroupLabel": "解题入口",
-  "mode": {
-    "screenshotTitle": "截图识别",
-    "screenshotNote": "上传完整棋盘、约束与库存拼块，识别并求解",
-    "codeTitle": "按题号查询",
-    "codeNote": "查询目录中的一个或多个正常题面变体"
-  },
   "capabilityMissing": "服务未声明源石电路能力，暂不可提交。",
   "recognize": {
-    "eyebrow": "识别与求解",
-    "heading": "从图片得到答案",
     "description": "只有点击后才上传当前预览的图片。识别到完整题面后始终求解本次截图；题号目录只用于记录和匹配说明。",
     "uploading": "正在上传…",
     "recognizing": "正在识别…",
@@ -22,7 +13,6 @@
     "submit": "识别并求解",
     "cancel": "取消本次任务"
   },
-  "statusPanelLabel": "查询与求解状态",
   "issueTitle": "识别提示：",
   "confidence": " · 置信度 {{value}}%",
   "notation": {
@@ -54,13 +44,9 @@
     "line": "本次截图没有完整题面；题号 {{code}} 有 {{count}} 个正常变体，可核对后选择求解。"
   },
   "answer": {
-    "panelLabel": "求解结果",
     "eyebrow": "答案",
     "sourceScreenshot": "本次截图识别",
-    "sourceCode": "题号 {{code}}",
-    "sourceCatalogVariant": "题号 {{code}} 的目录变体",
-    "sourceCatalogPuzzle": "目录题面",
-    "sourceCatalogVariantGeneric": "目录题面变体"
+    "sourceCode": "题号 {{code}}"
   },
   "failure": {
     "busy": "当前任务较多，请稍后重试。",
@@ -83,9 +69,6 @@
   },
   "candidates": {
     "legendCode": "题号 {{code}} 的题面变体",
-    "legendGeneric": "目录题面变体",
-    "note": "同一题号可能对应多个正常变体，请核对约束、棋盘和库存后选择。",
-    "variant": "变体 {{index}}",
     "observations": "观察 {{count}} 次",
     "matchedTag": "本次截图匹配",
     "selectFirst": "请选择一个题面变体后再求解。",
@@ -96,17 +79,12 @@
     "statusUnknown": "未知状态"
   },
   "preview": {
-    "targetsLabel": "各颜色行列约束",
-    "row": "行",
-    "column": "列",
-    "boardSize": "{{rows}}×{{columns}} 棋盘",
     "blocked": "障碍格",
     "fixed": "{{color}}固定格",
     "empty": "空格",
     "piecesLabel": "库存形状（{{count}} 组）",
     "pieceAria": "{{color}}，{{cells}} 格库存形状",
     "cellCount": "{{cells}} 格",
-    "legendLabel": "棋盘图例",
     "legendBlocked": "斜纹 = 障碍",
     "legendFixed": "菱形 = 固定格",
     "fallbackColors": "未保存原始颜色，当前使用高对比示意色"
@@ -139,17 +117,11 @@
     "unknown": "未知颜色"
   },
   "query": {
-    "eyebrow": "按题号",
-    "heading": "用题号直接取题",
-    "badge": "目录复用",
-    "description": "输入题号后读取目录中经过校验的题面。同一题号可能有多个正常变体，届时请根据约束、棋盘和库存选择。",
     "label": "题号",
     "placeholder": "V40020 或 WL0020",
     "loading": "正在查询…",
-    "submit": "查询并求解",
     "help": "接受 V 加五位数字或 WL 加四位数字；装饰三角、连字符和空格会自动规范化。",
     "emptyCode": "请输入 V 加五位数字或 WL 加四位数字，例如 V40020 或 WL0020。",
-    "autoSolve": "题号 {{code}} 只有一个题面变体，已自动提交求解。",
     "noCandidates": "目录中没有可用于求解的完整题面变体。",
     "entryLine": "{{code}} · 正常题面变体 {{count}} 个",
     "solveUnavailable": "源石电路求解服务当前不可用，请稍后重试。",
@@ -160,10 +132,8 @@
     "errorFailed": "查询未完成，请稍后重试。"
   },
   "examples": {
-    "eyebrow": "00 / 示例",
     "screenshotTitle": "截图范围示例",
     "codeTitle": "题号位置示例",
-    "badge": "自制示意图",
     "screenshotIntro": "截图需完整包含 1 号棋盘和 2 号全部库存；3 号题号可选。",
     "codeIntro": "1 号是棋盘，2 号是库存，3 号是棋盘左侧题号；按题号查询只需输入 3 号，无需上传截图。",
     "figureAria": "未解题源石电路示意画面"
