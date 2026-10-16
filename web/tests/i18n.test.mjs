@@ -241,7 +241,7 @@ const BRIDGE_IGNORES = new Set([
   // Prefix of a composed derive message whose complete template exists.
   "第 {row} 行库存的升力和数量均缺失：",
   // circuitDisplay.ts color names are normalized at the display boundary
-  // (CircuitPuzzlePreview), not through the canonical message templates.
+  // (features/circuit/colors.ts), not through the canonical message templates.
   "红色", "橙色", "黄色", "绿色", "青色", "蓝色", "紫色", "品红色", "未知颜色",
 ]);
 

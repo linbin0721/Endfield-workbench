@@ -3,17 +3,8 @@
   "eyebrow": "PUZZLE TOOLS / CIRCUIT",
   "heading": "Originium Circuitry Solver",
   "intro": "Upload the complete board, the constraints above and to the left, and all pieces on the right to recognize and solve. Recorded variants can also be loaded by code.",
-  "modeGroupLabel": "Choose an input method",
-  "mode": {
-    "screenshotTitle": "Screenshot recognition",
-    "screenshotNote": "Recognize the complete board, constraints and stock",
-    "codeTitle": "Puzzle code",
-    "codeNote": "Look up valid puzzle variants in the catalog"
-  },
   "capabilityMissing": "Circuit support was not declared; submission is unavailable.",
   "recognize": {
-    "eyebrow": "RECOGNIZE & SOLVE",
-    "heading": "Get an answer from your image",
     "description": "The previewed image is uploaded only when you click. A complete puzzle is always solved from this screenshot; the catalog only records and explains matches.",
     "uploading": "Uploading…",
     "recognizing": "Recognizing…",
@@ -22,7 +13,6 @@
     "submit": "Recognize and solve",
     "cancel": "Cancel task"
   },
-  "statusPanelLabel": "Query and solve status",
   "issueTitle": "Recognition notes:",
   "confidence": " · Confidence {{value}}%",
   "notation": {
@@ -54,13 +44,9 @@
     "line": "The screenshot puzzle is incomplete. Code {{code}} has {{count}} valid variants; check them before choosing."
   },
   "answer": {
-    "panelLabel": "Solution",
     "eyebrow": "ANSWER",
     "sourceScreenshot": "This screenshot",
-    "sourceCode": "Code {{code}}",
-    "sourceCatalogVariant": "Catalog variant for {{code}}",
-    "sourceCatalogPuzzle": "Catalog puzzle",
-    "sourceCatalogVariantGeneric": "Catalog puzzle variant"
+    "sourceCode": "Code {{code}}"
   },
   "failure": {
     "busy": "The service is busy. Retry later.",
@@ -83,9 +69,6 @@
   },
   "candidates": {
     "legendCode": "Puzzle variants for {{code}}",
-    "legendGeneric": "Catalog variants",
-    "note": "A code can have several valid variants. Check constraints, board and stock before choosing.",
-    "variant": "Variant {{index}}",
     "observations": "Observations: {{count}}",
     "matchedTag": "Matches this screenshot",
     "selectFirst": "Choose a variant before solving.",
@@ -96,17 +79,12 @@
     "statusUnknown": "Unknown status"
   },
   "preview": {
-    "targetsLabel": "Row and column constraints by color",
-    "row": "Rows",
-    "column": "Columns",
-    "boardSize": "{{rows}}×{{columns}} board",
     "blocked": "Blocked cell",
     "fixed": "{{color}} fixed cell",
     "empty": "Empty cell",
     "piecesLabel": "Stock shapes ({{count}} groups)",
     "pieceAria": "{{color}} stock shape, {{cells}} cells",
     "cellCount": "Cells: {{cells}}",
-    "legendLabel": "Board legend",
     "legendBlocked": "Stripes = blocked",
     "legendFixed": "Diamond = fixed cell",
     "fallbackColors": "Original colors unavailable; using high-contrast example colors"
@@ -139,17 +117,11 @@
     "unknown": "Unknown color"
   },
   "query": {
-    "eyebrow": "BY CODE",
-    "heading": "Load a puzzle by code",
-    "badge": "Catalog lookup",
-    "description": "Load a validated puzzle by code. If several variants exist, compare constraints, board and stock before choosing.",
     "label": "Puzzle code",
     "placeholder": "V40020 or WL0020",
     "loading": "Looking up…",
-    "submit": "Look up and solve",
     "help": "Use V + five digits or WL + four digits. Triangles, dashes and spaces are normalized automatically.",
     "emptyCode": "Enter V + five digits or WL + four digits, e.g. V40020 or WL0020.",
-    "autoSolve": "Code {{code}} has one variant, submitted for solving automatically.",
     "noCandidates": "No complete catalog variant is available to solve.",
     "entryLine": "{{code}} · Valid variants: {{count}}",
     "solveUnavailable": "Circuit solving unavailable. Please retry later.",
@@ -160,10 +132,8 @@
     "errorFailed": "Lookup did not complete. Please retry later."
   },
   "examples": {
-    "eyebrow": "00 / EXAMPLE",
     "screenshotTitle": "Screenshot area example",
     "codeTitle": "Puzzle code location",
-    "badge": "Custom illustration",
     "screenshotIntro": "Include the complete board (1) and all stock (2). The code (3) is optional.",
     "codeIntro": "1 is the board, 2 is stock, and 3 is the code to the left. Lookup only needs 3; no upload.",
     "figureAria": "Illustration of an unsolved Originium Circuitry puzzle"

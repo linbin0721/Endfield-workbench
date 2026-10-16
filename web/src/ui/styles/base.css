@@ -1,10 +1,8 @@
 /*
- * Layer order for the redesign. Later layers win regardless of selector
- * specificity. `legacy` (the old global styles, scoped to `.legacy-page`)
- * sits above `base` so these resets never restyle pages that are not migrated
- * yet, and below `components` so new components always win.
+ * Layer order: later layers win regardless of selector specificity, so the
+ * resets in `base` never beat a component style.
  */
-@layer base, legacy, components, overrides;
+@layer base, components, overrides;
 
 @layer base {
   *,
@@ -36,8 +34,7 @@
     color: inherit;
   }
 
-  /* Pages that are not migrated keep their own (and the browser's) focus outline. */
-  :focus-visible:not(.legacy-page *) {
+  :focus-visible {
     outline: none;
     box-shadow: var(--focus-ring);
   }

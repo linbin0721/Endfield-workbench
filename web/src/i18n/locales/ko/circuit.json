@@ -3,17 +3,8 @@
   "eyebrow": "퍼즐 도구 / CIRCUIT",
   "heading": "오리지늄 회로 퍼즐",
   "intro": "전체 보드, 위쪽과 왼쪽의 조건, 오른쪽의 모든 조각이 보이는 이미지로 인식하고 풉니다. 번호로 기록된 변형 문제를 불러올 수도 있습니다.",
-  "modeGroupLabel": "입력 방식 선택",
-  "mode": {
-    "screenshotTitle": "스크린샷 인식",
-    "screenshotNote": "전체 보드, 조건, 재고 인식",
-    "codeTitle": "문제 번호로 검색",
-    "codeNote": "카탈로그의 정상 변형 문제 조회"
-  },
   "capabilityMissing": "회로 지원 정보가 없어 제출할 수 없습니다.",
   "recognize": {
-    "eyebrow": "인식 및 풀이",
-    "heading": "이미지로 답 구하기",
     "description": "클릭할 때만 이미지를 업로드합니다. 문제 정보를 완전히 인식하면 항상 이번 이미지의 문제를 풀고, 카탈로그는 기록과 일치 여부 안내에만 사용합니다.",
     "uploading": "업로드 중…",
     "recognizing": "인식 중…",
@@ -22,7 +13,6 @@
     "submit": "인식 및 풀이",
     "cancel": "현재 작업 취소"
   },
-  "statusPanelLabel": "검색 및 풀이 상태",
   "issueTitle": "인식 안내:",
   "confidence": " · 신뢰도 {{value}}%",
   "notation": {
@@ -54,13 +44,9 @@
     "line": "이미지의 문제 정보가 불완전합니다. 번호 {{code}}에는 정상 변형 문제 {{count}}개가 있으니 확인한 후 선택해 주세요."
   },
   "answer": {
-    "panelLabel": "풀이 결과",
     "eyebrow": "정답",
     "sourceScreenshot": "이번 스크린샷 인식",
-    "sourceCode": "문제 번호 {{code}}",
-    "sourceCatalogVariant": "번호 {{code}}의 기록된 변형 문제",
-    "sourceCatalogPuzzle": "카탈로그 문제",
-    "sourceCatalogVariantGeneric": "카탈로그 변형 문제"
+    "sourceCode": "문제 번호 {{code}}"
   },
   "failure": {
     "busy": "현재 작업이 많습니다. 나중에 다시 시도해 주세요.",
@@ -83,9 +69,6 @@
   },
   "candidates": {
     "legendCode": "번호 {{code}}의 변형 문제",
-    "legendGeneric": "카탈로그 변형 문제",
-    "note": "같은 번호에 여러 정상 변형 문제가 있을 수 있습니다. 조건, 보드, 재고를 확인한 후 선택해 주세요.",
-    "variant": "변형 {{index}}",
     "observations": "관측 {{count}}회",
     "matchedTag": "이번 이미지와 일치",
     "selectFirst": "풀 변형 문제를 먼저 선택해 주세요.",
@@ -96,17 +79,12 @@
     "statusUnknown": "알 수 없는 상태"
   },
   "preview": {
-    "targetsLabel": "색상별 행 및 열 조건",
-    "row": "행",
-    "column": "열",
-    "boardSize": "{{rows}}×{{columns}} 보드",
     "blocked": "장애물 칸",
     "fixed": "{{color}} 고정 칸",
     "empty": "빈 칸",
     "piecesLabel": "재고 모양 ({{count}}그룹)",
     "pieceAria": "{{color}}, {{cells}}칸 재고 모양",
     "cellCount": "{{cells}}칸",
-    "legendLabel": "보드 범례",
     "legendBlocked": "빗금 = 장애물",
     "legendFixed": "마름모 = 고정 칸",
     "fallbackColors": "원래 색상이 없어 구분하기 쉬운 예시 색상을 표시합니다"
@@ -139,17 +117,11 @@
     "unknown": "알 수 없는 색상"
   },
   "query": {
-    "eyebrow": "문제 번호",
-    "heading": "번호로 문제 불러오기",
-    "badge": "카탈로그 조회",
-    "description": "번호로 검증된 문제를 불러옵니다. 변형 문제가 여러 개면 조건, 보드, 재고를 비교해 선택해 주세요.",
     "label": "문제 번호",
     "placeholder": "V40020 또는 WL0020",
     "loading": "조회 중…",
-    "submit": "조회 및 풀이",
     "help": "V + 숫자 5자리 또는 WL + 숫자 4자리. 장식 삼각형, 하이픈, 공백은 자동 정규화됩니다.",
     "emptyCode": "V + 숫자 5자리 또는 WL + 숫자 4자리를 입력해 주세요. 예: V40020, WL0020.",
-    "autoSolve": "번호 {{code}}의 변형 문제가 하나여서 자동으로 풀이를 시작했습니다.",
     "noCandidates": "카탈로그에 풀 수 있는 완전한 변형 문제가 없습니다.",
     "entryLine": "{{code}} · 정상 변형 문제 {{count}}개",
     "solveUnavailable": "지금은 회로 풀이를 이용할 수 없습니다. 나중에 다시 시도해 주세요.",
@@ -160,10 +132,8 @@
     "errorFailed": "조회가 완료되지 않았습니다. 나중에 다시 시도해 주세요."
   },
   "examples": {
-    "eyebrow": "00 / 예시",
     "screenshotTitle": "스크린샷 범위 예시",
     "codeTitle": "문제 번호 위치",
-    "badge": "자체 제작 예시",
     "screenshotIntro": "1번 전체 보드와 2번 전체 재고를 포함해 주세요. 3번 번호는 선택 사항입니다.",
     "codeIntro": "1번은 보드, 2번은 재고, 3번은 왼쪽 문제 번호입니다. 번호 조회에는 3번만 입력하며 업로드는 필요하지 않습니다.",
     "figureAria": "풀기 전 오리지늄 회로 예시 화면"
