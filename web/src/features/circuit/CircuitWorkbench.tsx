@@ -29,7 +29,17 @@ import { CircuitCandidates } from "./CircuitCandidates";
 import { CircuitHelp } from "./CircuitHelp";
 import { CircuitPieces } from "./CircuitPieces";
 import { colorName, useCircuitColors } from "./colors";
-import { draftFromPuzzle, draftProblems, nextCell, puzzleKey, toPuzzle, type CircuitDraft, type DraftProblem } from "./draft";
+import {
+  draftFromPuzzle,
+  draftFromRecognition,
+  draftProblems,
+  nextCell,
+  puzzleKey,
+  toPuzzle,
+  type CircuitDraft,
+  type DraftProblem,
+  type DraftReason,
+} from "./draft";
 import c from "./circuit.module.css";
 
 type Origin = { kind: "screenshot" } | { kind: "code"; code: string; count: number };
@@ -110,6 +120,7 @@ export default function CircuitWorkbench() {
   const [choice, setChoice] = useState<Choice | null>(null);
   const [solved, setSolved] = useState<Solved | null>(null);
   const [warning, setWarning] = useState<MessageText>("");
+  const [reasons, setReasons] = useState<DraftReason[]>([]);
   const [error, setError] = useState<MessageText>("");
   const [code, setCode] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
@@ -135,7 +146,7 @@ export default function CircuitWorkbench() {
     lookup.current = null;
     setLookingUp(false);
     setOrigin(null); setRecognition(null); setDraft(null); setRecognized(null); setEditing(false); setActiveChannel(0);
-    setChoice(null); setSolved(null); setWarning(""); setError("");
+    setChoice(null); setSolved(null); setWarning(""); setReasons([]); setError("");
   }, [stopRunner]);
 
   const source = useImageSource(useCallback((next: ImageSelection | null, isNew: boolean) => {
@@ -181,6 +192,15 @@ export default function CircuitWorkbench() {
       setDraft(next); setRecognized(next);
       if (!canSolve) { setError(msg("failure.solveUnavailable", undefined, "circuit")); return; }
       void solve(checked.puzzle, value.display_palette, msg("answer.sourceScreenshot", undefined, "circuit"), "screenshot");
+      return;
+    }
+    // Incomplete but reliably located: stop at the puzzle with the gaps marked for the user.
+    const drafted = value.outcome === "incomplete" ? draftFromRecognition(value) : null;
+    if (drafted) {
+      setDraft(drafted.draft); setRecognized(drafted.draft); setEditing(true); setReasons(drafted.reasons);
+      if (candidates.length > 0) {
+        setChoice({ code: value.catalog!.code, candidates, matchedFingerprint: value.catalog!.matched_fingerprint ?? null });
+      }
       return;
     }
     if ((value.outcome === "incomplete" || value.outcome === "no_board") && candidates.length > 0) {
@@ -337,6 +357,9 @@ export default function CircuitWorkbench() {
             <div className={w.notices}>
               {editing && problems.length > 0 && <Notice tone="warning" role="status">{t("workbench.needsInput")}</Notice>}
               {warning && <Notice tone="warning" role="status">{render(warning)}</Notice>}
+              {reasons.length > 0 && <Notice tone="info" role="status" title={t("reasons.title")}>
+                {reasons.map((reason) => <span key={reason} className={w.subline}>{t(`reasons.${reason}`)}</span>)}
+              </Notice>}
               {recognition && (recognition.notation || recognition.question_code) && <Notice tone="info" role="status">
                 {recognition.notation && <span className={w.subline}><strong>{t("notation.label")}</strong>{t(NOTATION_KEYS[recognition.notation] ?? "notation.unknown")}</span>}
                 {recognition.question_code && <span className={w.subline}><strong>{t("questionCode")}</strong>{recognition.question_code}{questionConfidence}</span>}

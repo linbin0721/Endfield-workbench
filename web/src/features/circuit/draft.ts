@@ -116,3 +116,59 @@ export function puzzleKey(puzzle: CircuitPuzzle): string {
     .map((channel) => `${channel.index}:${channel.row_targets.join(",")}/${channel.column_targets.join(",")}`).join("|");
   return `${puzzle.rows}x${puzzle.columns}|${channels}|${cells(puzzle.blocked_cells)}|${cells(puzzle.fixed_cells)}|${puzzle.pieces.length}`;
 }
+
+/** Machine-readable reasons of a recognition draft (EW-031 contract); display hints only. */
+export const DRAFT_REASONS = ["row_targets", "column_targets", "rejected", "unsatisfiable", "solver_limit", "validation_failed"] as const;
+export type DraftReason = (typeof DRAFT_REASONS)[number];
+
+type RecordValue = Record<string, unknown>;
+const asRecord = (value: unknown): RecordValue | null =>
+  value !== null && typeof value === "object" && !Array.isArray(value) ? value as RecordValue : null;
+const isTarget = (value: unknown, limit: number): value is number | null =>
+  value === null || (Number.isInteger(value) && (value as number) >= 0 && (value as number) <= limit);
+
+/**
+ * Editable draft of an incomplete recognition, or null when the result has
+ * none or it does not hold together (then the page asks for a new
+ * screenshot, as before). The data is untrusted: sizes, channel indices,
+ * cells and pieces are checked here; the full puzzle check runs on solve.
+ */
+export function draftFromRecognition(result: unknown): { draft: CircuitDraft; reasons: DraftReason[] } | null {
+  const value = asRecord(asRecord(result)?.draft);
+  if (!value || value.rule_version !== "line-count-v1") return null;
+  const { rows, columns } = value;
+  if (!Number.isInteger(rows) || !Number.isInteger(columns) || (rows as number) < 2 || (rows as number) > 10 ||
+      (columns as number) < 2 || (columns as number) > 10) return null;
+  const r = rows as number, c = columns as number;
+  if (!Array.isArray(value.channels) || value.channels.length < 1 || value.channels.length > 4) return null;
+  const channels: DraftChannel[] = [];
+  for (const [position, raw] of value.channels.entries()) {
+    const channel = asRecord(raw);
+    if (!channel || channel.index !== position || !Array.isArray(channel.row_targets) || !Array.isArray(channel.column_targets) ||
+        channel.row_targets.length !== r || channel.column_targets.length !== c ||
+        !channel.row_targets.every((target) => isTarget(target, c)) || !channel.column_targets.every((target) => isTarget(target, r))) return null;
+    channels.push({ index: position, row_targets: [...channel.row_targets] as (number | null)[], column_targets: [...channel.column_targets] as (number | null)[] });
+  }
+  if (!Array.isArray(value.cells) || value.cells.length !== r * c) return null;
+  const cells: DraftCell[] = [];
+  for (const raw of value.cells) {
+    const cell = asRecord(raw);
+    if (!cell || !(cell.kind === "empty" || cell.kind === "blocked" || cell.kind === "fixed")) return null;
+    if (cell.kind === "fixed" ? !(Number.isInteger(cell.channel) && (cell.channel as number) < channels.length && (cell.channel as number) >= 0)
+      : cell.channel !== null && cell.channel !== undefined) return null;
+    cells.push({ kind: cell.kind, channel: cell.kind === "fixed" ? cell.channel as number : null });
+  }
+  if (!Array.isArray(value.pieces) || value.pieces.length < 1 || value.pieces.length > 32) return null;
+  const pieces: DraftPiece[] = [];
+  for (const raw of value.pieces) {
+    const piece = asRecord(raw);
+    if (!piece || !Number.isInteger(piece.channel) || (piece.channel as number) < 0 || (piece.channel as number) >= channels.length ||
+        !Array.isArray(piece.cells) || piece.cells.length < 1) return null;
+    const shape = piece.cells.map(asRecord);
+    if (shape.some((cell) => !cell || !Number.isInteger(cell.row) || !Number.isInteger(cell.column) || (cell.row as number) < 0 || (cell.column as number) < 0)) return null;
+    pieces.push({ channel: piece.channel as number, cells: shape.map((cell) => ({ row: cell!.row as number, column: cell!.column as number })) });
+  }
+  const reasons = Array.isArray(value.missing)
+    ? value.missing.filter((reason): reason is DraftReason => (DRAFT_REASONS as readonly unknown[]).includes(reason)) : [];
+  return { draft: { rows: r, columns: c, channels, cells, pieces, palette: value.palette }, reasons };
+}

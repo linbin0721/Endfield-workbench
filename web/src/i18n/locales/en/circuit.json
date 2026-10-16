@@ -208,5 +208,14 @@
     "fixedChannel": "Fixed cells without a colour: {{count}}. Pick a colour and click them again.",
     "axisRow": "row",
     "axisColumn": "column"
+  },
+  "reasons": {
+    "title": "About this recognition:",
+    "row_targets": "Some row targets could not be read; they are marked in red.",
+    "column_targets": "Some column targets could not be read; they are marked in red.",
+    "rejected": "The whole puzzle was read, but it does not hold together; a number or cell may be misread. Check it, then solve.",
+    "unsatisfiable": "The whole puzzle was read, but it has no solution as recognized. Check the row and column numbers, obstacles and fixed cells, then solve.",
+    "solver_limit": "The whole puzzle was read, but solving hit its limit before finding an answer. Check the puzzle and try again.",
+    "validation_failed": "The whole puzzle was read, but the answer failed the independent check. Check the puzzle, then solve."
   }
 }

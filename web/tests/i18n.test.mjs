@@ -158,6 +158,11 @@ test("other locales mirror the zh-CN keys and interpolation parameters", () => {
 const DYNAMIC_KEY_FAMILIES = [
   ["common", ["task.queued", "task.running", "task.succeeded", "task.failed", "task.cancelled"]],
   ["calculator", ["attributes.strength", "attributes.agility", "attributes.intellect", "attributes.will"]],
+  ["balloon", ["problems.liftMissing", "problems.countMissing", "problems.liftInvalid", "problems.countInvalid",
+    "problems.liftDuplicate", "problems.noUsable", "problems.noInventory", "problems.tooManyKinds"]],
+  ["circuit", ["problems.targetMissing", "problems.targetInvalid", "problems.cellUnknown", "problems.fixedChannel"]],
+  ["circuit", ["reasons.row_targets", "reasons.column_targets", "reasons.rejected", "reasons.unsatisfiable",
+    "reasons.solver_limit", "reasons.validation_failed"]],
   // Referenced inside i18n/messages.ts, which the source scan skips.
   ["messages", ["unknown.notice", "unknown.error", "unknown.inline"]],
 ];
