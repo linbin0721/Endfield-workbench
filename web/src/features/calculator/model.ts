@@ -1,7 +1,7 @@
 /**
- * Display helpers of the 325 calculator page, moved unchanged out of
- * CalculatorPage.tsx: lookups, formatting, equipment ordering, labels,
- * result normalization, clipboard and the copied text. No search logic.
+ * Display helpers of the 325 calculator page: lookups, formatting, equipment
+ * ordering, labels, result normalization, clipboard and the copied text.
+ * No search logic.
  */
 import type { TFunction } from "i18next";
 import { gameData } from "../../calculator/data.ts";

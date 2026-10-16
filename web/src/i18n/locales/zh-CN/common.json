@@ -66,9 +66,7 @@
     "solvingAvailable": "求解可用",
     "solvingUnavailable": "求解暂不可用",
     "recognitionAvailable": "图片识别可用",
-    "recognitionUnavailable": "图片识别暂不可用",
-    "connecting": "正在连接解题服务…",
-    "connectFailed": "连接解题服务失败：{{message}}"
+    "recognitionUnavailable": "图片识别暂不可用"
   },
   "task": {
     "label": "{{operation}}任务状态：{{status}}",
@@ -85,8 +83,6 @@
     "solved": "求解完成"
   },
   "image": {
-    "eyebrow": "01 / 图片",
-    "title": "导入画面",
     "localOnlyBadge": "图片仅本地预览",
     "introMobile": "先用设备截屏，再从相册选择图片。",
     "introDesktop": "选择、拖放或粘贴截图，或直接截取游戏窗口。",
@@ -122,17 +118,10 @@
     "meta": "{{name}} · {{width}}×{{height}}",
     "clear": "清除图片",
     "scopeLegend": "识别范围",
-    "scopeFull": "默认整图（自动定位）",
     "scopeCrop": "手动裁剪",
-    "fullNote": "默认上传完整原图，不在浏览器裁剪。",
     "cropNoteDefault": "请保留完整棋盘和右侧所有气球库存。",
     "cropNoteCircuit": "请保留完整棋盘（含上方和左侧全部约束）以及右侧所有库存拼块。",
     "cropFullNote": "手动裁剪为 100%，仍上传完整原图。",
-    "cropLegend": "裁剪范围（占原图百分比）",
-    "cropLeft": "左边距",
-    "cropTop": "上边距",
-    "cropWidth": "宽度",
-    "cropHeight": "高度",
     "uploadCaption": "实际上传：{{width}}×{{height}} 像素{{suffix}}",
     "uploadCropped": " · 裁剪输出",
     "uploadFull": " · 完整原图",

@@ -12,7 +12,7 @@ import { PageHeader } from "../../ui/PageHeader/PageHeader";
 import { Panel } from "../../ui/Panel/Panel";
 import { SectionTitle } from "../../ui/SectionTitle/SectionTitle";
 import { SegmentedControl } from "../../ui/SegmentedControl/SegmentedControl";
-import { useChangeCount } from "../puzzles/useChangeCount";
+import { useChangeCount } from "../../ui/useChangeCount";
 import { BuildBench } from "./BuildBench";
 import { CharacterPicker } from "./CharacterPicker";
 import { LevelControl } from "./LevelControl";

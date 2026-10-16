@@ -66,9 +66,7 @@
     "solvingAvailable": "Solving available",
     "solvingUnavailable": "Solving unavailable",
     "recognitionAvailable": "Image recognition available",
-    "recognitionUnavailable": "Image recognition unavailable",
-    "connecting": "Connecting to the puzzle service…",
-    "connectFailed": "Could not connect: {{message}}"
+    "recognitionUnavailable": "Image recognition unavailable"
   },
   "task": {
     "label": "{{operation}} task: {{status}}",
@@ -85,8 +83,6 @@
     "solved": "Solved"
   },
   "image": {
-    "eyebrow": "01 / IMAGE",
-    "title": "Import screenshot",
     "localOnlyBadge": "Local preview only",
     "introMobile": "Take a screenshot with your device, then select it from your photos.",
     "introDesktop": "Select, drop or paste a screenshot, or capture the game window.",
@@ -122,17 +118,10 @@
     "meta": "{{name}} · {{width}}×{{height}}",
     "clear": "Clear image",
     "scopeLegend": "Recognition area",
-    "scopeFull": "Full image (automatic detection)",
     "scopeCrop": "Manual crop",
-    "fullNote": "Upload the complete original image without browser cropping.",
     "cropNoteDefault": "Keep the entire board and all balloon stock on the right.",
     "cropNoteCircuit": "Keep the entire board, all constraints above and to the left, and all pieces on the right.",
     "cropFullNote": "Crop is 100%; the complete original will still be uploaded.",
-    "cropLegend": "Crop area (% of original image)",
-    "cropLeft": "Left margin",
-    "cropTop": "Top margin",
-    "cropWidth": "Width",
-    "cropHeight": "Height",
     "uploadCaption": "Upload preview: {{width}}×{{height}} pixels{{suffix}}",
     "uploadCropped": " · Cropped",
     "uploadFull": " · Full original",

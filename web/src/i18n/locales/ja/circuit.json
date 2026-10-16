@@ -3,17 +3,8 @@
   "eyebrow": "パズルツール / CIRCUIT",
   "heading": "源石回路パズル",
   "intro": "盤面全体、上側・左側の条件、右側の全ピースが写った画像を認識して解きます。番号から記録済みのバリエーションも取得できます。",
-  "modeGroupLabel": "入力方法を選択",
-  "mode": {
-    "screenshotTitle": "スクリーンショット認識",
-    "screenshotNote": "盤面全体・条件・在庫を認識",
-    "codeTitle": "問題番号で検索",
-    "codeNote": "カタログのバリエーションを取得"
-  },
   "capabilityMissing": "源石回路の対応情報がないため送信できません。",
   "recognize": {
-    "eyebrow": "認識・解答",
-    "heading": "画像から解答する",
     "description": "クリック時だけ画像を送信します。完全に認識した場合は必ず今回の画像の問題を解き、カタログは記録と一致状況の説明にのみ使います。",
     "uploading": "アップロード中…",
     "recognizing": "認識中…",
@@ -22,7 +13,6 @@
     "submit": "認識して解く",
     "cancel": "今回の処理をキャンセル"
   },
-  "statusPanelLabel": "検索・計算状況",
   "issueTitle": "認識について：",
   "confidence": " · 信頼度 {{value}}%",
   "notation": {
@@ -54,13 +44,9 @@
     "line": "画像の問題は不完全です。番号 {{code}} には {{count}} 種あり、内容を確認して選択できます。"
   },
   "answer": {
-    "panelLabel": "解答",
     "eyebrow": "解答",
     "sourceScreenshot": "今回の画像認識",
-    "sourceCode": "問題番号 {{code}}",
-    "sourceCatalogVariant": "番号 {{code}} の記録済みバリエーション",
-    "sourceCatalogPuzzle": "カタログの問題",
-    "sourceCatalogVariantGeneric": "カタログのバリエーション"
+    "sourceCode": "問題番号 {{code}}"
   },
   "failure": {
     "busy": "現在処理が混み合っています。後で再試行してください。",
@@ -83,9 +69,6 @@
   },
   "candidates": {
     "legendCode": "番号 {{code}} のバリエーション",
-    "legendGeneric": "カタログのバリエーション",
-    "note": "同じ番号に複数のバリエーションがある場合があります。条件・盤面・在庫を確認して選んでください。",
-    "variant": "バリエーション {{index}}",
     "observations": "観測 {{count}} 回",
     "matchedTag": "今回の画像と一致",
     "selectFirst": "解くバリエーションを先に選択してください。",
@@ -96,17 +79,12 @@
     "statusUnknown": "不明な状態"
   },
   "preview": {
-    "targetsLabel": "色別の行・列条件",
-    "row": "行",
-    "column": "列",
-    "boardSize": "{{rows}}×{{columns}} の盤面",
     "blocked": "障害マス",
     "fixed": "{{color}}の固定マス",
     "empty": "空きマス",
     "piecesLabel": "在庫の形状（{{count}} 組）",
     "pieceAria": "{{color}}、{{cells}} マスの在庫形状",
     "cellCount": "{{cells}} マス",
-    "legendLabel": "盤面の凡例",
     "legendBlocked": "斜線＝障害",
     "legendFixed": "菱形＝固定マス",
     "fallbackColors": "元の色がないため見分けやすい代替色を表示しています"
@@ -139,17 +117,11 @@
     "unknown": "不明な色"
   },
   "query": {
-    "eyebrow": "問題番号",
-    "heading": "番号から問題を取得",
-    "badge": "カタログ利用",
-    "description": "番号から検証済み問題を読み込みます。複数ある場合は条件・盤面・在庫を比較して選択してください。",
     "label": "問題番号",
     "placeholder": "V40020 または WL0020",
     "loading": "検索中…",
-    "submit": "検索して解く",
     "help": "V＋5桁、または WL＋4桁の数字。飾りの三角・ハイフン・空白は自動で正規化します。",
     "emptyCode": "V＋5桁、または WL＋4桁の数字を入力してください（例：V40020、WL0020）。",
-    "autoSolve": "番号 {{code}} のバリエーションが1件のため、自動で計算を開始しました。",
     "noCandidates": "カタログに計算可能な完全な問題がありません。",
     "entryLine": "{{code}} · バリエーション {{count}} 種",
     "solveUnavailable": "源石回路の計算は現在利用できません。後で再試行してください。",
@@ -160,10 +132,8 @@
     "errorFailed": "検索が完了しませんでした。後でもう一度お試しください。"
   },
   "examples": {
-    "eyebrow": "00 / 例",
     "screenshotTitle": "撮影範囲の例",
     "codeTitle": "問題番号の位置",
-    "badge": "自作の模式図",
     "screenshotIntro": "1の盤面全体と2の全在庫を含めてください。3の番号は任意です。",
     "codeIntro": "1は盤面、2は在庫、3は左側の問題番号です。番号検索では3だけを入力し、画像は不要です。",
     "figureAria": "未解答の源石回路の模式図"

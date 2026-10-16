@@ -2,6 +2,8 @@
 
 状态：EW-007 冻结设计。目标是让用户直接按颜色和拼块轮廓复现答案，不再阅读通道、拼块编号或坐标。
 
+> 前端部分已在 EW-031 重做：页面结构与交互以 `frontend-flow.md`、界面以 `ui-design.md`、识别草稿以 `circuit-recognition-draft.md` 为准；本文保留当时的设计记录，其中的 `CircuitPage`、`CircuitResult` 等组件名已不存在。
+
 ## 产品结果
 
 - 求解成功后的主内容只显示一个接近游戏完成状态的棋盘。

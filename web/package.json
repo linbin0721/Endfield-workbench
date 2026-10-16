@@ -7,8 +7,6 @@
     "dev": "vite --host localhost",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host localhost",
-    "dev:design": "vite --config vite.design.config.ts --host 127.0.0.1",
-    "build:design": "tsc -p tsconfig.design.json && vite build --config vite.design.config.ts",
     "test:calculator": "node --test tests/calculator.test.mjs",
     "test:i18n": "node --test tests/i18n.test.mjs",
     "generate:api": "openapi-typescript ../contracts/openapi.json -o src/generated/api.ts"

@@ -3,17 +3,8 @@
   "eyebrow": "パズルツール / BALLOON",
   "heading": "空中回収パズル",
   "intro": "盤面全体と右側の全バルーン在庫が写った鮮明なスクリーンショットを読み込むと、1回のクリックで認識・解答できます。問題番号から、カタログの検証済み問題を利用することもできます。",
-  "modeGroupLabel": "入力方法を選択",
-  "mode": {
-    "screenshotTitle": "スクリーンショット認識",
-    "screenshotNote": "盤面全体と在庫の画像から認識・解答",
-    "codeTitle": "問題番号で検索",
-    "codeNote": "画像の問題番号から検証済み問題を利用"
-  },
   "capabilityMissing": "サービスが空中回収の対応状況を返していないため、送信できません。",
   "recognize": {
-    "eyebrow": "認識・解答",
-    "heading": "画像から解答する",
     "description": "クリックしたときだけプレビュー画像を送信します。在庫の数値が欠けている場合、目標総浮力から浮力または個数を一意に推定できるときだけ補完し、根拠を下に表示します。それ以外は全体が写った鮮明な画像で再試行してください。",
     "uploading": "アップロード中…",
     "recognizing": "認識中…",
@@ -22,7 +13,6 @@
     "submit": "認識して解く",
     "cancel": "今回の処理をキャンセル"
   },
-  "statusPanelLabel": "検索・計算状況",
   "issueTitle": "認識について：",
   "catalog": {
     "title": "問題カタログ：",
@@ -38,12 +28,10 @@
   },
   "confidence": " · 信頼度 {{value}}%",
   "answer": {
-    "panelLabel": "解答",
     "eyebrow": "解答",
     "source": "出典：{{source}}",
     "sourceScreenshot": "スクリーンショット認識",
-    "sourceCode": "問題番号 {{code}}",
-    "sourceCatalogPuzzle": "カタログの問題"
+    "sourceCode": "問題番号 {{code}}"
   },
   "result": {
     "unsatisfiableTitle": "この画像から認識した問題には解がありません。",
@@ -58,10 +46,6 @@
     "cellBlocked": "使用不可",
     "cellFilled": "浮力 {{lift}} のバルーン",
     "cellEmpty": "空き",
-    "summaryUsed": "使用バルーン {{count}} 個",
-    "summaryLift": "総浮力 {{value}}",
-    "summaryRowMoment": "行方向のモーメント {{value}}",
-    "summaryColumnMoment": "列方向のモーメント {{value}}",
     "rule": "ルール {{version}}：行・列両方向の加重浮力が釣り合っています。"
   },
   "failure": {
@@ -82,10 +66,6 @@
   },
   "candidates": {
     "legendCode": "番号 {{code}} の候補",
-    "legendGeneric": "カタログの候補",
-    "summary": "{{rows}}×{{columns}} · 使用可能 {{cells}} マス · 在庫 {{inventory}}{{target}} · 観測 {{count}} 回",
-    "target": " · 目標総浮力 {{value}}",
-    "inventorySeparator": "、",
     "matchedTag": "今回の画像から認識",
     "action": "選択した問題を解く",
     "statusProvisional": "未確認（画像1枚）",
@@ -95,16 +75,10 @@
     "statusUnknown": "不明な状態"
   },
   "query": {
-    "eyebrow": "問題番号",
-    "heading": "番号から問題を取得",
-    "badge": "カタログ利用",
-    "description": "全体を認識済みの問題番号を入力すると、再アップロードせずに検証済みの問題を解けます。記録に相違がある場合は、全候補から選択できます。",
     "label": "問題番号",
     "loading": "検索中…",
-    "submit": "検索して解く",
     "help": "WL-A と4桁の数字を入力してください。大文字・小文字と空白は自動で正規化します。",
     "emptyCode": "問題番号を入力してください（例：WL-A1001）。",
-    "autoSolve": "候補が1件のため、自動で計算を開始しました（記録状況：{{status}}）。",
     "entryLine": "{{code}} · 記録状況：{{status}} · 候補 {{count}} 件",
     "multiple": "同じ番号に異なる問題が記録されています。在庫と目標総浮力を確認して正しい候補を選んでください。",
     "solveUnavailable": "計算サービスを現在利用できません。後でもう一度お試しください。",
@@ -114,19 +88,14 @@
     "errorFailed": "検索が完了しませんでした。後でもう一度お試しください。"
   },
   "examples": {
-    "eyebrow": "00 / 例",
     "scopeTitle": "撮影範囲の例",
-    "scopeBadge": "公開用に加工した画像",
     "scopeIntro": "1の盤面全体と目標総浮力、2の全在庫を含めてください。3の問題番号は任意で、認識後の記録・再利用に使います。",
     "scopeAlt": "盤面全体、目標総浮力、全在庫、任意の問題番号を示す画像",
     "scopeCaptionBoard": "1 必須：盤面全体＋目標総浮力（例：0/11）",
     "scopeCaptionInventory": "2 必須：全在庫のレベル・浮力・個数",
     "scopeCaptionCode": "3 任意：問題番号",
     "codeTitle": "問題番号の位置",
-    "codeIntro": "問題番号は盤面外の左側にあり、WL-A と4桁の数字です（例：WL-A1001）。番号検索ではこの文字だけを入力し、画像は不要です。",
-    "codeAlt": "盤面左側の WL-A と4桁の数字の位置を示す画像",
-    "codeMarker": "問題番号",
-    "codeCaption": "問題番号の位置：WL-A＋4桁の数字（例：WL-A1001）"
+    "codeIntro": "問題番号は盤面外の左側にあり、WL-A と4桁の数字です（例：WL-A1001）。番号検索ではこの文字だけを入力し、画像は不要です。"
   },
   "workbench": {
     "intro": "スクリーンショットを取り込むと認識から解答まで一度に行います。問題番号を入力して記録済みの問題を取得することもできます。認識した問題は確認・修正してから解き直せます。",
