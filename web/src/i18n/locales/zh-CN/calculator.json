@@ -25,6 +25,7 @@
     "levelInvalid": "请输入 1 到 {{max}} 之间的等级。",
     "potential": "潜能",
     "potentialAny": "任意潜能（0–5）",
+    "potentialAnyShort": "任意",
     "potentialValue": "潜能 {{value}}",
     "targetLabel": "目标属性值",
     "targetFixed": "固定值",
@@ -39,6 +40,18 @@
     "searching": "搜索中…",
     "start": "开始搜索",
     "cancel": "取消搜索"
+  },
+  "picker": {
+    "title": "选择干员",
+    "change": "更换干员",
+    "search": "搜索干员",
+    "empty": "没有匹配的干员。",
+    "close": "关闭"
+  },
+  "level": {
+    "decrease": "降低一级",
+    "increase": "提高一级",
+    "slider": "等级滑块"
   },
   "progress": {
     "preparing": "正在准备搜索…",
