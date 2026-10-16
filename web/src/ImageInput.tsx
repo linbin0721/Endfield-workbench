@@ -257,7 +257,7 @@ export default function ImageInput({ onChanged, cropHint }: Props) {
           <label className={s.choice}><input type="radio" name="image-source" checked={useCrop} onChange={() => selectCrop(true)} /> {t("image.scopeCrop")}</label>
         </div>
       </fieldset>
-      <p className={cx(s.text, s.small)} style={{ marginTop: "var(--space-3)" }}>{!useCrop ? t("image.fullNote") : cropped
+      <p className={cx(s.text, s.small, s.scopeNote)}>{!useCrop ? t("image.fullNote") : cropped
         ? cropHint ?? t("image.cropNoteDefault") : t("image.cropFullNote")}</p>
       {useCrop && <fieldset className={s.fieldset}><legend className={s.legend}>{t("image.cropLegend")}</legend>
         <div className={s.cropGrid}>
