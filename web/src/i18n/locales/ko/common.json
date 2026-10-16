@@ -138,5 +138,25 @@
     "uploadFull": " · 전체 원본",
     "preparingCrop": "잘라낸 이미지 생성 중…",
     "previewAlt": "실제로 업로드할 이미지 미리보기"
+  },
+  "workbench": {
+    "fullImage": "전체 이미지",
+    "cropBox": "자르기 상자: 드래그로 이동, 방향키로 미세 조정(Shift로 크게 이동)",
+    "cropCornerNw": "왼쪽 위 핸들",
+    "cropCornerNe": "오른쪽 위 핸들",
+    "cropCornerSw": "왼쪽 아래 핸들",
+    "cropCornerSe": "오른쪽 아래 핸들",
+    "help": "사용 방법",
+    "helpTitle": "캡처 범위와 사용 방법",
+    "helpClose": "설명 닫기",
+    "notesTitle": "참고 사항",
+    "stepsLabel": "풀이 단계",
+    "stepImport": "가져오기",
+    "stepPuzzle": "문제",
+    "stepAnswer": "정답",
+    "importTitle": "스크린샷 또는 문제 번호 가져오기",
+    "codeTitle": "문제 번호로 바로 가져오기",
+    "or": "또는",
+    "puzzleWaiting": "스크린샷을 인식하거나 문제 번호를 조회하면 여기에 문제가 표시됩니다."
   }
 }

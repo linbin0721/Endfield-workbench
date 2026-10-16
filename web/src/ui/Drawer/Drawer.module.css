@@ -49,6 +49,25 @@
     box-shadow: var(--shadow-popover), var(--focus-ring);
   }
 
+  /* Right-hand sheets hold reading material (help), so they are wider. */
+  .right {
+    right: 0;
+    left: auto;
+    width: min(480px, calc(100vw - 48px));
+    border-right: 0;
+    border-left: 1px solid var(--border-subtle);
+    animation-name: slide-in-right;
+  }
+
+  .right::after {
+    right: auto;
+    left: -1px;
+  }
+
+  .right[data-state="closed"] {
+    animation-name: slide-out-right;
+  }
+
   .header {
     display: flex;
     align-items: center;
@@ -103,6 +122,18 @@
   @keyframes slide-out {
     to {
       transform: translateX(-100%);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slide-out-right {
+    to {
+      transform: translateX(100%);
     }
   }
 }

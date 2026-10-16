@@ -138,5 +138,25 @@
     "uploadFull": " · 完整原图",
     "preparingCrop": "正在生成裁剪图…",
     "previewAlt": "实际将上传的图片预览"
+  },
+  "workbench": {
+    "fullImage": "整图",
+    "cropBox": "裁剪框：拖动可移动，方向键微调（Shift 加大步长）",
+    "cropCornerNw": "左上角手柄",
+    "cropCornerNe": "右上角手柄",
+    "cropCornerSw": "左下角手柄",
+    "cropCornerSe": "右下角手柄",
+    "help": "使用说明",
+    "helpTitle": "截图范围与使用说明",
+    "helpClose": "关闭说明",
+    "notesTitle": "注意事项",
+    "stepsLabel": "解题步骤",
+    "stepImport": "导入",
+    "stepPuzzle": "题面",
+    "stepAnswer": "答案",
+    "importTitle": "导入截图或题号",
+    "codeTitle": "按题号直接取题",
+    "or": "或",
+    "puzzleWaiting": "识别截图或查询题号后，题面会显示在这里。"
   }
 }

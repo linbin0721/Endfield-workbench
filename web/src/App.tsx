@@ -14,7 +14,7 @@ import { TOOLS, type ToolEntry, type ToolId } from "./tools/registry";
  * with the language bundles.
  */
 const PAGE_LOADERS: Record<ToolId, () => Promise<{ default: ComponentType }>> = {
-  balloon: () => import("./BalloonPage"),
+  balloon: () => import("./features/balloon/BalloonWorkbench"),
   circuit: () => import("./CircuitPage"),
   calculator: () => import("./CalculatorPage"),
 };
