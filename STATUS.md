@@ -1,8 +1,8 @@
 # 项目当前状态
 
-最后核验：2026-10-17 15:14 UTC（EW-035第九版376c38b已部署，两私图128布局和倒放验证通过，22+2模拟已完成但气球390×620标题滚动有未解决发现；正式79770cc、motion914ad02及API/DB不变，不通知Claude）。四语完整截图/题号/325综合回归及目录全量计数最近核验仍为2026-10-11 12:22 UTC，不冒充本轮全量回归。
+最后核验：2026-10-17 15:34 UTC（EW-035第十版5a2a4c5已部署，两私图真实接口集成及8次指定短屏复验通过；正式79770cc、motion914ad02及API/DB不变，不通知Claude）。四语完整截图/题号/325综合回归及目录全量计数最近核验仍为2026-10-11 12:22 UTC，不冒充本轮全量回归。
 
-需求与任务记录核对：2026-10-17 15:13 UTC（用户偏好B且保留A/B开关；B正反向均先收后开，两卡圆角12px/角标10px，倒放保留旧卡inert后移除。电路删指定说明，气球删来源和规则说明并保留统计/参考提示，待整体验收，下一编号EW-036）。
+需求与任务记录核对：2026-10-17 15:34 UTC（出答案两卡同时折叠/展开后再播效果，倒放仍依次；删除右下A/B开关和模块，只保留一种过渡。Codex仅部署/真实接口/指定短屏复验，前端与动效由Claude自审自测，整体待用户确认，下一编号EW-036）。
 
 ## 当前阶段
 
@@ -30,7 +30,7 @@
 
 - EW-034第三轮已部署到 https://endfield.linbin.org/motion-preview/#1 ，源码ew-034/motion-preview@914ad02、detached构建树ew-034-codex-preview-r3。按用户新要求仅扩充1号战术终端为首页/浮空回收/源石电路/325/通用组件小站，入场可跳过、答案直接展示；9号保存不改，2/3/5/6/7保持。均为本地假数据/模拟等待，无API/实际业务或真实统计；未建PR/未合并预览代码main，正式站仍79770cc。双方公网检查通过，已交用户查看；后续迭代及最终下线流程保持。
 
-- EW-035第九版ew-035/terminal-motion@376c38b已独立部署 https://endfield.linbin.org/terminal-preview/ ，detached树ew-035-codex-preview-r9。B正向上传先折、答案再开后播效果，反向答案先收再展开上传；data-leaving保留旧答案和摘要且inert，约0.54s后移除。A仍同时，预览开关及ew-preview-transition保留，系统reduce和点击提前结束通过。两卡12px圆角/角标10px，电路删指定说明，气球删来源/规则说明而保留统计及参考提示。持续扫描/首答案后卡片顺序/后台多题面行为保持；后端/契约/正式站不变，待整体及暂译用词确认，不通知Claude，源码未推送/PR/合main。
+- EW-035第十版ew-035/terminal-motion@5a2a4c5已独立部署 https://endfield.linbin.org/terminal-preview/ ，detached树ew-035-codex-preview-r10。按Claude交付：答案出现时上传卡收条与答案展开同时进行，结束后播效果；倒放仍先收答案再开上传，data-leaving保持。A/B开关、transitionPreview.ts和data-transition已删除，不再读取ew-preview-transition（不主动清浏览器旧键）；两卡12px圆角及精简说明沿用。短屏折叠后补检/补滚已接入，本轮指定8次未复现旧遮挡。宿主部署/真实接口/指定复验通过，前端动效采用Claude自测结论，整体及暂译用词待用户；正式站/后端/契约不变，不通知Claude，预览源码未推送/PR/合main。
 
 - 坐标只读评估：两种识别器已有格子定位，可低额外运行成本保留并返回；尚无对外坐标字段或叠加实现。未来需处理实际工作图逆缩放、两管线EXIF差异与前端裁剪偏移，独立可选元数据绑定当前识别图；模型/契约/回归另行成批，当前EW-030～033不包含坐标/截图叠加。
 
@@ -56,7 +56,7 @@
 | 前端 release | `/var/www/endfield-workbench/releases/79770cc`；`current`指向该目录，385份文件与构建一致；上一版`f3b94b9`及更早版本保留，共享`assets/`526份（本次新增23份、旧503份保持） |
 | B0 独立样张 | 已在EW-033下线；`/design-preview`及整个`/design-preview/`前缀均410、no-store/noindex/nofollow；独立生成站31文件按原哈希移入root私有备份，旧公开目录已移除；原始业务参考资料/验证证据保留 |
 | EW-034 动效预览 | `https://endfield.linbin.org/motion-preview/#1`；独立`/var/www/endfield-workbench-motion-preview/current`→`releases/914ad02`，12文件/11资源共534,169 bytes，共享15资源，前两轮release和旧13资源保留；HTML no-store/noindex/nofollow、资源immutable、缺失404、无SPA回落；#4/#8显示方向1，#9仍可访问 |
-| EW-035 真实终端动效预览 | `https://endfield.linbin.org/terminal-preview/`；独立`/var/www/endfield-workbench-terminal-preview/current`→`releases/376c38b`，385文件/383当前资源共7,733,210 bytes，共享482资源，旧471及此前release保留；HTML no-store/X-Robots-Tag noindex,nofollow；assets immutable/缺失404，深链回落预览HTML；连正式API |
+| EW-035 真实终端动效预览 | `https://endfield.linbin.org/terminal-preview/`；独立`/var/www/endfield-workbench-terminal-preview/current`→`releases/5a2a4c5`，385文件/383当前资源共7,731,644 bytes，共享491资源，旧482及此前release保留；HTML no-store/X-Robots-Tag noindex,nofollow；assets immutable/缺失404，深链回落预览HTML；连正式API |
 | 计算器数据 | `1.5.3/10506507-7`，源更新 2026-09-24；33 干员、80 武器、258 装备 |
 | 计算器语言名称 | 同版本 CN/EN/JP/KR 游戏表；四语各 33 干员、80 武器、258 装备、4 套装，按 ID 关联并锁来源/输出哈希 |
 | 计算器图标 | AKEData 来源；371 条映射、365 个源路径，341 种内容；生产 WebP 合计 3,930,832 bytes，192px；来源/文件哈希保存在 `media/provenance.json` |
@@ -74,11 +74,11 @@
 
 ## 当前验证状态
 
-- EW-035第九版共享/宿主：干净npmci、生成无差异、i18n7/7、calculator16/16、明确API基址两构建通过，Worker保持；仅web/8文件，无后端/契约/依赖改动。22预览路由/384静态文件/5类404/HTTPS/301通过，旧terminal385文件/471资产保留。正式79770cc/385文件/526资产、motion914ad02/12文件/15资产、旧design410及Nginx哈希/API健康/CORS/容器身份/启动/重启/端口保持，无reload或后端重启。
-- EW-035第九版真实：两私图各1OCR+1solve共4生产POST，无mock/结果回放/自动POST重试。气球WL-A2014出2气球并保留参考警告，电路V40005出3拼块，running切语未重提交；四语/亮暗/A-B/四宽128布局无溢出/重播/额外任务，答案与上传DOM保留。完成效果约1006/1465ms，说明删除/气球统计参考保留、两卡12px/角标10px实测通过。B倒放时旧答案与摘要inert，逐帧见先折答案再开上传，约536～545ms后移除并释放blob。0页面/控制台/HTTP错误，证据ew035-terminal-preview-r9/。
-- EW-035第九版模拟边界：22常规+2新增倒放场景完成、0生产写，倒放新增项通过；气球390×620求解前滚到页底时，答案卡可停在约-3.44px，标题被固定导航遮住，EW035-R9-SHORT-SCROLL待核查（同场景复验159.56px正常），不写全通过。自然A约916～934ms/B1457～1460ms、reduce55～73ms，可见区域原生点击能在B等待期提前结束。三类取消、失败/无解/超时/电路不完整、多题面优先与pending保卡/12切换不重播通过；新增答案粘贴新图不上传及取消后台题面倒放/1DELETE通过。原始点击命中、既有焦点和多img脚本假设报告保留，只修脚本续查mock，无产品改动或真实重试。8帮助/6工具404/2首页通过，首页gzip154326（累计+19945）、WOFF244796预算内；原生截屏/325完整Worker/全站160未重跑。
+- EW-035第十版共享/宿主：干净npmci、生成无差异、i18n7/7及明确API基址两构建通过，Worker字节保持；仅web/7文件，无后端/契约/依赖改动。22预览路由/384静态文件/5类404/HTTPS/301通过，旧terminal385文件/482资产保留。正式79770cc/385文件/526资产、motion914ad02/12文件/15资产、旧design410及Nginx哈希/API健康/CORS/容器身份/启动/重启/端口保持，无reload或后端重启。
+- EW-035第十版真实集成：两私图各1OCR+1solve共4生产POST，无mock/回放/自动POST重试；选图不上传，queued/running切语未重提交，答案切回中文保持棋盘DOM。气球WL-A2014出2气球/升力9/力矩0并有参考提示；电路V40005出3拼块，solve题面与OCR一致。0页面/控制台/HTTP错误，证据ew035-terminal-preview-r10/。不重跑动效/组件/全布局验收，325规则和Worker保持，本轮不重复calculator测试。
+- EW-035第十版指定短屏复验：390×620亮色简中、首答案前滚到页底；截图双记录匹配B与题号双记录各4个新上下文，共8次。此项以旧真实结果fixture拦截全部写请求，0生产写；标题top均约104.56px、导航底61px，未再现EW035-R9-SHORT-SCROLL。旧失败证据保留，根因未由宿主确认，不冒称永久修复。前端动效/倒放/减弱/开关删除由Claude自审自测，未另行复审；旧22模拟/128布局矩阵和原生截屏/完整325未重跑。
 
-- EW-035第九版权限：容器实际UID60001对新树/Git元数据/证据与TASK/STATUS共7,799项有效读写、678目录创建修改删除通过；npm14CLI实体文件在私有ACL备份后仅定点恢复UID60001访问。
+- EW-035第十版权限：容器实际UID60001对新树/Git元数据/证据与TASK/STATUS共7,770项有效读写、679目录创建修改删除通过；npm14CLI实体文件在私有ACL备份后定点恢复UID60001访问。
 
 - EW-034第三轮共享/宿主：干净npmci、无API基址build:motion、生成无差异通过；明确生产API基址build的385文件与现网逐字节相同。独立12文件/11资源、HTML/meta/header noindex/nofollow和no-store、11资源哈希/immutable、5WebP MIME及5类缺失404通过；共享15份含旧13完整保留。20正式路由、current/385文件/526资源、旧design四路径410、TLS/跳转/实际health/CORS与API/DB身份/启动/重启/健康/端口保持，Nginx哈希不变、nginx-t通过，无reload/服务重启，0生产写请求。
 - EW-034第三轮浏览器：7方向×1366/390/320×亮暗42组及终端5页×3宽×亮暗30组无溢出/页面控制台HTTP错误或失败；1366亮/320暗两组模拟流程（完整识别自动求解、缺格补全、STALE重解、题号、电路、325选行、组件/跳过入场/减弱/重播）通过。答案区域无SOLVED遮挡，主题记忆/#1和旧#4/#8回1正常；中文截图正常，全部请求仅预览前缀GET，0 API/正式资源请求。UID60001新树/元数据/证据及记录7423项读写/目录CRUD通过，证据ew034-motion-preview-r3/；首轮脚本减弱检查对象错误已校正，产品未改。Claude第三轮公网复核6593afa5通过：1366亮/390亮/320暗三组页面与模拟流程、资源版本/缓存、无溢出错误及仅预览GET均正常，已交用户；前两轮双方通过历史保留，用户筛选不代写。
@@ -180,7 +180,7 @@
 
 - EW-034第三轮914ad02已发布，双方公网检查通过，已交用户查看扩充后的1号战术终端。用户要求9号保存不改，其他方向暂留；后续仍工作分支预览。正式工具改版/真实排行接口不在本轮，旧样张继续410。
 
-- EW-035第九版376c38b已部署，两私图128布局、22+2模拟已完成、HTTP隔离及指定说明/正反向倒放验证通过，但EW035-R9-SHORT-SCROLL（390×620气球标题被固定导航遮住）未解决；用户偏好B，开关暂留，整体和暂译用词待本人确认。正式前删临时开关/模块，正式站旧SuccessReveal问题未另行修补。按安排不通知Claude，不正式发布/合预览源码；回滚仅terminal current回653012e，旧release/482资产保持。盘余约6.33GB，未清理历史树/镜像/证据。
+- EW-035第十版5a2a4c5已部署，真实接口与8次指定短屏复验通过，旧遮挡本轮未复现；前端动效由Claude自审自测，双方不以交叉复审为完成条件。已按用户要求删除A/B开关/模块，整体和暂译用词待本人确认。按安排不通知Claude，不正式发布/合预览源码；回滚仅terminal current回376c38b，旧release/491资产保持。盘余约6.18GB，未清理历史树/镜像/证据。
 
 - EW-021已由用户于2026-10-14决定暂缓；恢复调查后，如无VPN再次无法连接，收集Edge Network等待/失败请求与Console错误，继续区分连接线路、DNS/代理及浏览器网络状态。
 
